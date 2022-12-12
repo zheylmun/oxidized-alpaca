@@ -11,9 +11,12 @@ const LIVE_KEY_ID_ENV: &str = "ALPACA_LIVE_API_KEY_ID";
 /// The environment variable containing the Alpaca live account secret key.
 const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_SECRET_KEY";
 
+/// The type of Alpaca account.
 #[derive(Debug, Eq, PartialEq)]
 pub enum AlpacaAccountType {
+    /// Paper trading account.
     Paper,
+    /// Live trading account.
     Live,
 }
 
