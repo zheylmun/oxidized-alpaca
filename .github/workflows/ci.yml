@@ -23,7 +23,8 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test
+      - run: cargo test env
+      - run: cargo test -- --skip env
 
   build:
     name: Build
