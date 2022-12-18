@@ -14,6 +14,9 @@ jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
+    env:
+      ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
+      ALPACA_PAPER_SECRET_KEY: ${{ secrets.ALPACA_PAPER_SECRET_KEY }}
     steps:
       - uses: actions/checkout@v3
       - uses: actions-rs/toolchain@v1
