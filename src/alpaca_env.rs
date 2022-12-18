@@ -5,11 +5,11 @@ use std::env;
 /// The environment variable containing the Alpaca paper account key ID.
 const PAPER_KEY_ID_ENV: &str = "ALPACA_PAPER_API_KEY_ID";
 /// The environment variable containing the Alpaca paper account secret key.
-const PAPER_SECRET_KEY_ENV: &str = "ALPACA_PAPER_SECRET_KEY";
+const PAPER_SECRET_KEY_ENV: &str = "ALPACA_PAPER_API_SECRET_KEY";
 /// The environment variable containing the Alpaca live account key ID.
 const LIVE_KEY_ID_ENV: &str = "ALPACA_LIVE_API_KEY_ID";
 /// The environment variable containing the Alpaca live account secret key.
-const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_SECRET_KEY";
+const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
 
 /// The type of Alpaca account.
 #[derive(Debug, Eq, PartialEq)]
