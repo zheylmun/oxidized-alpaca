@@ -11,6 +11,7 @@ const LIVE_KEY_ID_ENV: &str = "ALPACA_LIVE_API_KEY_ID";
 /// The environment variable containing the Alpaca live account secret key.
 const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_SECRET_KEY";
 
+#[derive(Debug, Eq, PartialEq)]
 pub enum AlpacaAccountType {
     Paper,
     Live,
@@ -44,36 +45,64 @@ impl AlpacaEnv {
 mod tests {
 
     use super::*;
+    use serial_test::serial;
+    fn set_paper_vars() {
+        env::set_var(PAPER_KEY_ID_ENV, "test_paper_key_id");
+        env::set_var(PAPER_SECRET_KEY_ENV, "test_paper_secret_key");
+    }
 
-    #[test]
-    fn test_env_correct() {
-        AlpacaEnv::new(AlpacaAccountType::Paper);
+    fn set_live_vars() {
+        env::set_var(LIVE_KEY_ID_ENV, "test_live_key_id");
+        env::set_var(LIVE_SECRET_KEY_ENV, "test_live_secret_key");
     }
 
     #[test]
+    #[serial]
+    fn test_env_correct() {
+        set_paper_vars();
+        let alpaca_env = AlpacaEnv::new(AlpacaAccountType::Paper);
+        assert_eq!(alpaca_env.account_type, AlpacaAccountType::Paper);
+        assert_eq!(alpaca_env.key_id, "test_paper_key_id");
+        assert_eq!(alpaca_env.secret_key, "test_paper_secret_key");
+        set_live_vars();
+        let alpaca_env = AlpacaEnv::new(AlpacaAccountType::Live);
+        assert_eq!(alpaca_env.account_type, AlpacaAccountType::Live);
+        assert_eq!(alpaca_env.key_id, "test_live_key_id");
+        assert_eq!(alpaca_env.secret_key, "test_live_secret_key");
+    }
+
+    #[test]
+    #[serial]
     #[should_panic]
     fn test_paper_key_not_present() {
+        set_paper_vars();
         env::remove_var(PAPER_KEY_ID_ENV);
         AlpacaEnv::new(AlpacaAccountType::Paper);
     }
 
     #[test]
+    #[serial]
     #[should_panic]
     fn test_paper_secret_not_present() {
+        set_paper_vars();
         env::remove_var(PAPER_SECRET_KEY_ENV);
         AlpacaEnv::new(AlpacaAccountType::Paper);
     }
 
     #[test]
+    #[serial]
     #[should_panic]
     fn test_live_key_id_not_present() {
+        set_live_vars();
         env::remove_var(LIVE_KEY_ID_ENV);
         AlpacaEnv::new(AlpacaAccountType::Live);
     }
 
     #[test]
+    #[serial]
     #[should_panic]
     fn test_live_secret_key_not_present() {
+        set_live_vars();
         env::remove_var(LIVE_SECRET_KEY_ENV);
         AlpacaEnv::new(AlpacaAccountType::Live);
     }
