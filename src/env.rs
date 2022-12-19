@@ -93,7 +93,8 @@ mod tests {
     fn test_paper_key_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_KEY_ID_ENV);
-        let _ = Env::new(AccountType::Paper);
+        let env = Env::new(AccountType::Paper);
+        assert_eq!(env.account_type, AccountType::Paper);
     }
 
     #[test]
@@ -102,7 +103,8 @@ mod tests {
     fn test_paper_secret_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_SECRET_KEY_ENV);
-        let _ = Env::new(AccountType::Paper);
+        let env = Env::new(AccountType::Paper);
+        assert_eq!(env.account_type, AccountType::Paper);
     }
 
     #[test]
@@ -111,7 +113,8 @@ mod tests {
     fn test_live_key_id_not_present() {
         set_live_vars();
         env::remove_var(LIVE_KEY_ID_ENV);
-        let _ = Env::new(AccountType::Live);
+        let env = Env::new(AccountType::Live);
+        assert_eq!(env.account_type, AccountType::Live);
     }
 
     #[test]
@@ -120,6 +123,7 @@ mod tests {
     fn test_live_secret_key_not_present() {
         set_live_vars();
         env::remove_var(LIVE_SECRET_KEY_ENV);
-        let _ = Env::new(AccountType::Live);
+        let env = Env::new(AccountType::Live);
+        assert_eq!(env.account_type, AccountType::Live);
     }
 }
