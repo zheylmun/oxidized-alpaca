@@ -71,7 +71,7 @@ pub enum Adjustment {
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
-pub struct BarsRequest {
+pub struct Request {
     /// The symbol for which to retrieve market data.
     #[serde(skip)]
     pub symbol: String,
@@ -102,7 +102,6 @@ pub struct BarsRequest {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub page_token: Option<String>,
 }
-
 /// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -142,18 +141,27 @@ pub struct Bars {
 }
 
 impl Bars {
-    /// Gets the bars data for the BarsRequest
+    /// Gets the bars data for the Request
     ///
     /// # Example
     ///
-    /// To get the bars for AAPL from 2021-11-01 to 2021-11-31:
+    /// To get the bars for AAPL from 2021-11-01 to 2021-11-21:
     ///
-    /// ``` no run
-    /// let alpaca_env = env::Env::new(Paper);
+    /// ```no_run
+    /// use chrono::DateTime;
+    ///
+    /// use oxidized_alpaca::{
+    /// env::{AccountType, Env},
+    /// market_data::bars::{Request, TimeFrame},
+    /// rest_client::RestClient,
+    /// };
+    /// use std::str::FromStr;
+    ///
+    /// let alpaca_env = Env::new(AccountType::Paper);
     /// let client = RestClient::new(alpaca_env);
     /// let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-    /// let end = DateTime::from_str("2021-11-31T00:00:00Z").unwrap();
-    /// let request = BarsRequest {
+    /// let end = DateTime::from_str("2021-11-21T00:00:00Z").unwrap();
+    /// let request = Request {
     ///     symbol: "AAPL".to_string(),
     ///     timeframe: TimeFrame::OneDay,
     ///     limit: None,
@@ -164,7 +172,9 @@ impl Bars {
     ///     page_token: None,
     /// };
     /// ```
-    pub async fn get(client: &RestClient, request: &BarsRequest) -> Self {
+    /// # Panics
+    /// Temp, will be changed to return a Result
+    pub async fn get(client: &RestClient, request: &Request) -> Self {
         let path = format!("v2/stocks/{}/bars", request.symbol);
         let request = client
             .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
@@ -193,7 +203,7 @@ mod tests {
         let client = RestClient::new(env);
         let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-        let request = BarsRequest {
+        let request = Request {
             symbol: "AAPL".to_string(),
             timeframe: TimeFrame::OneDay,
             limit: None,
