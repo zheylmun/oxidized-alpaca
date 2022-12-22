@@ -69,38 +69,99 @@ pub enum Adjustment {
 }
 
 /// A request for /v2/stocks/{symbol}/bars
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Serialize)]
+#[must_use]
 #[serde(rename_all = "snake_case")]
 pub struct Request {
+    /// The `RestClient` to use.
+    #[serde(skip)]
+    rest_client: RestClient,
     /// The symbol for which to retrieve market data.
     #[serde(skip)]
-    pub symbol: String,
+    symbol: String,
     /// The time frame for the bars.
-    pub timeframe: TimeFrame,
+    #[serde(rename = "timeframe")]
+    time_frame: TimeFrame,
     /// The maximum number of bars to be returned for each symbol.
     ///
     /// It can be between 1 and 10000. Defaults to 1000 if the provided
     /// value is None.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub limit: Option<usize>,
+    limit: Option<usize>,
     /// Filter bars equal to or after this time.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub start: Option<DateTime<Utc>>,
+    start: Option<DateTime<Utc>>,
     /// Filter bars equal to or before this time.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub end: Option<DateTime<Utc>>,
+    end: Option<DateTime<Utc>>,
     /// The adjustment to use (defaults to raw)
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub adjustment: Option<Adjustment>,
+    adjustment: Option<Adjustment>,
     /// The data feed to use.
     ///
     /// Defaults to [`IEX`][Feed::IEX] for free users and
     /// [`SIP`][Feed::SIP] for users with an unlimited subscription.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub feed: Option<Feed>,
+    feed: Option<Feed>,
     /// If provided we will pass a page token to continue where we left off.
     #[serde(skip_serializing_if = "Option::is_none")]
-    pub page_token: Option<String>,
+    page_token: Option<String>,
+}
+
+impl Request {
+    /// Create a new request for market data bars with the given `RestClient`
+    pub fn new(client: RestClient, symbol: &str, time_frame: TimeFrame) -> Self {
+        Self {
+            rest_client: client,
+            symbol: symbol.to_string(),
+            time_frame,
+            limit: None,
+            start: None,
+            end: None,
+            adjustment: None,
+            feed: None,
+            page_token: None,
+        }
+    }
+
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub fn start(mut self, start: DateTime<Utc>) -> Self {
+        self.start = Some(start);
+        self
+    }
+
+    pub fn end(mut self, end: DateTime<Utc>) -> Self {
+        self.end = Some(end);
+        self
+    }
+
+    pub fn adjustment(mut self, adjustment: Adjustment) -> Self {
+        self.adjustment = Some(adjustment);
+        self
+    }
+
+    pub fn feed(mut self, feed: Feed) -> Self {
+        self.feed = Some(feed);
+        self
+    }
+    /// Attempt to execute the configured request
+    /// # Panics
+    /// TEMP: This function will panic if the request fails.
+    pub async fn execute(self) -> Vec<Bar> {
+        let path = format!("v2/stocks/{}/bars", self.symbol);
+        let request = self
+            .rest_client
+            .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
+            .query(&self);
+        let response = request.send().await.unwrap();
+
+        let response = response.json::<Bars>().await.unwrap();
+        response.bars
+    }
 }
 /// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -130,7 +191,7 @@ impl Eq for Bar {}
 
 /// A collection of bars as returned by the API. This is one page of bars.
 #[derive(Debug, Deserialize, Eq, PartialEq)]
-pub struct Bars {
+struct Bars {
     /// The list of returned bars.
     #[serde(default, deserialize_with = "null_def_vec")]
     pub bars: Vec<Bar>,
@@ -140,80 +201,26 @@ pub struct Bars {
     pub next_page_token: Option<String>,
 }
 
-impl Bars {
-    /// Gets the bars data for the Request
-    ///
-    /// # Example
-    ///
-    /// To get the bars for AAPL from 2021-11-01 to 2021-11-21:
-    ///
-    /// ```no_run
-    /// use chrono::DateTime;
-    ///
-    /// use oxidized_alpaca::{
-    /// env::{AccountType, Env},
-    /// market_data::bars::{Request, TimeFrame},
-    /// rest_client::RestClient,
-    /// };
-    /// use std::str::FromStr;
-    ///
-    /// let alpaca_env = Env::new(AccountType::Paper);
-    /// let client = RestClient::new(alpaca_env);
-    /// let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-    /// let end = DateTime::from_str("2021-11-21T00:00:00Z").unwrap();
-    /// let request = Request {
-    ///     symbol: "AAPL".to_string(),
-    ///     timeframe: TimeFrame::OneDay,
-    ///     limit: None,
-    ///     start: Some(start),
-    ///     end: Some(end),
-    ///     adjustment: None,
-    ///     feed: None,
-    ///     page_token: None,
-    /// };
-    /// ```
-    /// # Panics
-    /// Temp, will be changed to return a Result
-    pub async fn get(client: &RestClient, request: &Request) -> Self {
-        let path = format!("v2/stocks/{}/bars", request.symbol);
-        let request = client
-            .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
-            .query(&request);
-        let response = request.send().await.unwrap();
-
-        assert!(response.status().is_success());
-        //let text = response.text().await.unwrap();
-        //print!("{}", text);
-        response.json::<Bars>().await.unwrap()
-    }
-}
 #[cfg(test)]
 mod tests {
     use super::*;
     use serial_test::serial;
     use std::str::FromStr as _;
 
-    use crate::env::{AccountType, Env};
+    use crate::AccountType;
 
     /// Check that we can decode a response containing no bars correctly.
     #[tokio::test]
     #[serial]
     async fn no_bars() {
-        let env = Env::new(AccountType::Paper);
-        let client = RestClient::new(env);
+        let client = RestClient::new(AccountType::Paper);
         let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-        let request = Request {
-            symbol: "AAPL".to_string(),
-            timeframe: TimeFrame::OneDay,
-            limit: None,
-            start: Some(start),
-            end: Some(end),
-            adjustment: None,
-            feed: None,
-            page_token: None,
-        };
-        let res = Bars::get(&client, &request).await;
-        assert_eq!(res.bars, vec![]);
+        let request = Request::new(client, "AAPL", TimeFrame::OneDay)
+            .start(start)
+            .end(end);
+
+        let res = request.execute().await;
+        assert_eq!(res, vec![]);
     }
 }

@@ -1,6 +1,6 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 
-use crate::env::Env;
+use crate::{env::Env, AccountType};
 
 pub struct RestClient {
     env: Env,
@@ -9,9 +9,9 @@ pub struct RestClient {
 
 impl RestClient {
     #[must_use]
-    pub fn new(env: Env) -> RestClient {
+    pub fn new(account_type: AccountType) -> RestClient {
         RestClient {
-            env,
+            env: Env::new(account_type),
             client: Client::new(),
         }
     }
@@ -20,7 +20,7 @@ impl RestClient {
         let url = Url::parse(host).unwrap().join(path).unwrap();
         self.client
             .request(method, url)
-            .header("APCA-API-KEY-ID", self.env.key_id.clone())
-            .header("APCA-API-SECRET-KEY", self.env.secret_key.clone())
+            .header("APCA-API-KEY-ID", &self.env.key_id)
+            .header("APCA-API-SECRET-KEY", &self.env.secret_key)
     }
 }
