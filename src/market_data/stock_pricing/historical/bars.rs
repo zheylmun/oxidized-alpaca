@@ -184,7 +184,7 @@ mod tests {
             close: 146.63,
             high: 150.9199,
             low: 145.77,
-            volume: 68826442,
+            volume: 68_826_442,
         };
         assert!(res.is_ok());
         let res = res.unwrap();

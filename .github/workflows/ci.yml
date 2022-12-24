@@ -6,14 +6,12 @@ on:
 permissions:
   contents: read
 
-env:
-  RUSTFLAGS: -Cinstrument-coverage -Dwarnings
-
 jobs:
   test:
     name: Tests
     runs-on: ubuntu-latest
     env:
+      RUSTFLAGS: -Cinstrument-coverage -Dwarnings
       ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
       ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
 
