@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       RUSTFLAGS: -Cinstrument-coverage -Dwarnings
+      LLVM_PROFILE_FILE: target/cov/%p-%m.profraw
       ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
       ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
 
