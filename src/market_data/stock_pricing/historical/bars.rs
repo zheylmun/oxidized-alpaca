@@ -1,7 +1,12 @@
-use crate::{rest_client::RestClient, utils::null_def_vec};
+use crate::{
+    error::{ReqwestDeserializeSnafu, ReqwestSendSnafu, Result},
+    rest_client::RestClient,
+    utils::null_def_vec,
+};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
+use snafu::ResultExt;
 
 use super::{Adjustment, Bar, Feed, TimeFrame};
 
@@ -48,6 +53,10 @@ pub struct Request {
 impl Request {
     /// Create a new request for market data bars`RestClient`
     ///
+    /// # Arguments
+    /// * `client` - The `RestClient` to use.
+    /// * `symbol` - The symbol for which to retrieve market data.
+    /// * `time_frame` - The time frame for the bars.
     pub fn new(client: RestClient, symbol: &str, time_frame: TimeFrame) -> Self {
         Self {
             rest_client: client,
@@ -95,16 +104,28 @@ impl Request {
     /// Attempt to execute the configured request
     /// # Panics
     /// TEMP: This function will panic if the request fails.
-    pub async fn execute(self) -> Vec<Bar> {
+    pub async fn execute(mut self) -> Result<Vec<Bar>> {
+        let mut response = self.internal_execute().await?;
+        let mut results = response.bars;
+        while response.next_page_token.is_some() {
+            self.page_token = response.next_page_token;
+            response = self.internal_execute().await?;
+            results.extend(response.bars);
+        }
+        Ok(results)
+    }
+
+    async fn internal_execute(&self) -> Result<Bars> {
         let path = format!("v2/stocks/{}/bars", self.symbol);
         let request = self
             .rest_client
             .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
             .query(&self);
-        let response = request.send().await.unwrap();
-
-        let response = response.json::<Bars>().await.unwrap();
-        response.bars
+        let response = request.send().await.context(ReqwestSendSnafu {})?;
+        response
+            .json::<Bars>()
+            .await
+            .context(ReqwestDeserializeSnafu {})
     }
 }
 
@@ -133,13 +154,40 @@ mod tests {
     #[serial]
     async fn no_bars() {
         let client = RestClient::new(AccountType::Paper).unwrap();
-        let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
-        let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
+        let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
+        let end = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
+        let request = Request::new(client, "META", TimeFrame::OneDay)
+            .start(start)
+            .end(end);
+
+        let res = request.execute().await;
+        assert_eq!(res.unwrap(), vec![]);
+    }
+
+    /// Check that we can decode a response containing one bar correctly.
+    #[tokio::test]
+    #[serial]
+    async fn one_bar() {
+        let client = RestClient::new(AccountType::Paper).unwrap();
+        let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
+        let end = DateTime::from_str("2022-12-06T00:00:00Z").unwrap();
         let request = Request::new(client, "AAPL", TimeFrame::OneDay)
             .start(start)
             .end(end);
 
         let res = request.execute().await;
-        assert_eq!(res, vec![]);
+        let expected = Bar {
+            time: DateTime::from_str("2022-12-05T05:00:00Z").unwrap(),
+            open: 147.77,
+            close: 146.63,
+            high: 150.9199,
+            low: 145.77,
+            volume: 68826442,
+        };
+        println!("{:?}", res);
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res.len(), 1);
+        assert_eq!(res[0], expected);
     }
 }

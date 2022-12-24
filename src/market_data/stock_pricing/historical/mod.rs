@@ -69,7 +69,7 @@ pub enum Adjustment {
     /// All available corporate adjustments.
     All,
 }
-/// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
+/// A market data bar as returned by one of the bars endpoints.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
 pub struct Bar {
