@@ -102,8 +102,10 @@ impl Request {
     }
 
     /// Attempt to execute the configured request
-    /// # Panics
-    /// TEMP: This function will panic if the request fails.
+    ///
+    /// # Errors
+    /// - Returns a [`ReqwestSendSnafu`] if the rest request fails.
+    /// - Returns a [`ReqwestDeserializeSnafu`] if the response cannot be parsed
     pub async fn execute(mut self) -> Result<Vec<Bar>> {
         let mut response = self.internal_execute().await?;
         let mut results = response.bars;
@@ -184,10 +186,48 @@ mod tests {
             low: 145.77,
             volume: 68826442,
         };
-        println!("{:?}", res);
         assert!(res.is_ok());
         let res = res.unwrap();
         assert_eq!(res.len(), 1);
         assert_eq!(res[0], expected);
+    }
+
+    /// Check that we can get a response containing several bars correctly.
+    #[tokio::test]
+    #[serial]
+    async fn some_bars() {
+        let client = RestClient::new(AccountType::Paper).unwrap();
+        let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
+        let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
+        let request = Request::new(client, "NFLX", TimeFrame::OneDay)
+            .start(start)
+            .end(end)
+            .adjustment(Adjustment::All);
+
+        let res = request.execute().await;
+
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res.len(), 15);
+    }
+
+    /// Check that we can get a request requiring multiple pages of data successfully.
+    #[tokio::test]
+    #[serial]
+    async fn lots_of_bars() {
+        let client = RestClient::new(AccountType::Paper).unwrap();
+        let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
+        let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
+        let request = Request::new(client, "GOOGL", TimeFrame::OneDay)
+            .start(start)
+            .end(end)
+            .feed(Feed::IEX)
+            .limit(50);
+
+        let res = request.execute().await;
+
+        assert!(res.is_ok());
+        let res = res.unwrap();
+        assert_eq!(res.len(), 266);
     }
 }
