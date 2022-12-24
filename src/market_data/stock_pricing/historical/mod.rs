@@ -1,4 +1,5 @@
-use serde::Serialize;
+use chrono::{DateTime, Utc};
+use serde::{Deserialize, Serialize};
 
 pub mod bars;
 
@@ -68,3 +69,28 @@ pub enum Adjustment {
     /// All available corporate adjustments.
     All,
 }
+/// A market data bar as returned by the /v2/stocks/<symbol>/bars endpoint.
+#[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
+pub struct Bar {
+    /// The beginning time of this bar.
+    #[serde(rename = "t")]
+    pub time: DateTime<Utc>,
+    /// The open price.
+    #[serde(rename = "o")]
+    pub open: f64,
+    /// The close price.
+    #[serde(rename = "c")]
+    pub close: f64,
+    /// The highest price.
+    #[serde(rename = "h")]
+    pub high: f64,
+    /// The lowest price.
+    #[serde(rename = "l")]
+    pub low: f64,
+    /// The trading volume.
+    #[serde(rename = "v")]
+    pub volume: usize,
+}
+
+impl Eq for Bar {}
