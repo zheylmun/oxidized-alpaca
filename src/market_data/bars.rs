@@ -213,7 +213,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn no_bars() {
-        let client = RestClient::new(AccountType::Paper);
+        let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2021-11-05T00:00:00Z").unwrap();
         let request = Request::new(client, "AAPL", TimeFrame::OneDay)

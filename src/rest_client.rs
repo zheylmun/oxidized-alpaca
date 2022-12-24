@@ -1,6 +1,6 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 
-use crate::{env::Env, AccountType};
+use crate::{env::Env, error::Result, AccountType};
 
 pub struct RestClient {
     env: Env,
@@ -9,11 +9,12 @@ pub struct RestClient {
 
 impl RestClient {
     #[must_use]
-    pub fn new(account_type: AccountType) -> RestClient {
-        RestClient {
-            env: Env::new(account_type),
+    pub fn new(account_type: AccountType) -> Result<RestClient> {
+        let env = Env::new(account_type)?;
+        Ok(RestClient {
+            env,
             client: Client::new(),
-        }
+        })
     }
 
     pub(crate) fn request(&self, method: Method, host: &str, path: &str) -> RequestBuilder {
