@@ -22,14 +22,14 @@ jobs:
         with:
           toolchain: stable
       - uses: Swatinem/rust-cache@v2
+      - run: cargo test env
+      - run: cargo test -- --skip env
+      - run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/cov/tests.lcov
       - uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
           files: ./target/cov/tests.lcov # optional
           fail_ci_if_error: true
-      - run: cargo test env
-      - run: cargo test -- --skip env
-      - run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/cov/tests.lcov
   build:
     name: Build
     runs-on: ubuntu-latest
