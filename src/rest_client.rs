@@ -8,7 +8,11 @@ pub struct RestClient {
 }
 
 impl RestClient {
-    #[must_use]
+    /// Create a new [`RestClient`] instance with the given [`AccountType`]
+    ///
+    /// # Errors
+    ///
+    /// - This function will return an error if the required environment variables are not set
     pub fn new(account_type: AccountType) -> Result<RestClient> {
         let env = Env::new(account_type)?;
         Ok(RestClient {

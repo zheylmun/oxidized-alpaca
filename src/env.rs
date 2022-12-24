@@ -28,7 +28,6 @@ pub(crate) struct Env {
 
 impl Env {
     /// Attempt to create a new `Env` instance with the given [`AccountType`]
-    #[must_use]
     pub(crate) fn new(account_type: AccountType) -> Result<Env> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),

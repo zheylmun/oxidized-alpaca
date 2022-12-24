@@ -1,6 +1,6 @@
 use snafu::Snafu;
 
-#[derive(Debug, PartialEq, Snafu)]
+#[derive(Debug, Eq, PartialEq, Snafu)]
 #[snafu(visibility(pub(crate)))]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
