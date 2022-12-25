@@ -11,7 +11,7 @@ use snafu::ResultExt;
 use super::{Adjustment, Bar, Feed, TimeFrame};
 
 /// A request for /v2/stocks/{symbol}/bars
-#[derive(Serialize)]
+#[derive(Debug, Serialize)]
 #[must_use]
 #[serde(rename_all = "snake_case")]
 pub struct Request {
@@ -106,6 +106,7 @@ impl Request {
     /// # Errors
     /// - Returns a [`ReqwestSendSnafu`] if the rest request fails.
     /// - Returns a [`ReqwestDeserializeSnafu`] if the response cannot be parsed
+    #[tracing::instrument]
     pub async fn execute(mut self) -> Result<Vec<Bar>> {
         let mut response = self.internal_execute().await?;
         let mut results = response.bars;
@@ -116,7 +117,7 @@ impl Request {
         }
         Ok(results)
     }
-
+    #[tracing::instrument]
     async fn internal_execute(&self) -> Result<Bars> {
         let path = format!("v2/stocks/{}/bars", self.symbol);
         let request = self

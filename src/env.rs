@@ -1,6 +1,6 @@
-//! The `Env` module loads and stores the required information about the Alpaca Environment
+//! The `Env` module loads and stores required information about the Alpaca Environment
 
-use std::env;
+use std::{env, fmt};
 
 use snafu::ResultExt;
 
@@ -40,6 +40,16 @@ impl Env {
             variable_name: env_keys.1.to_string(),
         })?;
         Ok(Env { key_id, secret_key })
+    }
+}
+
+/// Don't print the secrets to logs on accident
+impl fmt::Debug for Env {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        f.debug_struct("Env")
+            .field("key_id", &"***")
+            .field("secret_key", &"***")
+            .finish()
     }
 }
 

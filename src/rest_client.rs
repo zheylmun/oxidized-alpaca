@@ -2,6 +2,7 @@ use reqwest::{Client, Method, RequestBuilder, Url};
 
 use crate::{env::Env, error::Result, AccountType};
 
+#[derive(Debug)]
 pub struct RestClient {
     env: Env,
     client: Client,
