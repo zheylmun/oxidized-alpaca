@@ -156,7 +156,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn no_bars() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
+        let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let request = Request::new(client, "META", TimeFrame::OneDay)
@@ -171,7 +171,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn one_bar() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
+        let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-06T00:00:00Z").unwrap();
         let request = Request::new(client, "AAPL", TimeFrame::OneDay)
@@ -197,7 +197,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn some_bars() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
+        let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
         let request = Request::new(client, "NFLX", TimeFrame::OneDay)
@@ -216,7 +216,7 @@ mod tests {
     #[tokio::test]
     #[serial]
     async fn lots_of_bars() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
+        let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
         let request = Request::new(client, "GOOGL", TimeFrame::OneDay)

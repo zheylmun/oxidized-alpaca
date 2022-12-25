@@ -28,7 +28,7 @@ pub(crate) struct Env {
 
 impl Env {
     /// Attempt to create a new `Env` instance with the given [`AccountType`]
-    pub(crate) fn new(account_type: AccountType) -> Result<Env> {
+    pub(crate) fn new(account_type: &AccountType) -> Result<Env> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),
             AccountType::Live => (LIVE_KEY_ID_ENV, LIVE_SECRET_KEY_ENV),
@@ -76,11 +76,12 @@ mod tests {
     #[serial]
     fn test_env_correct() {
         set_paper_vars();
-        let alpaca_env = Env::new(AccountType::Paper).unwrap();
+        let alpaca_env = Env::new(&AccountType::Paper).unwrap();
+        println!("{alpaca_env:?}");
         assert_eq!(alpaca_env.key_id, PAPER_ID);
         assert_eq!(alpaca_env.secret_key, PAPER_SECRET);
         set_live_vars();
-        let alpaca_env = Env::new(AccountType::Live).unwrap();
+        let alpaca_env = Env::new(&AccountType::Live).unwrap();
         assert_eq!(alpaca_env.key_id, LIVE_ID);
         assert_eq!(alpaca_env.secret_key, LIVE_SECRET);
     }
@@ -90,7 +91,7 @@ mod tests {
     fn test_paper_key_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_KEY_ID_ENV);
-        let res = Env::new(AccountType::Paper);
+        let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
     }
 
@@ -99,7 +100,7 @@ mod tests {
     fn test_paper_secret_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_SECRET_KEY_ENV);
-        let res = Env::new(AccountType::Paper);
+        let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
     }
 
@@ -108,7 +109,7 @@ mod tests {
     fn test_live_key_id_not_present() {
         set_live_vars();
         env::remove_var(LIVE_KEY_ID_ENV);
-        let res = Env::new(AccountType::Live);
+        let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
     }
 
@@ -117,7 +118,7 @@ mod tests {
     fn test_live_secret_key_not_present() {
         set_live_vars();
         env::remove_var(LIVE_SECRET_KEY_ENV);
-        let res = Env::new(AccountType::Live);
+        let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
     }
 }

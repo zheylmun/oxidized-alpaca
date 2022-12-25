@@ -14,7 +14,7 @@ impl RestClient {
     /// # Errors
     ///
     /// - This function will return an error if the required environment variables are not set
-    pub fn new(account_type: AccountType) -> Result<RestClient> {
+    pub fn new(account_type: &AccountType) -> Result<RestClient> {
         let env = Env::new(account_type)?;
         Ok(RestClient {
             env,
@@ -28,5 +28,18 @@ impl RestClient {
             .request(method, url)
             .header("APCA-API-KEY-ID", &self.env.key_id)
             .header("APCA-API-SECRET-KEY", &self.env.secret_key)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[tokio::test]
+    async fn test_client_creation() {
+        let client = RestClient::new(&AccountType::Paper);
+        assert!(client.is_ok());
+        print!("{:?}", client.unwrap());
     }
 }
