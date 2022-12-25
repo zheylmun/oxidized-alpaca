@@ -23,6 +23,8 @@ jobs:
           toolchain: stable
           components: llvm-tools-preview
       - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v2
       - run: cargo install grcov
       - run: just test
@@ -40,6 +42,8 @@ jobs:
         with:
           toolchain: stable
       - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v2
       - run: just build
 
@@ -52,6 +56,8 @@ jobs:
         with:
           toolchain: stable
       - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v2
       - run: just docs
 
@@ -64,5 +70,7 @@ jobs:
         with:
           toolchain: stable
       - uses: extractions/setup-just@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: Swatinem/rust-cache@v2
       - run: just lint 
