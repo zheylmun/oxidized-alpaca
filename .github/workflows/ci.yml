@@ -22,11 +22,10 @@ jobs:
         with:
           toolchain: stable
           components: llvm-tools-preview
+      - uses: extractions/setup-just@v1
       - uses: Swatinem/rust-cache@v2
       - run: cargo install grcov
-      - run: cargo test env
-      - run: cargo test -- --skip env
-      - run: grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/cov/tests.lcov
+      - run: just test
       - uses: codecov/codecov-action@v3
         with:
           token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
@@ -40,8 +39,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: extractions/setup-just@v1
       - uses: Swatinem/rust-cache@v2
-      - run: cargo check
+      - run: just build
 
   docs:
     name: Docs
@@ -51,9 +51,9 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: extractions/setup-just@v1
       - uses: Swatinem/rust-cache@v2
-      - run: cargo test --doc
-      - run: cargo doc
+      - run: just docs
 
   clippy:
     name: Clippy
@@ -63,5 +63,6 @@ jobs:
       - uses: actions-rs/toolchain@v1
         with:
           toolchain: stable
+      - uses: extractions/setup-just@v1
       - uses: Swatinem/rust-cache@v2
-      - run: cargo clippy --tests  -- -Dclippy::all -Dclippy::pedantic
+      - run: just lint 

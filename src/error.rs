@@ -2,7 +2,7 @@ use reqwest::Error as ReqwestError;
 use snafu::Snafu;
 
 #[derive(Debug, Snafu)]
-#[snafu(visibility(pub(crate)))]
+#[snafu(visibility(pub))]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
     ///
