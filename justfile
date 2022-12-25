@@ -1,3 +1,5 @@
+all: build docs lint test
+
 build:
     cargo check
 
