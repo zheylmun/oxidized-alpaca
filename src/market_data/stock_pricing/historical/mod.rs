@@ -11,13 +11,9 @@ pub(crate) const MARKET_DATA_REST_HOST: &str = "https://data.alpaca.markets/v2";
 pub enum Feed {
     /// Use the Investors Exchange (IEX) as the data source.
     ///
-    /// This feed is available unconditionally, i.e., with the free and
-    /// unlimited plans.
+    /// This feed is available to all accounts
     IEX,
-    /// Use CTA (administered by NYSE) and UTP (administered by Nasdaq)
-    /// SIPs as the data source.
-    ///
-    /// This feed is only usable with the unlimited market data plan.
+    /// This feed is only usable with the unlimited data plan
     SIP,
 }
 
