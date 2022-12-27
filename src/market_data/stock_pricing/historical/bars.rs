@@ -1,5 +1,6 @@
 use crate::{
     error::{ReqwestDeserializeSnafu, ReqwestSendSnafu, Result},
+    market_data::Feed,
     rest_client::RestClient,
     utils::null_def_vec,
 };
@@ -8,7 +9,7 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 use snafu::ResultExt;
 
-use super::{Adjustment, Bar, Feed, TimeFrame};
+use super::{Adjustment, Bar, TimeFrame};
 
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Debug, Serialize)]

@@ -5,18 +5,6 @@ pub mod bars;
 
 pub(crate) const MARKET_DATA_REST_HOST: &str = "https://data.alpaca.markets/v2";
 
-/// An enumeration of the different supported data feeds.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Feed {
-    /// Use the Investors Exchange (IEX) as the data source.
-    ///
-    /// This feed is available to all accounts
-    IEX,
-    /// This feed is only usable with the unlimited data plan
-    SIP,
-}
-
 /// Supported Time frames for bars
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum TimeFrame {
