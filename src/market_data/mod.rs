@@ -1,14 +1,30 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 pub mod stock_pricing;
 
-/// An enumeration of the different supported data feeds.
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum Feed {
-    /// Use the Investors Exchange (IEX) as the data source.
-    ///
-    /// This feed is available to all accounts
-    IEX,
-    /// This feed is only usable with the unlimited data plan
-    SIP,
+#[derive(Deserialize, Serialize)]
+pub struct SubscriptionList {
+    /// List of symbols for bars subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub bars: Option<Vec<String>>,
+    /// List of symbols for quotes subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub quotes: Option<Vec<String>>,
+    /// List of symbols for trades subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub trades: Option<Vec<String>>,
+    /// List of symbols for news subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub news: Option<Vec<String>>,
+}
+
+/// Streaming Authentication Message
+#[derive(Serialize)]
+#[serde(tag = "action")]
+pub enum Request {
+    #[serde(rename = "auth")]
+    AuthMessage { key: String, secret: String },
+    #[serde(rename = "subscribe")]
+    Subscribe(SubscriptionList),
+    #[serde(rename = "unsubscribe")]
+    Unsubscribe(SubscriptionList),
 }

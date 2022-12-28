@@ -14,13 +14,23 @@ use crate::{
     error::{Result, TungsteniteConnectionSnafu},
     AccountType,
 };
+pub struct SubscriptionList {
+    pub bars: Vec<String>,
+    pub quotes: Vec<String>,
+    pub trades: Vec<String>,
+}
 
 /// Streaming Authentication Message
 #[derive(Serialize)]
 #[serde(tag = "action")]
 pub enum Request {
     #[serde(rename = "auth")]
-    AuthMessage { key: String, secret: String },
+    AuthMessage {
+        key: String,
+        secret: String,
+    },
+    Subscribe(SubscriptionList),
+    Unsubscribe(SubscriptionList),
 }
 
 #[derive(Debug)]
@@ -116,5 +126,11 @@ impl StreamingClient {
         *shutdown = true;
 
         std::thread::sleep(std::time::Duration::from_millis(200));
+    }
+
+    pub fn send(&self, message: Message) {
+        if let Some(channel) = &self.send_channel {
+            channel.send(message).unwrap();
+        }
     }
 }
