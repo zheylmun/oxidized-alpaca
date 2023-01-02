@@ -11,14 +11,15 @@ pub async fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).unwrap();
     let mut client = StockDataClient::new(&AccountType::Paper, &Feed::SIP).unwrap();
-    let mut result = client.connect().await;
-    let mut handled = 0;
-    while handled < 2 {
-        let message = result.next().await;
-        println!("Message: {:?}", message);
-        handled += 1;
+    {
+        let mut result = client.connect().await;
+        let mut handled = 0;
+        while handled < 2 {
+            let message = result.next().await;
+            println!("Message: {:?}", message);
+            handled += 1;
+        }
     }
-
     client.shutdown();
     println!("Done!");
 }

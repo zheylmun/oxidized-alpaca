@@ -1,6 +1,5 @@
 use futures::{future, Stream};
 use futures_util::{SinkExt, StreamExt};
-use serde::Serialize;
 use snafu::ResultExt;
 use std::sync::{
     mpsc::{self, Sender},
@@ -14,28 +13,10 @@ use crate::{
     error::{Result, TungsteniteConnectionSnafu},
     AccountType,
 };
-pub struct SubscriptionList {
-    pub bars: Vec<String>,
-    pub quotes: Vec<String>,
-    pub trades: Vec<String>,
-}
-
-/// Streaming Authentication Message
-#[derive(Serialize)]
-#[serde(tag = "action")]
-pub enum Request {
-    #[serde(rename = "auth")]
-    AuthMessage {
-        key: String,
-        secret: String,
-    },
-    Subscribe(SubscriptionList),
-    Unsubscribe(SubscriptionList),
-}
 
 #[derive(Debug)]
 pub struct StreamingClient {
-    env: Env,
+    pub(crate) env: Env,
     pub url: url::Url,
     send_channel: Option<Sender<Message>>,
     shutdown_signal: Arc<Mutex<bool>>,
@@ -60,6 +41,7 @@ impl StreamingClient {
     }
 
     /// Initialize the websocket connection
+    #[tracing::instrument]
     pub(crate) async fn connect(&mut self) -> impl Stream<Item = String> {
         let (socket, response) = connect_async(&self.url)
             .await
@@ -71,12 +53,7 @@ impl StreamingClient {
 
         let (tx, rx) = mpsc::channel();
         self.send_channel = Some(tx.clone());
-        let auth_request = Request::AuthMessage {
-            key: self.env.key_id.clone(),
-            secret: self.env.secret_key.clone(),
-        };
-        let auth_message = Message::Text(serde_json::to_string(&auth_request).unwrap());
-        tx.send(auth_message).unwrap();
+
         let shutdown = self.shutdown_signal.clone();
         tokio::spawn(async move {
             loop {

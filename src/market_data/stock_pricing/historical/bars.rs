@@ -1,6 +1,6 @@
 use crate::{
     error::{ReqwestDeserializeSnafu, ReqwestSendSnafu, Result},
-    market_data::Feed,
+    market_data::stock_pricing::streaming::Feed,
     rest_client::RestClient,
     utils::null_def_vec,
 };
