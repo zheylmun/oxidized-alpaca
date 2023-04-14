@@ -1,6 +1,9 @@
 use futures_util::StreamExt;
 use oxidized_alpaca::{
-    market_data::stock_pricing::streaming::{Feed, StockDataClient},
+    market_data::{
+        stock_pricing::streaming::{Feed, StockDataClient},
+        SubscriptionList,
+    },
     AccountType,
 };
 
@@ -10,16 +13,18 @@ pub async fn main() {
         .with_max_level(tracing::Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).unwrap();
-    let mut client = StockDataClient::new(&AccountType::Paper, &Feed::SIP).unwrap();
-    {
-        let mut result = client.connect().await;
-        let mut handled = 0;
-        while handled < 2 {
-            let message = result.next().await;
-            println!("Message: {:?}", message);
-            handled += 1;
-        }
+
+    let (mut sub, mut stream) = StockDataClient::connect(AccountType::Paper, Feed::SIP).await;
+    let subscriptions = SubscriptionList::new()
+        .add_quotes("BTC/USD")
+        .add_trades("BTC/USD");
+    sub.subscribe(subscriptions);
+    let mut handled = 0;
+    while handled < 5 {
+        let message = stream.next().await;
+        println!("Message: {:?}", message);
+        handled += 1;
     }
-    client.shutdown();
+    sub.shutdown();
     println!("Done!");
 }
