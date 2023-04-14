@@ -44,45 +44,45 @@ pub enum Error {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Quote {
     #[serde(rename = "S")]
-    Symbol: String,
+    symbol: String,
     #[serde(rename = "ax")]
-    AskExchange: Option<String>,
+    ask_exchange: Option<String>,
     #[serde(rename = "ap")]
-    AskPrice: f64,
+    ask_price: f64,
     #[serde(rename = "as")]
-    AskSize: f64,
+    ask_size: f64,
     #[serde(rename = "bx")]
-    BidExchange: Option<String>,
+    bid_exchange: Option<String>,
     #[serde(rename = "bp")]
-    bidPrice: f64,
+    bid_price: f64,
     #[serde(rename = "bs")]
-    bidSize: f64,
+    bid_size: f64,
     #[serde(rename = "s")]
-    TradeSize: Option<f64>,
+    trade_size: Option<f64>,
     #[serde(rename = "t")]
-    Timestamp: String,
+    timestamp: String,
     #[serde(rename = "z")]
-    Tape: Option<String>,
+    tape: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Trade {
     #[serde(rename = "S")]
-    Symbol: String,
+    symbol: String,
     #[serde(rename = "i")]
-    TradeId: i64,
+    trade_id: i64,
     #[serde(rename = "x")]
-    Exchange: Option<String>,
+    exchange: Option<String>,
     #[serde(rename = "p")]
-    Price: f64,
+    price: f64,
     #[serde(rename = "s")]
-    Size: f64,
+    size: f64,
     #[serde(rename = "t")]
-    Timestamp: String,
+    timestamp: String,
     #[serde(rename = "c")]
-    Conditions: Option<Vec<String>>,
+    conditions: Option<Vec<String>>,
     #[serde(rename = "z")]
-    Tape: Option<String>,
+    tape: Option<String>,
 }
 
 /// The following represent messages we can listen for
