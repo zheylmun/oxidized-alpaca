@@ -41,6 +41,50 @@ pub enum Error {
     AlreadyAuthorized,
 }
 
+#[derive(Clone, Debug, Deserialize)]
+pub struct Quote {
+    #[serde(rename = "S")]
+    Symbol: String,
+    #[serde(rename = "ax")]
+    AskExchange: Option<String>,
+    #[serde(rename = "ap")]
+    AskPrice: f64,
+    #[serde(rename = "as")]
+    AskSize: f64,
+    #[serde(rename = "bx")]
+    BidExchange: Option<String>,
+    #[serde(rename = "bp")]
+    bidPrice: f64,
+    #[serde(rename = "bs")]
+    bidSize: f64,
+    #[serde(rename = "s")]
+    TradeSize: Option<f64>,
+    #[serde(rename = "t")]
+    Timestamp: String,
+    #[serde(rename = "z")]
+    Tape: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct Trade {
+    #[serde(rename = "S")]
+    Symbol: String,
+    #[serde(rename = "i")]
+    TradeId: i64,
+    #[serde(rename = "x")]
+    Exchange: Option<String>,
+    #[serde(rename = "p")]
+    Price: f64,
+    #[serde(rename = "s")]
+    Size: f64,
+    #[serde(rename = "t")]
+    Timestamp: String,
+    #[serde(rename = "c")]
+    Conditions: Option<Vec<String>>,
+    #[serde(rename = "z")]
+    Tape: Option<String>,
+}
+
 /// The following represent messages we can listen for
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "T")]
@@ -54,6 +98,11 @@ pub enum StreamMessage {
 
     #[serde(rename = "subscription")]
     Subscription(SubscriptionList),
+
+    #[serde(rename = "t")]
+    Trade(Trade),
+    #[serde(rename = "q")]
+    Quote(Quote),
 }
 
 pub struct StockPricingSubscription {
