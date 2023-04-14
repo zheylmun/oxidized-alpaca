@@ -148,14 +148,14 @@ struct Bars {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use serial_test::serial;
+    use serial_test::parallel;
     use std::str::FromStr as _;
 
     use crate::AccountType;
 
     /// Check that we can decode a response containing no bars correctly.
     #[tokio::test]
-    #[serial]
+    #[parallel]
     async fn no_bars() {
         let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
@@ -170,7 +170,7 @@ mod tests {
 
     /// Check that we can decode a response containing one bar correctly.
     #[tokio::test]
-    #[serial]
+    #[parallel]
     async fn one_bar() {
         let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
@@ -196,7 +196,7 @@ mod tests {
 
     /// Check that we can get a response containing several bars correctly.
     #[tokio::test]
-    #[serial]
+    #[parallel]
     async fn some_bars() {
         let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
@@ -215,7 +215,7 @@ mod tests {
 
     /// Check that we can get a request requiring multiple pages of data successfully.
     #[tokio::test]
-    #[serial]
+    #[parallel]
     async fn lots_of_bars() {
         let client = RestClient::new(&AccountType::Paper).unwrap();
         let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
