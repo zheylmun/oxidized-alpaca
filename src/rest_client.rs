@@ -34,10 +34,13 @@ impl RestClient {
 #[cfg(test)]
 mod tests {
 
+    use serial_test::parallel;
+
     use super::*;
 
-    #[tokio::test]
-    async fn test_client_creation() {
+    #[test]
+    #[parallel]
+    fn test_client_creation() {
         let client = RestClient::new(&AccountType::Paper);
         assert!(client.is_ok());
         print!("{:?}", client.unwrap());

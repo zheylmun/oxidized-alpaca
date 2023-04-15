@@ -3,14 +3,18 @@ use crate::{
     streaming_client::StreamingClient,
     AccountType,
 };
-use futures::{future, Stream, StreamExt};
+use futures::{
+    future,
+    stream::{self, Unfold},
+    Stream, StreamExt,
+};
 use serde::{Deserialize, Serialize};
 
 pub(crate) const MARKET_DATA_STREAM_HOST: &str =
     "wss://stream.data.alpaca.markets/v1beta3/crypto/us";
 
 /// An enumeration of the different supported data feeds for streaming stock data
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Feed {
     /// Use the Investors Exchange (IEX) as the data source.
@@ -44,45 +48,45 @@ pub enum Error {
 #[derive(Clone, Debug, Deserialize)]
 pub struct Quote {
     #[serde(rename = "S")]
-    symbol: String,
+    pub symbol: String,
     #[serde(rename = "ax")]
-    ask_exchange: Option<String>,
+    pub ask_exchange: Option<String>,
     #[serde(rename = "ap")]
-    ask_price: f64,
+    pub ask_price: f64,
     #[serde(rename = "as")]
-    ask_size: f64,
+    pub ask_size: f64,
     #[serde(rename = "bx")]
-    bid_exchange: Option<String>,
+    pub bid_exchange: Option<String>,
     #[serde(rename = "bp")]
-    bid_price: f64,
+    pub bid_price: f64,
     #[serde(rename = "bs")]
-    bid_size: f64,
+    pub bid_size: f64,
     #[serde(rename = "s")]
-    trade_size: Option<f64>,
+    pub trade_size: Option<f64>,
     #[serde(rename = "t")]
-    timestamp: String,
+    pub timestamp: String,
     #[serde(rename = "z")]
-    tape: Option<String>,
+    pub tape: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize)]
 pub struct Trade {
     #[serde(rename = "S")]
-    symbol: String,
+    pub symbol: String,
     #[serde(rename = "i")]
-    trade_id: i64,
+    pub trade_id: i64,
     #[serde(rename = "x")]
-    exchange: Option<String>,
+    pub exchange: Option<String>,
     #[serde(rename = "p")]
-    price: f64,
+    pub price: f64,
     #[serde(rename = "s")]
-    size: f64,
+    pub size: f64,
     #[serde(rename = "t")]
-    timestamp: String,
+    pub timestamp: String,
     #[serde(rename = "c")]
-    conditions: Option<Vec<String>>,
+    pub conditions: Option<Vec<String>>,
     #[serde(rename = "z")]
-    tape: Option<String>,
+    pub tape: Option<String>,
 }
 
 /// The following represent messages we can listen for
@@ -138,12 +142,12 @@ impl StockDataClient {
             secret: streaming_client.env.secret_key.clone(),
         };
         streaming_client.send(auth_request);
+
         (
             StockPricingSubscription { streaming_client },
             stream.filter_map(|msg| {
                 println!("Received message: {:?}", msg);
                 let messages: Vec<StreamMessage> = serde_json::from_str(&msg).unwrap();
-
                 future::ready(Some(messages[0].clone()))
             }),
         )
@@ -155,9 +159,11 @@ mod tests {
     use super::*;
     use crate::AccountType;
     use futures::StreamExt;
+    use serial_test::parallel;
 
     /// Check that we can decode a response containing no bars correctly.
     #[tokio::test]
+    #[parallel]
     async fn ensure_connection() {
         let (mut subscription, mut stream) =
             StockDataClient::connect(AccountType::Paper, Feed::SIP).await;
