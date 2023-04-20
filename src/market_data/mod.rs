@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 pub mod stock_pricing;
+pub(crate) mod vexpand;
 
 /// All the possible market data types that can be subscribed to for streaming clients
 #[derive(Clone, Debug, Deserialize, Serialize)]

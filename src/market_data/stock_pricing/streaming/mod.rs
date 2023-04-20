@@ -3,11 +3,7 @@ use crate::{
     streaming_client::StreamingClient,
     AccountType,
 };
-use futures::{
-    future,
-    stream::{self, Unfold},
-    Stream, StreamExt,
-};
+use futures::{future, Stream, StreamExt};
 use serde::{Deserialize, Serialize};
 
 pub(crate) const MARKET_DATA_STREAM_HOST: &str =
