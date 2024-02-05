@@ -14,7 +14,9 @@ pub async fn main() {
         .finish();
     tracing::subscriber::set_global_default(subscriber).unwrap();
 
-    let (mut sub, mut stream) = StockDataClient::connect(AccountType::Paper, Feed::SIP).await;
+    let (mut sub, mut stream) = StockDataClient::connect(AccountType::Paper, Feed::SIP)
+        .await
+        .unwrap();
     let subscriptions = SubscriptionList::new()
         .add_quotes("BTC/USD")
         .add_trades("BTC/USD");

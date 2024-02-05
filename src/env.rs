@@ -2,12 +2,7 @@
 
 use std::{env, fmt};
 
-use snafu::ResultExt;
-
-use crate::{
-    error::{MissingEnvironmentVariableSnafu, Result},
-    AccountType,
-};
+use crate::{error::Error, AccountType};
 
 /// The environment variable containing the Alpaca paper account key ID
 const PAPER_KEY_ID_ENV: &str = "ALPACA_PAPER_API_KEY_ID";
@@ -28,16 +23,18 @@ pub(crate) struct Env {
 
 impl Env {
     /// Attempt to create a new `Env` instance with the given [`AccountType`]
-    pub(crate) fn new(account_type: &AccountType) -> Result<Env> {
+    pub(crate) fn new(account_type: &AccountType) -> Result<Env, Error> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),
             AccountType::Live => (LIVE_KEY_ID_ENV, LIVE_SECRET_KEY_ENV),
         };
-        let key_id = env::var(env_keys.0).context(MissingEnvironmentVariableSnafu {
+        let key_id = env::var(env_keys.0).map_err(|e| Error::MissingEnvironmentVariable {
             variable_name: env_keys.0.to_string(),
+            source: e,
         })?;
-        let secret_key = env::var(env_keys.1).context(MissingEnvironmentVariableSnafu {
+        let secret_key = env::var(env_keys.1).map_err(|e| Error::MissingEnvironmentVariable {
             variable_name: env_keys.1.to_string(),
+            source: e,
         })?;
         Ok(Env { key_id, secret_key })
     }

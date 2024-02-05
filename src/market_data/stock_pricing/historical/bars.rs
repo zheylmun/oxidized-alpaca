@@ -1,5 +1,5 @@
 use crate::{
-    error::{ReqwestDeserializeSnafu, ReqwestSendSnafu, Result},
+    error::{self, Error},
     market_data::stock_pricing::streaming::Feed,
     rest_client::RestClient,
     utils::null_def_vec,
@@ -7,7 +7,6 @@ use crate::{
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use snafu::ResultExt;
 
 use super::{Adjustment, Bar, TimeFrame};
 
@@ -108,7 +107,7 @@ impl Request {
     /// - Returns a [`ReqwestSendSnafu`] if the rest request fails.
     /// - Returns a [`ReqwestDeserializeSnafu`] if the response cannot be parsed
     #[tracing::instrument]
-    pub async fn execute(mut self) -> Result<Vec<Bar>> {
+    pub async fn execute(mut self) -> Result<Vec<Bar>, Error> {
         let mut response = self.internal_execute().await?;
         let mut results = response.bars;
         while response.next_page_token.is_some() {
@@ -119,17 +118,20 @@ impl Request {
         Ok(results)
     }
     #[tracing::instrument]
-    async fn internal_execute(&self) -> Result<Bars> {
+    async fn internal_execute(&self) -> Result<Bars, Error> {
         let path = format!("v2/stocks/{}/bars", self.symbol);
         let request = self
             .rest_client
             .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
             .query(&self);
-        let response = request.send().await.context(ReqwestSendSnafu {})?;
+        let response = request
+            .send()
+            .await
+            .map_err(|err| error::Error::ReqwestSend(err))?;
         response
             .json::<Bars>()
             .await
-            .context(ReqwestDeserializeSnafu {})
+            .map_err(|err| error::Error::ReqwestDeserialize(err))
     }
 }
 

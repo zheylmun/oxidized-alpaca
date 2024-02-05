@@ -1,6 +1,5 @@
 use futures::{future, Stream};
 use futures_util::{SinkExt, StreamExt};
-use snafu::ResultExt;
 use std::sync::{
     mpsc::{self, Sender},
     Arc, Mutex,
@@ -8,12 +7,7 @@ use std::sync::{
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use tracing::{event, Level};
 
-use crate::{
-    env::Env,
-    error::{Result, TungsteniteConnectionSnafu},
-    market_data::Request,
-    AccountType,
-};
+use crate::{env::Env, error::Error, market_data::Request, AccountType};
 
 #[derive(Debug)]
 pub struct StreamingClient {
@@ -30,9 +24,12 @@ impl StreamingClient {
     ///
     /// - This function will return an error if the required environment variables are not set
     #[tracing::instrument]
-    pub(crate) fn new(account_type: &AccountType, client_url: &str) -> Result<StreamingClient> {
+    pub(crate) fn new(
+        account_type: &AccountType,
+        client_url: &str,
+    ) -> Result<StreamingClient, Error> {
         let env = Env::new(account_type)?;
-        let url = url::Url::parse(client_url).unwrap();
+        let url = url::Url::parse(client_url).map_err(|e| Error::UrlParse(e))?;
         Ok(StreamingClient {
             env,
             url,
@@ -43,11 +40,10 @@ impl StreamingClient {
 
     /// Initialize the websocket connection
     #[tracing::instrument]
-    pub(crate) async fn connect(&mut self) -> impl Stream<Item = String> {
+    pub(crate) async fn connect(&mut self) -> Result<impl Stream<Item = String>, Error> {
         let (socket, response) = connect_async(&self.url)
             .await
-            .context(TungsteniteConnectionSnafu {})
-            .unwrap();
+            .map_err(|e| Error::TungsteniteConnection(e))?;
 
         assert_eq!(response.status(), 101);
         let (mut sink, source) = socket.split();
@@ -77,7 +73,7 @@ impl StreamingClient {
         // Next - set up our stream & remap stuff coming in
         let shutdown = self.shutdown_signal.clone();
 
-        source.filter_map(move |msg| {
+        let stream = source.filter_map(move |msg| {
             match msg.unwrap() {
                 Message::Ping(_) => {
                     tx.send(Message::Pong("pong".as_bytes().to_vec())).unwrap();
@@ -94,7 +90,8 @@ impl StreamingClient {
                 _ => {}
             };
             future::ready(None)
-        })
+        });
+        Ok(stream)
     }
 
     /// Stops the stream of events

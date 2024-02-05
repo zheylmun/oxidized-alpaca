@@ -125,28 +125,29 @@ impl StockDataClient {
     pub async fn connect(
         account_type: AccountType,
         feed: Feed,
-    ) -> (StockPricingSubscription, impl Stream<Item = StreamMessage>) {
+    ) -> Result<(StockPricingSubscription, impl Stream<Item = StreamMessage>), crate::error::Error>
+    {
         let url = match feed {
             Feed::IEX => MARKET_DATA_STREAM_HOST.to_string(), /*+ "/iex"*/
             Feed::SIP => MARKET_DATA_STREAM_HOST.to_string(), /*+ "/sip"*/
         };
         println!("Connecting to {}", url);
         let mut streaming_client = StreamingClient::new(&account_type, &url).unwrap();
-        let stream = streaming_client.connect().await;
+        let stream = streaming_client.connect().await?;
         let auth_request = Request::AuthMessage {
             key: streaming_client.env.key_id.clone(),
             secret: streaming_client.env.secret_key.clone(),
         };
         streaming_client.send(auth_request);
 
-        (
+        Ok((
             StockPricingSubscription { streaming_client },
             stream.filter_map(|msg| {
                 println!("Received message: {:?}", msg);
                 let messages: Vec<StreamMessage> = serde_json::from_str(&msg).unwrap();
                 future::ready(Some(messages[0].clone()))
             }),
-        )
+        ))
     }
 }
 
@@ -162,7 +163,9 @@ mod tests {
     #[parallel]
     async fn ensure_connection() {
         let (mut subscription, mut stream) =
-            StockDataClient::connect(AccountType::Paper, Feed::SIP).await;
+            StockDataClient::connect(AccountType::Paper, Feed::SIP)
+                .await
+                .unwrap();
         assert!(stream.next().await.is_some());
 
         subscription.shutdown();
