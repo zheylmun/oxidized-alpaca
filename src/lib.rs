@@ -1,10 +1,8 @@
 pub mod env;
 pub mod error;
 pub mod market_data;
-pub mod rest_client;
-pub(crate) mod streaming_client;
 
-mod utils;
+pub mod utilities;
 
 /// The type of Alpaca account
 #[derive(Clone, Debug, PartialEq, Eq)]

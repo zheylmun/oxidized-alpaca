@@ -1,6 +1,6 @@
 use crate::{
     market_data::{Request, SubscriptionList},
-    streaming_client::StreamingClient,
+    utilities::StreamingClient,
     AccountType,
 };
 use futures::{future, Stream, StreamExt};

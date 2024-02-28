@@ -3,7 +3,7 @@ use std::str::FromStr;
 use chrono::DateTime;
 use oxidized_alpaca::{
     market_data::stock_pricing::historical::{bars::Request, TimeFrame},
-    rest_client::RestClient,
+    utilities::RestClient,
     AccountType,
 };
 

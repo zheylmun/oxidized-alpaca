@@ -12,6 +12,8 @@ const PAPER_SECRET_KEY_ENV: &str = "ALPACA_PAPER_API_SECRET_KEY";
 const LIVE_KEY_ID_ENV: &str = "ALPACA_LIVE_API_KEY_ID";
 /// The environment variable containing the Alpaca live account secret key
 const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
+/// Debug value for sensitive information
+const CENSORED_SECRET: &str = "********";
 
 /// `Env` loads and stores the required information about the Alpaca Environment
 pub(crate) struct Env {
@@ -44,8 +46,8 @@ impl Env {
 impl fmt::Debug for Env {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         f.debug_struct("Env")
-            .field("key_id", &"***")
-            .field("secret_key", &"***")
+            .field("key_id", &CENSORED_SECRET)
+            .field("secret_key", &CENSORED_SECRET)
             .finish()
     }
 }

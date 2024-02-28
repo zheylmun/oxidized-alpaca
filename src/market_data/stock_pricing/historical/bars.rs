@@ -1,8 +1,7 @@
 use crate::{
     error::{self, Error},
     market_data::stock_pricing::streaming::Feed,
-    rest_client::RestClient,
-    utils::null_def_vec,
+    utilities::{null_def_vec, RestClient},
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
