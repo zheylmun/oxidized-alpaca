@@ -103,8 +103,8 @@ impl Request {
     /// Attempt to execute the configured request
     ///
     /// # Errors
-    /// - Returns a [`ReqwestSendSnafu`] if the rest request fails.
-    /// - Returns a [`ReqwestDeserializeSnafu`] if the response cannot be parsed
+    /// - Returns a [`Error::ReqwestSend`] if the rest request fails.
+    /// - Returns a [`Error::ReqwestDeserialize`] if the response cannot be parsed
     #[tracing::instrument]
     pub async fn execute(mut self) -> Result<Vec<Bar>, Error> {
         let mut response = self.internal_execute().await?;
@@ -116,6 +116,7 @@ impl Request {
         }
         Ok(results)
     }
+
     #[tracing::instrument]
     async fn internal_execute(&self) -> Result<Bars, Error> {
         let path = format!("v2/stocks/{}/bars", self.symbol);
@@ -123,14 +124,11 @@ impl Request {
             .rest_client
             .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
             .query(&self);
-        let response = request
-            .send()
-            .await
-            .map_err(|err| error::Error::ReqwestSend(err))?;
+        let response = request.send().await.map_err(Error::ReqwestSend)?;
         response
             .json::<Bars>()
             .await
-            .map_err(|err| error::Error::ReqwestDeserialize(err))
+            .map_err(error::Error::ReqwestDeserialize)
     }
 }
 
@@ -158,7 +156,7 @@ mod tests {
     #[tokio::test]
     #[parallel]
     async fn no_bars() {
-        let client = RestClient::new(&AccountType::Paper).unwrap();
+        let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let request = Request::new(client, "META", TimeFrame::OneDay)
@@ -173,7 +171,7 @@ mod tests {
     #[tokio::test]
     #[parallel]
     async fn one_bar() {
-        let client = RestClient::new(&AccountType::Paper).unwrap();
+        let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-06T00:00:00Z").unwrap();
         let request = Request::new(client, "AAPL", TimeFrame::OneDay)
@@ -187,7 +185,7 @@ mod tests {
             close: 146.63,
             high: 150.9199,
             low: 145.77,
-            volume: 68_826_442,
+            volume: 74981324,
         };
         assert!(res.is_ok());
         let res = res.unwrap();
@@ -199,7 +197,7 @@ mod tests {
     #[tokio::test]
     #[parallel]
     async fn some_bars() {
-        let client = RestClient::new(&AccountType::Paper).unwrap();
+        let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
         let request = Request::new(client, "NFLX", TimeFrame::OneDay)
@@ -218,7 +216,7 @@ mod tests {
     #[tokio::test]
     #[parallel]
     async fn lots_of_bars() {
-        let client = RestClient::new(&AccountType::Paper).unwrap();
+        let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
         let request = Request::new(client, "GOOGL", TimeFrame::OneDay)

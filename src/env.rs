@@ -16,6 +16,7 @@ const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
 const CENSORED_SECRET: &str = "********";
 
 /// `Env` loads and stores the required information about the Alpaca Environment
+#[derive(Clone)]
 pub(crate) struct Env {
     /// The Alpaca API key ID
     pub key_id: String,
@@ -71,12 +72,11 @@ mod tests {
         env::set_var(LIVE_SECRET_KEY_ENV, LIVE_SECRET);
     }
 
-    #[test]
+    #[tokio::test]
     #[serial]
-    fn test_env_correct() {
+    async fn test_env_correct() {
         set_paper_vars();
         let alpaca_env = Env::new(&AccountType::Paper).unwrap();
-        println!("{alpaca_env:?}");
         assert_eq!(alpaca_env.key_id, PAPER_ID);
         assert_eq!(alpaca_env.secret_key, PAPER_SECRET);
         set_live_vars();
@@ -85,36 +85,36 @@ mod tests {
         assert_eq!(alpaca_env.secret_key, LIVE_SECRET);
     }
 
-    #[test]
+    #[tokio::test]
     #[serial]
-    fn test_paper_key_not_present() {
+    async fn test_paper_key_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_KEY_ID_ENV);
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
     }
 
-    #[test]
+    #[tokio::test]
     #[serial]
-    fn test_paper_secret_not_present() {
+    async fn test_paper_secret_not_present() {
         set_paper_vars();
         env::remove_var(PAPER_SECRET_KEY_ENV);
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
     }
 
-    #[test]
+    #[tokio::test]
     #[serial]
-    fn test_live_key_id_not_present() {
+    async fn test_live_key_id_not_present() {
         set_live_vars();
         env::remove_var(LIVE_KEY_ID_ENV);
         let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
     }
 
-    #[test]
+    #[tokio::test]
     #[serial]
-    fn test_live_secret_key_not_present() {
+    async fn test_live_secret_key_not_present() {
         set_live_vars();
         env::remove_var(LIVE_SECRET_KEY_ENV);
         let res = Env::new(&AccountType::Live);

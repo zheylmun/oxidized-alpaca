@@ -14,3 +14,12 @@ where
     let opt = Option::<Vec<T>>::deserialize(deserializer)?;
     Ok(opt.unwrap_or_default())
 }
+
+pub(crate) fn string_as_f64<'de, D>(deserializer: D) -> Result<f64, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    String::deserialize(deserializer)?
+        .parse()
+        .map_err(serde::de::Error::custom)
+}

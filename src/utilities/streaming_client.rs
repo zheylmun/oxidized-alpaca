@@ -29,7 +29,7 @@ impl StreamingClient {
         client_url: &str,
     ) -> Result<StreamingClient, Error> {
         let env = Env::new(account_type)?;
-        let url = url::Url::parse(client_url).map_err(|e| Error::UrlParse(e))?;
+        let url = url::Url::parse(client_url).map_err(Error::UrlParse)?;
         Ok(StreamingClient {
             env,
             url,
@@ -43,7 +43,7 @@ impl StreamingClient {
     pub(crate) async fn connect(&mut self) -> Result<impl Stream<Item = String>, Error> {
         let (socket, response) = connect_async(&self.url)
             .await
-            .map_err(|e| Error::TungsteniteConnection(e))?;
+            .map_err(Error::TungsteniteConnection)?;
 
         assert_eq!(response.status(), 101);
         let (mut sink, source) = socket.split();

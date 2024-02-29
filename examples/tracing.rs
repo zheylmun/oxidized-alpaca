@@ -14,7 +14,7 @@ pub async fn main() {
         .finish();
 
     tracing::subscriber::set_global_default(subscriber).unwrap();
-    let client = RestClient::new(&AccountType::Paper).unwrap();
+    let client = RestClient::new(AccountType::Paper).unwrap();
     let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
     let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
     let request = Request::new(client, "LAZR", TimeFrame::OneDay)
