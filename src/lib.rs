@@ -12,14 +12,7 @@ pub use {
 use lazy_init::Lazy;
 use utilities::RestClient;
 
-/// The type of Alpaca account
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AccountType {
-    /// Paper trading account
-    Paper,
-    /// Live trading account
-    Live,
-}
+
 
 pub struct Alpaca {
     rest_client: RestClient,

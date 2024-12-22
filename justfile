@@ -10,7 +10,7 @@ docs:
 lint:
     cargo clippy --all-targets --all-features --tests -- -Dclippy::pedantic -Dclippy::all
 
-test:
+testt
     cargo test
     cargo run --example tracing
     grcov . --binary-path ./target/debug/deps/ -s . -t lcov --branch --ignore-not-existing --ignore '../*' --ignore "/*" -o target/cov/tests.lcov

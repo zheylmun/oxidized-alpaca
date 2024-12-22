@@ -1,0 +1,11 @@
+[package]
+name = "common_alpaca"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+thiserror = "1.0.63"
+url = "2.5.2"
+
+serde.workspace = true
