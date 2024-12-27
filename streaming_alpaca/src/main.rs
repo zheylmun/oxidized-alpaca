@@ -10,29 +10,39 @@
 //!
 //! You can use this example together with the `server` example.
 
+use std::time::Duration;
+
 use common_alpaca::AccountType;
-use streaming_alpaca::{Feed, StockPricingClient, SubscriptionList};
+use streaming_alpaca::{stock_data, StreamingMarketDataClient};
 use tracing_subscriber::fmt::Subscriber;
 
 #[tokio::main]
 async fn main() {
     let subscriber = Subscriber::builder()
-        .with_max_level(tracing::Level::TRACE)
+        .with_max_level(tracing::Level::INFO)
         .finish();
     tracing::subscriber::set_global_default(subscriber).unwrap();
-    let (mut sub) = StockPricingClient::connect(AccountType::Paper, Feed::SIP)
+    let mut client = StreamingMarketDataClient::new_test_client(AccountType::Paper)
         .await
         .unwrap();
-    let subscriptions = SubscriptionList::new()
-        .add_quotes("BTC/USD")
-        .add_trades("BTC/USD");
-    //sub.subscribe(subscriptions);
-    let mut handled = 0;
-    /*while handled < 5 {
-        let message = stream.next().await;
-        println!("Message: {:?}", message);
-        handled += 1;
+
+    let subscriptions = stock_data::SubscriptionList::new()
+        .add_minute_bars("FAKEPACA")
+        .add_daily_bars("FAKEPACA")
+        .add_updated_bars("FAKEPACA")
+        .add_quotes("FAKEPACA")
+        .add_trades("FAKEPACA");
+    client.add_subscriptions(&subscriptions).await.unwrap();
+
+    let mut count = 0u32;
+    loop {
+        let message = client.next_message().await.unwrap();
+        println!("{:?}", message);
+        if count % 100 == 0 {
+            client.remove_subscriptions(&subscriptions).await.unwrap();
+            tokio::time::sleep(Duration::from_secs(30)).await;
+            client.add_subscriptions(&subscriptions).await.unwrap();
+        }
+        count = count.wrapping_add(1);
     }
-    sub.shutdown();*/
-    println!("Done!");
 }

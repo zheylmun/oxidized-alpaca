@@ -1,11 +1,19 @@
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
 /// List of subscriptions to market data types available for streaming clients
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct SubscriptionList {
-    /// List of symbols for bars subscriptions
+    /// List of symbols for minute bars subscriptions
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bars: Option<Vec<String>>,
+    /// List of symbols for daily bars subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub daily_bars: Option<Vec<String>>,
+    /// List of symbols for bars subscriptions
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub updated_bars: Option<Vec<String>>,
     /// List of symbols for quotes subscriptions
     #[serde(skip_serializing_if = "Option::is_none")]
     pub quotes: Option<Vec<String>>,
@@ -22,18 +30,46 @@ impl SubscriptionList {
     pub fn new() -> Self {
         Self {
             bars: None,
+            daily_bars: None,
+            updated_bars: None,
             quotes: None,
             trades: None,
             news: None,
         }
     }
 
-    /// Add a symbol to the bars subscription list
-    pub fn add_bars(mut self, symbol: &str) -> Self {
+    /// Add a symbol to the minute bars subscription list
+    pub fn add_minute_bars(mut self, symbol: &str) -> Self {
         if let Some(bars) = &mut self.bars {
-            bars.push(symbol.to_string());
+            if !bars.contains(&symbol.to_string()) {
+                bars.push(symbol.to_string());
+            }
         } else {
             self.bars = Some(vec![symbol.to_string()]);
+        }
+        self
+    }
+
+    /// Add a symbol to the daily bars subscription list
+    pub fn add_daily_bars(mut self, symbol: &str) -> Self {
+        if let Some(bars) = &mut self.daily_bars {
+            if !bars.contains(&symbol.to_string()) {
+                bars.push(symbol.to_string());
+            }
+        } else {
+            self.daily_bars = Some(vec![symbol.to_string()]);
+        }
+        self
+    }
+
+    /// Add a symbol to the minute bars subscription list
+    pub fn add_updated_bars(mut self, symbol: &str) -> Self {
+        if let Some(bars) = &mut self.updated_bars {
+            if !bars.contains(&symbol.to_string()) {
+                bars.push(symbol.to_string());
+            }
+        } else {
+            self.updated_bars = Some(vec![symbol.to_string()]);
         }
         self
     }
@@ -96,6 +132,24 @@ pub enum Error {
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct Bar {
+    #[serde(rename = "S")]
+    pub symbol: String,
+    #[serde(rename = "o")]
+    pub open: f64,
+    #[serde(rename = "h")]
+    pub high: f64,
+    #[serde(rename = "l")]
+    pub low: f64,
+    #[serde(rename = "c")]
+    pub close: f64,
+    #[serde(rename = "v")]
+    pub volume: i64,
+    #[serde(rename = "t")]
+    pub timestamp: DateTime<Utc>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Quote {
     #[serde(rename = "S")]
     pub symbol: String,
@@ -114,7 +168,7 @@ pub struct Quote {
     #[serde(rename = "s")]
     pub trade_size: Option<f64>,
     #[serde(rename = "t")]
-    pub timestamp: String,
+    pub timestamp: DateTime<Utc>,
     #[serde(rename = "z")]
     pub tape: Option<String>,
 }
@@ -132,7 +186,7 @@ pub struct Trade {
     #[serde(rename = "s")]
     pub size: f64,
     #[serde(rename = "t")]
-    pub timestamp: String,
+    pub timestamp: DateTime<Utc>,
     #[serde(rename = "c")]
     pub conditions: Option<Vec<String>>,
     #[serde(rename = "z")]
@@ -150,6 +204,12 @@ pub enum StreamMessage {
     Error(Error),
     #[serde(rename = "subscription")]
     Subscription(SubscriptionList),
+    #[serde(rename = "b")]
+    Bar(Bar),
+    #[serde(rename = "d")]
+    DailyBar(Bar),
+    #[serde(rename = "u")]
+    UpdatedBar(Bar),
     #[serde(rename = "t")]
     Trade(Trade),
     #[serde(rename = "q")]
@@ -157,7 +217,7 @@ pub enum StreamMessage {
 }
 
 /// Streaming Authentication Message
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "action")]
 pub enum Request {
     #[serde(rename = "auth")]
