@@ -7,6 +7,7 @@ use serde::{Deserialize, Serialize};
 use socketeer::Socketeer;
 use std::{collections::VecDeque, fmt};
 
+#[derive(Debug)]
 pub struct StreamingMarketDataClient<
     RxMessage: for<'a> Deserialize<'a> + fmt::Debug,
     TxMessage: fmt::Debug + Serialize,
