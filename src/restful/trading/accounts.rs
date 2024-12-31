@@ -1,5 +1,5 @@
 use crate::{
-    utilities::{string_as_f64, RestClient},
+    restful::{string_as_f64, RestClient},
     AccountType, Error, Result,
 };
 use chrono::{DateTime, Utc};
@@ -75,34 +75,21 @@ pub struct AccountDetails {
     pub regt_buying_power: f64,
 }
 
-pub struct Accounts {
-    client: RestClient,
-}
-
-impl Accounts {
-    pub(crate) fn new(client: RestClient) -> Self {
-        Self { client }
-    }
-
-    pub async fn get(&self) -> Result<AccountDetails> {
-        let host = match self.client.account_type {
-            AccountType::Paper => "https://paper-api.alpaca.markets/v2/",
-            AccountType::Live => "https://api.alpaca.markets/v2/",
-        };
-        let request = self.client.request(Method::GET, host, "account");
-        let response = request.send().await.map_err(Error::ReqwestSend)?;
-        response.json().await.map_err(Error::ReqwestDeserialize)
-    }
+pub async fn get(client: &RestClient) -> Result<AccountDetails> {
+    let host = match client.account_type {
+        AccountType::Paper => "https://paper-api.alpaca.markets/v2/",
+        AccountType::Live => "https://api.alpaca.markets/v2/",
+    };
+    let request = client.request(Method::GET, host, "account");
+    let response = request.send().await.map_err(Error::ReqwestSend)?;
+    response.json().await.map_err(Error::ReqwestDeserialize)
 }
 
 #[cfg(test)]
 mod tests {
-    use serial_test::parallel;
-
     use super::*;
 
     #[tokio::test]
-    #[parallel]
     async fn test_account_status_deserialization() {
         let json = r#"{
             "id": "ccd4e0fc-5416-4b75-bf7d-463c8dcad0fd",
@@ -148,11 +135,9 @@ mod tests {
     }
 
     #[tokio::test]
-    #[parallel]
     async fn test_get_account() {
         let client = RestClient::new(AccountType::Paper).unwrap();
-        let accounts = Accounts::new(client);
-        let account = accounts.get().await.unwrap();
+        let account = super::get(&client).await.unwrap();
         assert_eq!(account.currency, Currency::Usd);
     }
 }

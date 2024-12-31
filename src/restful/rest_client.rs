@@ -14,6 +14,8 @@ pub struct RestClient {
 
 impl RestClient {
     /// Create a new [`RestClient`] instance with the given [`AccountType`]
+    /// Only create one instance of this client per account type.
+    /// It can be cloned freely and used in multiple threads.
     ///
     /// # Errors
     ///
@@ -31,20 +33,17 @@ impl RestClient {
         let url = Url::parse(host).unwrap().join(path).unwrap();
         self.client
             .request(method, url)
-            .header(KEY_ID_HEADER, &self.env.key_id())
-            .header(SECRET_KEY_HEADER, &self.env.secret_key())
+            .header(KEY_ID_HEADER, self.env.key_id())
+            .header(SECRET_KEY_HEADER, self.env.secret_key())
     }
 }
 
 #[cfg(test)]
 mod tests {
 
-    use serial_test::parallel;
-
     use super::*;
 
     #[tokio::test]
-    #[parallel]
     async fn test_client_creation() {
         let client = RestClient::new(AccountType::Paper);
         assert!(client.is_ok());

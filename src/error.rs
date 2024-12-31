@@ -26,6 +26,7 @@ pub enum Error {
     ReqwestDeserialize(#[source] ReqwestError),
 
     /// Socketeer connection error
+    #[cfg(feature = "streaming")]
     #[error("Socketeer websocket error: {}", 0)]
     WebsocketError(#[from] socketeer::Error),
 

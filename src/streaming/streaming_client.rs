@@ -29,6 +29,24 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Self::initialize_with_websocket(env, websocket).await
     }
 
+    pub async fn new_iex_client(
+        account_type: AccountType,
+    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
+        let env = Env::new(&account_type)?;
+        let websocket: Socketeer<Vec<StreamMessage>, Request> =
+            Socketeer::connect(Feed::IEX.streaming_url(account_type)).await?;
+        Self::initialize_with_websocket(env, websocket).await
+    }
+
+    pub async fn new_sip_client(
+        account_type: AccountType,
+    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
+        let env = Env::new(&account_type)?;
+        let websocket: Socketeer<Vec<StreamMessage>, Request> =
+            Socketeer::connect(Feed::SIP.streaming_url(account_type)).await?;
+        Self::initialize_with_websocket(env, websocket).await
+    }
+
     async fn initialize_with_websocket(
         env: Env,
         websocket: Socketeer<Vec<StreamMessage>, Request>,
