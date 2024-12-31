@@ -1,8 +1,9 @@
-pub mod env;
-pub mod error;
+pub mod account_type;
+pub use account_type::AccountType;
 
+pub mod env;
 pub use env::Env;
-pub use error::Error;
+
 use serde::Serialize;
 
 const STREAMING_IEX_URL: &str = "wss://stream.data.alpaca.markets/v2/iex";
@@ -15,14 +16,6 @@ const STREAMING_CRYPTO_SANDBOX_URL: &str =
     "wss://stream.data.sandbox.alpaca.markets/v1beta3/crypto";
 const STREAMING_NEWS_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/news";
 const STREAMING_NEWS_SANDBOX_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/news";
-/// The type of Alpaca account
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum AccountType {
-    /// Paper trading account
-    Paper,
-    /// Live trading account
-    Live,
-}
 
 /// Supported data feeds
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]

@@ -76,5 +76,3 @@ pub struct Bar {
     #[serde(rename = "v")]
     pub volume: usize,
 }
-
-impl Eq for Bar {}

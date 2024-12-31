@@ -31,8 +31,8 @@ impl RestClient {
         let url = Url::parse(host).unwrap().join(path).unwrap();
         self.client
             .request(method, url)
-            .header(KEY_ID_HEADER, &self.env.key_id)
-            .header(SECRET_KEY_HEADER, &self.env.secret_key)
+            .header(KEY_ID_HEADER, &self.env.key_id())
+            .header(SECRET_KEY_HEADER, &self.env.secret_key())
     }
 }
 

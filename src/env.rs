@@ -1,8 +1,5 @@
-//! The `Env` module loads and stores required information about the Alpaca Environment
-
-use std::{env, fmt};
-
 use crate::{error::Error, AccountType};
+use std::{env, fmt};
 
 /// The environment variable containing the Alpaca paper account key ID
 const PAPER_KEY_ID_ENV: &str = "ALPACA_PAPER_API_KEY_ID";
@@ -15,7 +12,7 @@ const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
 /// Debug value for sensitive information
 const CENSORED_SECRET: &str = "********";
 
-/// `Env` loads and stores the required information about the Alpaca Environment
+/// `Env` loads and stores the required information about the requested Alpaca Environment
 #[derive(Clone)]
 pub struct Env {
     /// The Alpaca API key ID

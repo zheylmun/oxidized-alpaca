@@ -1,8 +1,10 @@
 use crate::{
-    stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
-    ClientState, Error,
+    streaming::{
+        stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
+        ClientState,
+    },
+    AccountType, Env, Error, Feed,
 };
-use common_alpaca::{AccountType, Feed};
 use serde::{Deserialize, Serialize};
 use socketeer::Socketeer;
 use std::{collections::VecDeque, fmt};
@@ -21,14 +23,14 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
     pub async fn new_test_client(
         account_type: AccountType,
     ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
-        let env = common_alpaca::Env::new(&account_type)?;
+        let env = Env::new(&account_type)?;
         let websocket: Socketeer<Vec<StreamMessage>, Request> =
             Socketeer::connect(Feed::Test.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     async fn initialize_with_websocket(
-        env: common_alpaca::Env,
+        env: Env,
         websocket: Socketeer<Vec<StreamMessage>, Request>,
     ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
         let mut client = StreamingMarketDataClient {

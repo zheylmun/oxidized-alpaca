@@ -1,6 +1,3 @@
-pub(crate) mod rest_client;
-pub(crate) mod streaming_client;
-pub(crate) mod vexpand;
 use serde::{Deserialize, Deserializer};
 
 pub use rest_client::RestClient;

@@ -1,6 +1,5 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
-use tokio_tungstenite::tungstenite::Error as TungsteniteError;
 
 #[derive(Debug, Error)]
 pub enum Error {
@@ -26,9 +25,9 @@ pub enum Error {
     #[error("Reqwest decoding error: {}", 0)]
     ReqwestDeserialize(#[source] ReqwestError),
 
-    /// Tungstenite connection error
-    #[error("Tungstenite connection error: {}", 0)]
-    TungsteniteConnection(#[source] TungsteniteError),
+    /// Socketeer connection error
+    #[error("Socketeer websocket error: {}", 0)]
+    WebsocketError(#[from] socketeer::Error),
 
     /// Url Parse Error
     #[error("Url parse error: {}", 0)]
