@@ -1,76 +1,71 @@
-name: CI
-
+name: "Test Suite"
 on:
   push:
-  
-permissions:
-  contents: read
 
 jobs:
   test:
-    name: Tests
+    name: Run Tests
     runs-on: ubuntu-latest
-    env:
-      RUSTFLAGS: -Cinstrument-coverage -Dwarnings
-      LLVM_PROFILE_FILE: target/cov/%p-%m.profraw
-      ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
-      ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
-
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-          components: llvm-tools-preview
-      - uses: extractions/setup-just@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Swatinem/rust-cache@v2
-      - run: cargo install grcov
-      - run: just test
-      - uses: codecov/codecov-action@v3
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }} # not required for public repos
-          files: ./target/cov/tests.lcov # optional
-          fail_ci_if_error: true
-  build:
-    name: Build
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - name: "Setup Rust Toolchain"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: "Run Tests"
+        run: cargo test --all-features
+
+  # Check formatting with rustfmt
+  formatting:
+    name: Check Formatting
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      # Ensure rustfmt is installed and setup problem matcher
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
-          toolchain: stable
-      - uses: extractions/setup-just@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Swatinem/rust-cache@v2
-      - run: just build
+          components: rustfmt
+      - name: Rustfmt Check
+        uses: actions-rust-lang/rustfmt@v1
 
-  docs:
-    name: Docs
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
-        with:
-          toolchain: stable
-      - uses: extractions/setup-just@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Swatinem/rust-cache@v2
-      - run: just docs
-
+  # Check for clippy warnings
   clippy:
     name: Clippy
     runs-on: ubuntu-latest
+    timeout-minutes: 2
     steps:
-      - uses: actions/checkout@v3
-      - uses: actions-rs/toolchain@v1
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - run: cargo clippy --all-features --tests --benches -- -Dclippy::all -Dclippy::pedantic
+
+  # Upload coverage to Codecov
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+      - name: "Setup Rust Toolchain"
+        uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: "Install cargo-llvm-cov"
+        uses: taiki-e/install-action@v2
         with:
-          toolchain: stable
-      - uses: extractions/setup-just@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: Swatinem/rust-cache@v2
-      - run: just lint 
+          tool: cargo-llvm-cov
+      - name: "Generate code coverage"
+        run: cargo llvm-cov --lcov --output-path lcov.info
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: lcov.info
+          slug: zheylmun/oxidized-alpaca
+  semver-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Check semver
+        uses: obi1kenobi/cargo-semver-checks-action@v2
