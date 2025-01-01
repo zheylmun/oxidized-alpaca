@@ -1,8 +1,8 @@
 use crate::{
-    restful::{string_as_f64, RestClient},
-    AccountType, Error, Result,
+    restful::{rest_client::RequestAPI, string_as_f64, RestClient},
+    Error, Result,
 };
-use chrono::{Date, DateTime, NaiveDate, Utc};
+use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
 use serde::Deserialize;
 
@@ -35,7 +35,7 @@ pub enum Currency {
 }
 
 /// `AccountDetails` is returned by the Alpaca API when requesting account information
-#[derive(Clone, Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct AccountDetails {
     /// Alpaca account ID
     pub id: String,
@@ -144,11 +144,7 @@ pub struct AccountDetails {
 }
 
 pub async fn get(client: &RestClient) -> Result<AccountDetails> {
-    let host = match client.account_type {
-        AccountType::Paper => "https://paper-api.alpaca.markets/v2/",
-        AccountType::Live => "https://api.alpaca.markets/v2/",
-    };
-    let request = client.request(Method::GET, host, "account");
+    let request = client.request(Method::GET, RequestAPI::Trading, "account");
     let response = request.send().await.map_err(Error::ReqwestSend)?;
     response.json().await.map_err(Error::ReqwestDeserialize)
 }
@@ -156,6 +152,7 @@ pub async fn get(client: &RestClient) -> Result<AccountDetails> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
 
     #[tokio::test]
     async fn test_account_status_deserialization() {
@@ -209,7 +206,7 @@ mod tests {
     #[tokio::test]
     async fn test_get_account() {
         let client = RestClient::new(AccountType::Paper).unwrap();
-        let account = super::get(&client).await.unwrap();
+        let account = crate::trading::accounts::get(&client).await.unwrap();
         assert_eq!(account.currency, Currency::Usd);
     }
 }

@@ -1,9 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-pub mod bars;
-
-pub(crate) const MARKET_DATA_REST_HOST: &str = "https://data.alpaca.markets/v2";
+//pub mod bars;
 
 /// Supported Time frames for bars
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

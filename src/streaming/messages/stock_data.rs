@@ -85,6 +85,7 @@ impl SubscriptionList {
     }
 
     /// Add a symbol to the trades subscription list
+    #[must_use]
     pub fn add_trades(mut self, symbol: &str) -> Self {
         if let Some(trades) = &mut self.trades {
             trades.push(symbol.to_string());
@@ -95,6 +96,7 @@ impl SubscriptionList {
     }
 
     /// Add a symbol to the news subscription list
+    #[must_use]
     pub fn add_news(mut self, symbol: &str) -> Self {
         if let Some(news) = &mut self.news {
             news.push(symbol.to_string());

@@ -1,6 +1,6 @@
 use crate::{
     error::{self, Error},
-    restful::null_def_vec,
+    restful::{null_def_vec, rest_client::RequestAPI},
     Feed, RestClient,
 };
 use chrono::{DateTime, Utc};
@@ -122,7 +122,7 @@ impl Request {
         let path = format!("v2/stocks/{}/bars", self.symbol);
         let request = self
             .rest_client
-            .request(Method::GET, super::MARKET_DATA_REST_HOST, &path)
+            .request(Method::GET, RequestAPI::StockMarketData, &path)
             .query(&self);
         let response = request.send().await.map_err(Error::ReqwestSend)?;
         response
@@ -164,6 +164,7 @@ mod tests {
             .end(end);
 
         let res = request.execute().await;
+        println!("{res:#?}");
         assert_eq!(res.unwrap(), vec![]);
     }
 
