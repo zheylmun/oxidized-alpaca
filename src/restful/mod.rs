@@ -1,3 +1,4 @@
+pub mod market_data;
 mod rest_client;
 pub use rest_client::RestClient;
 pub mod trading;

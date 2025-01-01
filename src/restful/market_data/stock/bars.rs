@@ -1,7 +1,7 @@
 use crate::{
     error::{self, Error},
-    market_data::stock_pricing::streaming::Feed,
-    utilities::{null_def_vec, RestClient},
+    restful::null_def_vec,
+    Feed, RestClient,
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
@@ -133,7 +133,7 @@ impl Request {
 }
 
 /// A collection of bars as returned by the API. This is one page of bars.
-#[derive(Debug, Deserialize, Eq, PartialEq)]
+#[derive(Debug, Deserialize, PartialEq)]
 struct Bars {
     /// The list of returned bars.
     #[serde(default, deserialize_with = "null_def_vec")]
