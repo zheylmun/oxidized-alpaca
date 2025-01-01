@@ -13,10 +13,10 @@ use super::{Adjustment, Bar, TimeFrame};
 #[derive(Debug, Serialize)]
 #[must_use]
 #[serde(rename_all = "snake_case")]
-pub struct Request {
+pub struct Request<'a> {
     /// The `RestClient` to use.
     #[serde(skip)]
-    rest_client: RestClient,
+    rest_client: &'a RestClient,
     /// The symbol for which to retrieve market data.
     #[serde(skip)]
     symbol: String,
@@ -49,14 +49,14 @@ pub struct Request {
     page_token: Option<String>,
 }
 
-impl Request {
+impl<'a> Request<'a> {
     /// Create a new request for market data bars`RestClient`
     ///
     /// # Arguments
     /// * `client` - The `RestClient` to use.
     /// * `symbol` - The symbol for which to retrieve market data.
     /// * `time_frame` - The time frame for the bars.
-    pub fn new(client: RestClient, symbol: &str, time_frame: TimeFrame) -> Self {
+    pub fn new(client: &'a RestClient, symbol: &str, time_frame: TimeFrame) -> Self {
         Self {
             rest_client: client,
             symbol: symbol.to_string(),
@@ -159,7 +159,7 @@ mod tests {
         let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
-        let request = Request::new(client, "META", TimeFrame::OneDay)
+        let request = Request::new(&client, "META", TimeFrame::OneDay)
             .start(start)
             .end(end);
 
@@ -175,7 +175,7 @@ mod tests {
         let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-06T00:00:00Z").unwrap();
-        let request = Request::new(client, "AAPL", TimeFrame::OneDay)
+        let request = Request::new(&client, "AAPL", TimeFrame::OneDay)
             .start(start)
             .end(end);
 
@@ -201,7 +201,7 @@ mod tests {
         let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
-        let request = Request::new(client, "NFLX", TimeFrame::OneDay)
+        let request = Request::new(&client, "NFLX", TimeFrame::OneDay)
             .start(start)
             .end(end)
             .adjustment(Adjustment::All);
@@ -220,7 +220,7 @@ mod tests {
         let client = RestClient::new(AccountType::Paper).unwrap();
         let start = DateTime::from_str("2021-12-05T00:00:00Z").unwrap();
         let end = DateTime::from_str("2022-12-24T00:00:00Z").unwrap();
-        let request = Request::new(client, "GOOGL", TimeFrame::OneDay)
+        let request = Request::new(&client, "GOOGL", TimeFrame::OneDay)
             .start(start)
             .end(end)
             .feed(Feed::IEX)
