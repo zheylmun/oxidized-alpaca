@@ -22,3 +22,14 @@ where
         .parse()
         .map_err(serde::de::Error::custom)
 }
+
+pub(crate) fn string_as_optional_f64<'de, D>(deserializer: D) -> Result<Option<f64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    Ok(Some(
+        String::deserialize(deserializer)?
+            .parse()
+            .map_err(serde::de::Error::custom)?,
+    ))
+}
