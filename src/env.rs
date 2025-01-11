@@ -67,6 +67,23 @@ mod tests {
     const PAPER_SECRET: &str = "test_paper_secret_key";
     const LIVE_ID: &str = "test_live_key_id";
     const LIVE_SECRET: &str = "test_live_secret_key";
+
+    fn capture_env() -> (String, String, String, String) {
+        (
+            env::var(PAPER_KEY_ID_ENV).unwrap_or_default(),
+            env::var(PAPER_SECRET_KEY_ENV).unwrap_or_default(),
+            env::var(LIVE_KEY_ID_ENV).unwrap_or_default(),
+            env::var(LIVE_SECRET_KEY_ENV).unwrap_or_default(),
+        )
+    }
+
+    fn restore_env(keys: (String, String, String, String)) {
+        env::set_var(PAPER_KEY_ID_ENV, keys.0);
+        env::set_var(PAPER_SECRET_KEY_ENV, keys.1);
+        env::set_var(LIVE_KEY_ID_ENV, keys.2);
+        env::set_var(LIVE_SECRET_KEY_ENV, keys.3);
+    }
+
     fn set_paper_vars() {
         env::set_var(PAPER_KEY_ID_ENV, PAPER_ID);
         env::set_var(PAPER_SECRET_KEY_ENV, PAPER_SECRET);
@@ -80,6 +97,7 @@ mod tests {
     #[test]
     #[serial]
     fn test_env_correct() {
+        let env = capture_env();
         set_paper_vars();
         let alpaca_env = Env::new(&AccountType::Paper).unwrap();
         assert_eq!(alpaca_env.key_id, PAPER_ID);
@@ -88,40 +106,49 @@ mod tests {
         let alpaca_env = Env::new(&AccountType::Live).unwrap();
         assert_eq!(alpaca_env.key_id, LIVE_ID);
         assert_eq!(alpaca_env.secret_key, LIVE_SECRET);
+        restore_env(env);
     }
 
     #[test]
     #[serial]
     fn test_paper_key_not_present() {
+        let env = capture_env();
         set_paper_vars();
         env::remove_var(PAPER_KEY_ID_ENV);
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
+        restore_env(env);
     }
 
     #[test]
     #[serial]
     fn test_paper_secret_not_present() {
+        let env = capture_env();
         set_paper_vars();
         env::remove_var(PAPER_SECRET_KEY_ENV);
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
+        restore_env(env);
     }
     #[test]
     #[serial]
     fn test_live_key_id_not_present() {
+        let env = capture_env();
         set_live_vars();
         env::remove_var(LIVE_KEY_ID_ENV);
         let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
+        restore_env(env);
     }
 
     #[test]
     #[serial]
     fn test_live_secret_key_not_present() {
+        let env = capture_env();
         set_live_vars();
         env::remove_var(LIVE_SECRET_KEY_ENV);
         let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
+        restore_env(env);
     }
 }
