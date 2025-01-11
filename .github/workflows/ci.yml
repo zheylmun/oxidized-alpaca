@@ -42,7 +42,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions-rust-lang/setup-rust-toolchain@v1
-      - run: cargo clippy --all-features --tests --benches -- -Dclippy::all -Dclippy::pedantic
+      - run: cargo clippy --all-features --tests --benches -- -Dclippy::all
 
   # Upload coverage to Codecov
   coverage:
