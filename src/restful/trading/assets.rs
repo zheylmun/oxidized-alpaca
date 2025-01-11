@@ -195,6 +195,7 @@ mod tests {
             .unwrap();
         assert!(!assets.is_empty());
     }
+
     #[tokio::test]
     async fn test_asset_request_with_attributes() {
         let client = RestClient::new(AccountType::Paper).unwrap();
