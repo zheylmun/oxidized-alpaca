@@ -1,7 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
-//pub mod bars;
+pub mod bars;
 
 /// Supported Time frames for bars
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

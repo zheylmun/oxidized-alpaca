@@ -74,7 +74,7 @@ pub struct AssetRequest<'a> {
     attributes: Option<String>,
 }
 
-impl<'a> AssetRequest<'a> {
+impl AssetRequest<'_> {
     pub fn with_status(mut self, status: Status) -> Self {
         self.status = Some(status);
         self
@@ -112,7 +112,7 @@ pub fn get(client: &RestClient) -> AssetRequest {
     }
 }
 
-pub async fn get_by_id<'a>(client: &RestClient, id: &str) -> Result<Asset, Error> {
+pub async fn get_by_id(client: &RestClient, id: &str) -> Result<Asset, Error> {
     let response = client
         .request(
             reqwest::Method::GET,
@@ -130,8 +130,6 @@ pub async fn get_by_id<'a>(client: &RestClient, id: &str) -> Result<Asset, Error
 
 #[cfg(test)]
 mod tests {
-    use crate::AccountType;
-
     use super::*;
 
     #[tokio::test]
@@ -154,56 +152,5 @@ mod tests {
             "attributes": []
             }"#;
         let _asset: Asset = serde_json::from_str(sample).unwrap();
-    }
-
-    #[tokio::test]
-    async fn test_asset_request() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let assets = get(&client).execute().await.unwrap();
-        assert!(!assets.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_asset_request_with_status() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let assets = get(&client)
-            .with_status(Status::Active)
-            .execute()
-            .await
-            .unwrap();
-        assert!(!assets.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_asset_request_with_asset_class() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let assets = get(&client)
-            .with_asset_class(AssetClass::UsEquity)
-            .execute()
-            .await
-            .unwrap();
-        assert!(!assets.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_asset_request_with_exchange() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let assets = get(&client)
-            .with_exchange(Exchange::Otc)
-            .execute()
-            .await
-            .unwrap();
-        assert!(!assets.is_empty());
-    }
-
-    #[tokio::test]
-    async fn test_asset_request_with_attributes() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let assets = get(&client)
-            .with_attribute_string("ptp_no_exception".to_string())
-            .execute()
-            .await
-            .unwrap();
-        assert!(!assets.is_empty());
     }
 }

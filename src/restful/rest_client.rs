@@ -59,10 +59,10 @@ impl RestClient {
 
 #[cfg(test)]
 mod tests {
-
     use super::*;
 
     #[tokio::test]
+    #[serial_test::parallel]
     async fn test_client_creation() {
         let client = RestClient::new(AccountType::Paper);
         assert!(client.is_ok());

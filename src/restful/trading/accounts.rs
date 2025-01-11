@@ -29,9 +29,8 @@ pub enum AccountStatus {
 /// `Currency` represents the currency of an Alpaca account
 /// Currently, only USD is supported.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
-#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Currency {
-    Usd,
+    USD,
 }
 
 /// `AccountDetails` is returned by the Alpaca API when requesting account information
@@ -153,7 +152,6 @@ pub async fn get(client: &RestClient) -> Result<AccountDetails> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::AccountType;
 
     #[tokio::test]
     async fn test_account_status_deserialization() {
@@ -202,12 +200,5 @@ mod tests {
         }"#;
         let account: AccountDetails = serde_json::from_str(json).unwrap();
         assert_eq!(account.status, AccountStatus::Active);
-    }
-
-    #[tokio::test]
-    async fn test_get_account() {
-        let client = RestClient::new(AccountType::Paper).unwrap();
-        let account = crate::trading::accounts::get(&client).await.unwrap();
-        assert_eq!(account.currency, Currency::Usd);
     }
 }

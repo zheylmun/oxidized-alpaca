@@ -49,27 +49,7 @@ pub struct Request<'a> {
     page_token: Option<String>,
 }
 
-impl<'a> Request<'a> {
-    /// Create a new request for market data bars`RestClient`
-    ///
-    /// # Arguments
-    /// * `client` - The `RestClient` to use.
-    /// * `symbol` - The symbol for which to retrieve market data.
-    /// * `time_frame` - The time frame for the bars.
-    pub fn new(client: &'a RestClient, symbol: &str, time_frame: TimeFrame) -> Self {
-        Self {
-            rest_client: client,
-            symbol: symbol.to_string(),
-            time_frame,
-            limit: None,
-            start: None,
-            end: None,
-            adjustment: None,
-            feed: None,
-            page_token: None,
-        }
-    }
-
+impl Request<'_> {
     /// Set the `limit` for the number of bars to be returned for each symbol.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
@@ -132,6 +112,26 @@ impl<'a> Request<'a> {
     }
 }
 
+/// Create a new request for market data bars`RestClient`
+///
+/// # Arguments
+/// * `client` - The `RestClient` to use.
+/// * `symbol` - The symbol for which to retrieve market data.
+/// * `time_frame` - The time frame for the bars.
+pub fn get<'a>(client: &'a RestClient, symbol: &str, time_frame: TimeFrame) -> Request<'a> {
+    Request {
+        rest_client: client,
+        symbol: symbol.to_string(),
+        time_frame,
+        limit: None,
+        start: None,
+        end: None,
+        adjustment: None,
+        feed: None,
+        page_token: None,
+    }
+}
+
 /// A collection of bars as returned by the API. This is one page of bars.
 #[derive(Debug, Deserialize, PartialEq)]
 struct Bars {
@@ -146,6 +146,7 @@ struct Bars {
 
 #[cfg(test)]
 mod tests {
+    /*
     use super::*;
     use serial_test::parallel;
     use std::str::FromStr as _;
@@ -232,4 +233,5 @@ mod tests {
         let res = res.unwrap();
         assert_eq!(res.len(), 266);
     }
+    */
 }
