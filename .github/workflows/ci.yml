@@ -7,6 +7,9 @@ jobs:
     name: Run Tests
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    env:
+      ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
+      ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
@@ -46,6 +49,9 @@ jobs:
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 2
+    env:
+      ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
+      ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
     steps:
       - name: "Checkout"
         uses: actions/checkout@v4
