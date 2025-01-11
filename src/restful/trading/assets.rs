@@ -130,8 +130,6 @@ pub async fn get_by_id<'a>(client: &RestClient, id: &str) -> Result<Asset, Error
 
 #[cfg(test)]
 mod tests {
-    use crate::AccountType;
-
     use super::*;
 
     #[tokio::test]

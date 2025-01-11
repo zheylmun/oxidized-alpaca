@@ -152,7 +152,6 @@ pub async fn get(client: &RestClient) -> Result<AccountDetails> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::AccountType;
 
     #[tokio::test]
     async fn test_account_status_deserialization() {
