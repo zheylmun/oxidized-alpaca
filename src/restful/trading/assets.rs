@@ -74,7 +74,7 @@ pub struct AssetRequest<'a> {
     attributes: Option<String>,
 }
 
-impl<'a> AssetRequest<'a> {
+impl AssetRequest<'_> {
     pub fn with_status(mut self, status: Status) -> Self {
         self.status = Some(status);
         self
@@ -112,7 +112,7 @@ pub fn get(client: &RestClient) -> AssetRequest {
     }
 }
 
-pub async fn get_by_id<'a>(client: &RestClient, id: &str) -> Result<Asset, Error> {
+pub async fn get_by_id(client: &RestClient, id: &str) -> Result<Asset, Error> {
     let response = client
         .request(
             reqwest::Method::GET,

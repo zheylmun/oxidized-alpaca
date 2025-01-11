@@ -38,6 +38,7 @@ pub enum Feed {
 }
 
 impl Feed {
+    #[must_use]
     pub fn streaming_url(&self, account_type: AccountType) -> &str {
         match account_type {
             AccountType::Paper => self.streaming_url_paper(),
@@ -45,6 +46,7 @@ impl Feed {
         }
     }
 
+    #[must_use]
     fn streaming_url_paper(&self) -> &str {
         match self {
             Feed::IEX => STREAMING_IEX_SANDBOX_URL,
@@ -55,6 +57,7 @@ impl Feed {
         }
     }
 
+    #[must_use]
     fn streaming_url_live(&self) -> &str {
         match self {
             Feed::IEX => STREAMING_IEX_URL,

@@ -23,6 +23,8 @@ pub struct Env {
 
 impl Env {
     /// Attempt to create a new `Env` instance with the given [`AccountType`]
+    /// # Errors
+    /// Returns an error if the required environment variables are not set
     pub fn new(account_type: &AccountType) -> Result<Env, Error> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),
@@ -39,10 +41,12 @@ impl Env {
         Ok(Env { key_id, secret_key })
     }
 
+    #[must_use]
     pub fn key_id(&self) -> &str {
         &self.key_id
     }
 
+    #[must_use]
     pub fn secret_key(&self) -> &str {
         &self.secret_key
     }

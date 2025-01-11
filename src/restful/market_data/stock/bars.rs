@@ -49,7 +49,7 @@ pub struct Request<'a> {
     page_token: Option<String>,
 }
 
-impl<'a> Request<'a> {
+impl Request<'_> {
     /// Set the `limit` for the number of bars to be returned for each symbol.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
