@@ -143,6 +143,7 @@ pub struct AccountDetails {
     pub pending_reg_taf_fees: f64,
 }
 
+/// Get the account information associated with the Alpaca API key
 pub async fn get(client: &RestClient) -> Result<AccountDetails> {
     let request = client.request(Method::GET, RequestAPI::Trading, "account");
     let response = request.send().await.map_err(Error::ReqwestSend)?;
