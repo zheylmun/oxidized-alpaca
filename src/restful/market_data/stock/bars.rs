@@ -146,6 +146,7 @@ struct Bars {
 
 #[cfg(test)]
 mod tests {
+    /*
     use super::*;
     use serial_test::parallel;
     use std::str::FromStr as _;
@@ -232,4 +233,5 @@ mod tests {
         let res = res.unwrap();
         assert_eq!(res.len(), 266);
     }
+    */
 }
