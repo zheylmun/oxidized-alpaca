@@ -8,20 +8,22 @@ license = "MIT OR Apache-2.0"
 repository = "https://github.com/zheylmun/oxidized-alpaca"
 
 [features]
-default = ["restful", "streaming"]
+default = ["restful", "streaming", "tracing"]
 restful = ["dep:reqwest"]
 streaming = ["dep:socketeer"]
+tracing = ["dep:tracing"]
 
 [dependencies]
-socketeer = { version = "0.0.3", features = ["tracing"], optional = true }
+socketeer = { version = "0.1", features = ["tracing"], optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json"], optional = true }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+serde_repr = "0.1"
 thiserror = "2"
 tokio = { version = "1", default-features = false, features = ["macros"] }
-tracing = "0.1"
+tracing = { version = "0.1", optional = true }
 url = "2"
 serde_path_to_error = "0.1.16"
 

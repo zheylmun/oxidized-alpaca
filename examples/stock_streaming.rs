@@ -9,7 +9,7 @@ use tracing_subscriber::fmt::Subscriber;
 #[tokio::main]
 async fn main() {
     let subscriber = Subscriber::builder()
-        .with_max_level(tracing::Level::INFO)
+        .with_max_level(tracing::Level::TRACE)
         .finish();
     tracing::subscriber::set_global_default(subscriber).unwrap();
     let mut client = StreamingMarketDataClient::new_test_client(AccountType::Paper)
@@ -24,15 +24,13 @@ async fn main() {
         .add_trades("FAKEPACA");
     client.add_subscriptions(&subscriptions).await.unwrap();
 
-    let mut count = 0u32;
-    loop {
+    let mut count = 0;
+    while count < 3 {
         let message = client.next_message().await.unwrap();
-        println!("{:?}", message);
-        if count % 100 == 0 {
-            client.remove_subscriptions(&subscriptions).await.unwrap();
-            tokio::time::sleep(Duration::from_secs(30)).await;
-            client.add_subscriptions(&subscriptions).await.unwrap();
-        }
-        count = count.wrapping_add(1);
+        client.remove_subscriptions(&subscriptions).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        client.add_subscriptions(&subscriptions).await.unwrap();
+        tokio::time::sleep(Duration::from_secs(30)).await;
+        count +=1;
     }
 }

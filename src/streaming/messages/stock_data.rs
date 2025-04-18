@@ -1,5 +1,6 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 /// List of subscriptions to market data types available for streaming clients
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -119,18 +120,20 @@ pub enum ControlMessage {
     Connected,
     Authenticated,
 }
+#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+#[repr(u16)]
+pub enum ErrorCode {
+    InvalidSyntax = 400,
+    NotAuthenticated = 401,
+    AuthFailed = 402,
+    AlreadyAuthorized = 403,
+}
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename = "lowercase", tag = "code")]
-pub enum Error {
-    #[serde(rename = "400")]
-    InvalidSyntax,
-    #[serde(rename = "401")]
-    NotAuthenticated,
-    #[serde(rename = "402")]
-    AuthFailed,
-    #[serde(rename = "403")]
-    AlreadyAuthorized,
+pub struct Error {
+    pub code: ErrorCode,
+    #[serde(rename = "msg")]
+    pub message: String,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -216,6 +219,15 @@ pub enum StreamMessage {
     Trade(Trade),
     #[serde(rename = "q")]
     Quote(Quote),
+}
+
+impl StreamMessage {
+    pub(crate) const fn control(&self) -> Option<&ControlMessage> {
+        match self {
+            StreamMessage::Control { msg } => Some(msg),
+            _ => None,
+        }
+    }
 }
 
 /// Streaming Authentication Message

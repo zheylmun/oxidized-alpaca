@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::AccountType;
 
@@ -14,7 +14,7 @@ const STREAMING_NEWS_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/news"
 const STREAMING_NEWS_SANDBOX_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/news";
 
 /// Supported data feeds
-#[derive(Clone, Debug, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Feed {
     /// Investors Exchange (IEX) stock data source.

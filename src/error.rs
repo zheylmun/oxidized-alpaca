@@ -1,6 +1,8 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
+use crate::streaming::stock_data::StreamMessage;
+
 #[derive(Debug, Error)]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
@@ -33,10 +35,12 @@ pub enum Error {
     /// Url Parse Error
     #[error("Url parse error: {}", 0)]
     UrlParse(#[source] url::ParseError),
-
+    /// Unexpected connection message
+    #[error("Unexpected connection message: {0:?}")]
+    UnexpectedConnectionMessage(StreamMessage),
     /// StreamingAuth error
     #[error("Streaming Auth error")]
-    StreamingAuth {},
+    StreamingAuth,
 }
 
 pub type Result<T, E = Error> = std::result::Result<T, E>;

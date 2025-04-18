@@ -1,22 +1,19 @@
 use crate::{
-    streaming::{
-        stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
-        ClientState,
-    },
+    streaming::stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
     AccountType, Env, Error, Feed,
 };
-use serde::{Deserialize, Serialize};
 use socketeer::Socketeer;
-use std::{collections::VecDeque, fmt};
+use std::collections::VecDeque;
+#[cfg(feature = "tracing")]
+use tracing::{error, info};
+
+use super::messages;
 
 #[derive(Debug)]
-pub struct StreamingMarketDataClient<
-    RxMessage: for<'a> Deserialize<'a> + fmt::Debug,
-    TxMessage: fmt::Debug + Serialize,
-> {
+pub struct StreamingMarketDataClient<RxMessage, TxMessage> {
     websocket: Socketeer<RxMessage, TxMessage>,
     messages: VecDeque<StreamMessage>,
-    state: ClientState<SubscriptionList>,
+    subscriptions: SubscriptionList,
 }
 
 impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Request> {
@@ -54,12 +51,18 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         let mut client = StreamingMarketDataClient {
             websocket,
             messages: VecDeque::new(),
-            state: ClientState::Connecting,
+            subscriptions: SubscriptionList::new(),
         };
+        // Wait for the server to confirm our connection
         let connection_confirmation = client.next_message_internal().await?;
-        assert!(client
-            .handle_control_messages(connection_confirmation)
-            .is_none());
+        // Make sure we get the connection confirmation message
+        if let Some(ControlMessage::Connected) = connection_confirmation.control() {
+            info!("Connected to Alpaca Streaming API");
+        } else {
+            return Err(Error::UnexpectedConnectionMessage(connection_confirmation));
+        }
+
+        // Send our auth information
         client
             .websocket
             .send(Request::AuthMessage {
@@ -67,9 +70,11 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
                 secret: env.secret_key().to_string(),
             })
             .await?;
+        // Await the authentication response
         let auth_response = client.next_message_internal().await?;
-        assert!(client.handle_control_messages(auth_response).is_none());
-        assert!(matches!(client.state, ClientState::Authenticated(_)));
+        if let Some(ControlMessage::Connected) = auth_response.control() {
+            info!("Authenticated with Alpaca Streaming API");
+        }
         Ok(client)
     }
 
@@ -77,7 +82,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         let mut message: Option<StreamMessage> = None;
         while message.is_none() {
             let incoming_message = self.next_message_internal().await?;
-            message = self.handle_control_messages(incoming_message);
+            message = self.handle_subscription_update(incoming_message);
         }
         Ok(message.unwrap())
     }
@@ -85,50 +90,75 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
     pub async fn add_subscriptions(
         &mut self,
         subscriptions: &SubscriptionList,
-    ) -> Result<(), Error> {
+    ) -> Result<SubscriptionList, Error> {
         self.websocket
             .send(Request::Subscribe(subscriptions.clone()))
             .await?;
-        Ok(())
+        self.await_subscription_update_message().await?;
+        Ok(self.subscriptions.clone())
     }
 
     pub async fn remove_subscriptions(
         &mut self,
         subscriptions: &SubscriptionList,
-    ) -> Result<(), Error> {
+    ) -> Result<SubscriptionList, Error> {
         self.websocket
             .send(Request::Unsubscribe(subscriptions.clone()))
             .await?;
+        self.await_subscription_update_message().await?;
+        Ok(self.subscriptions.clone())
+    }
+
+    pub async fn shut_down(self) -> Result<(), Error> {
+        self.websocket.close_connection().await?;
+        Ok(())
+    }
+
+    /// Pull messages from the socket until we receive a control message
+    /// normal messages go into our message queue
+    async fn await_subscription_update_message(&mut self) -> Result<(), Error> {
+        let mut received = false;
+        while !received {
+            match self.websocket.next_message().await {
+                Ok(messages) => {
+                    for message in messages {
+                        match self.handle_subscription_update(message) {
+                            None => {
+                                received = true;
+                            }
+                            Some(message) => {
+                                self.messages.push_back(message);
+                            }
+                        }
+                    }
+                }
+                Err(e) => {
+                    error!("Error retrieving next message: {e:?}");
+                    return Err(Error::WebsocketError(e));
+                }
+            }
+        }
         Ok(())
     }
 
     async fn next_message_internal(&mut self) -> Result<StreamMessage, Error> {
         if self.messages.is_empty() {
-            let messages = self.websocket.next_message().await?;
-            self.messages.extend(messages);
+            match self.websocket.next_message().await {
+                Ok(messages) => self.messages.extend(messages),
+                Err(e) => {
+                    error!("Error retrieving next message: {e:?}");
+                    return Err(Error::WebsocketError(e));
+                }
+            }
         }
         Ok(self.messages.pop_front().unwrap())
     }
 
-    fn handle_control_messages(&mut self, message: StreamMessage) -> Option<StreamMessage> {
+    fn handle_subscription_update(&mut self, message: StreamMessage) -> Option<StreamMessage> {
         match message {
-            StreamMessage::Control { msg } => match msg {
-                ControlMessage::Connected => {
-                    self.state = ClientState::Connected;
-                    None
-                }
-                ControlMessage::Authenticated => {
-                    self.state = ClientState::Authenticated(SubscriptionList::new());
-                    None
-                }
-            },
             StreamMessage::Subscription(updated_subsciptions) => {
-                if let ClientState::Authenticated(subscriptions) = &mut self.state {
-                    *subscriptions = updated_subsciptions;
-                    None
-                } else {
-                    unreachable!("Received subscription update in unexpected state");
-                }
+                self.subscriptions = updated_subsciptions;
+                None
             }
             _ => Some(message),
         }
