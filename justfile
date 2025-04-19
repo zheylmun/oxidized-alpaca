@@ -1,6 +1,6 @@
-all: build docs lint test
+all: check docs lint test
 
-build:
+check:
     cargo check
 
 docs:

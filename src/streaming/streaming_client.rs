@@ -7,8 +7,6 @@ use std::collections::VecDeque;
 #[cfg(feature = "tracing")]
 use tracing::{error, info};
 
-use super::messages;
-
 #[derive(Debug)]
 pub struct StreamingMarketDataClient<RxMessage, TxMessage> {
     websocket: Socketeer<RxMessage, TxMessage>,
