@@ -1,7 +1,7 @@
 use crate::{
+    Feed,
     error::{self, Error},
-    restful::{null_def_vec, rest_client::RequestAPI},
-    Feed, RestClient,
+    restful::{RestClient, null_def_vec, rest_client::RequestAPI},
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;

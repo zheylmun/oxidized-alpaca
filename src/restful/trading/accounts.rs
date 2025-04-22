@@ -1,6 +1,6 @@
 use crate::{
-    restful::{rest_client::RequestAPI, string_as_f64, RestClient},
     Error, Result,
+    restful::{RestClient, rest_client::RequestAPI, string_as_f64},
 };
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
@@ -142,13 +142,14 @@ pub struct AccountDetails {
     pub pending_reg_taf_fees: f64,
 }
 
-/// Get the account information associated with the Alpaca API key
-pub async fn get(client: &RestClient) -> Result<AccountDetails> {
-    let request = client.request(Method::GET, RequestAPI::Trading, "account");
-    let response = request.send().await.map_err(Error::ReqwestSend)?;
-    response.json().await.map_err(Error::ReqwestDeserialize)
+impl AccountDetails {
+    /// Get the account information associated with the Alpaca API key
+    pub async fn get(client: &RestClient) -> Result<Self> {
+        let request = client.request(Method::GET, RequestAPI::Trading, "account");
+        let response = request.send().await.map_err(Error::ReqwestSend)?;
+        response.json().await.map_err(Error::ReqwestDeserialize)
+    }
 }
-
 #[cfg(test)]
 mod tests {
     use super::*;

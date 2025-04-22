@@ -1,6 +1,6 @@
 use crate::{
-    restful::{rest_client::RequestAPI, string_as_optional_f64},
-    Error, RestClient,
+    Error,
+    restful::{RestClient, rest_client::RequestAPI, string_as_optional_f64},
 };
 use futures::TryFutureExt;
 use serde::{Deserialize, Serialize};
@@ -60,6 +60,34 @@ pub struct Asset {
     attributes: Vec<String>,
 }
 
+impl Asset {
+    pub fn get(client: &RestClient) -> AssetRequest {
+        AssetRequest {
+            client,
+            status: None,
+            asset_class: None,
+            exchange: None,
+            attributes: None,
+        }
+    }
+
+    pub async fn get_by_id(client: &RestClient, id: &str) -> Result<Asset, Error> {
+        let response = client
+            .request(
+                reqwest::Method::GET,
+                RequestAPI::Trading,
+                &format!("assets/{}", id),
+            )
+            .send()
+            .await
+            .map_err(Error::ReqwestSend)?;
+        response
+            .json::<Asset>()
+            .map_err(Error::ReqwestDeserialize)
+            .await
+    }
+}
+
 #[derive(Clone, Debug, Serialize)]
 pub struct AssetRequest<'a> {
     #[serde(skip)]
@@ -100,32 +128,6 @@ impl AssetRequest<'_> {
             .await?;
         response.json::<Vec<Asset>>().await
     }
-}
-
-pub fn get(client: &RestClient) -> AssetRequest {
-    AssetRequest {
-        client,
-        status: None,
-        asset_class: None,
-        exchange: None,
-        attributes: None,
-    }
-}
-
-pub async fn get_by_id(client: &RestClient, id: &str) -> Result<Asset, Error> {
-    let response = client
-        .request(
-            reqwest::Method::GET,
-            RequestAPI::Trading,
-            &format!("assets/{}", id),
-        )
-        .send()
-        .await
-        .map_err(Error::ReqwestSend)?;
-    response
-        .json::<Asset>()
-        .map_err(Error::ReqwestDeserialize)
-        .await
 }
 
 #[cfg(test)]
