@@ -1,4 +1,4 @@
-use crate::{error::Error, AccountType};
+use crate::{AccountType, error::Error};
 use std::{env, fmt};
 
 /// The environment variable containing the Alpaca paper account key ID
@@ -82,20 +82,27 @@ mod tests {
     }
 
     fn restore_env(keys: (String, String, String, String)) {
-        env::set_var(PAPER_KEY_ID_ENV, keys.0);
-        env::set_var(PAPER_SECRET_KEY_ENV, keys.1);
-        env::set_var(LIVE_KEY_ID_ENV, keys.2);
-        env::set_var(LIVE_SECRET_KEY_ENV, keys.3);
+        // These tests are explicitly serial
+        unsafe {
+            env::set_var(PAPER_KEY_ID_ENV, keys.0);
+            env::set_var(PAPER_SECRET_KEY_ENV, keys.1);
+            env::set_var(LIVE_KEY_ID_ENV, keys.2);
+            env::set_var(LIVE_SECRET_KEY_ENV, keys.3);
+        }
     }
 
     fn set_paper_vars() {
-        env::set_var(PAPER_KEY_ID_ENV, PAPER_ID);
-        env::set_var(PAPER_SECRET_KEY_ENV, PAPER_SECRET);
+        unsafe {
+            env::set_var(PAPER_KEY_ID_ENV, PAPER_ID);
+            env::set_var(PAPER_SECRET_KEY_ENV, PAPER_SECRET);
+        }
     }
 
     fn set_live_vars() {
-        env::set_var(LIVE_KEY_ID_ENV, LIVE_ID);
-        env::set_var(LIVE_SECRET_KEY_ENV, LIVE_SECRET);
+        unsafe {
+            env::set_var(LIVE_KEY_ID_ENV, LIVE_ID);
+            env::set_var(LIVE_SECRET_KEY_ENV, LIVE_SECRET);
+        }
     }
 
     #[test]
@@ -118,7 +125,9 @@ mod tests {
     fn test_paper_key_not_present() {
         let env = capture_env();
         set_paper_vars();
-        env::remove_var(PAPER_KEY_ID_ENV);
+        unsafe {
+            env::remove_var(PAPER_KEY_ID_ENV);
+        }
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
         restore_env(env);
@@ -129,7 +138,9 @@ mod tests {
     fn test_paper_secret_not_present() {
         let env = capture_env();
         set_paper_vars();
-        env::remove_var(PAPER_SECRET_KEY_ENV);
+        unsafe {
+            env::remove_var(PAPER_SECRET_KEY_ENV);
+        }
         let res = Env::new(&AccountType::Paper);
         assert!(res.is_err());
         restore_env(env);
@@ -139,7 +150,9 @@ mod tests {
     fn test_live_key_id_not_present() {
         let env = capture_env();
         set_live_vars();
-        env::remove_var(LIVE_KEY_ID_ENV);
+        unsafe {
+            env::remove_var(LIVE_KEY_ID_ENV);
+        }
         let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
         restore_env(env);
@@ -150,7 +163,9 @@ mod tests {
     fn test_live_secret_key_not_present() {
         let env = capture_env();
         set_live_vars();
-        env::remove_var(LIVE_SECRET_KEY_ENV);
+        unsafe {
+            env::remove_var(LIVE_SECRET_KEY_ENV);
+        }
         let res = Env::new(&AccountType::Live);
         assert!(res.is_err());
         restore_env(env);
