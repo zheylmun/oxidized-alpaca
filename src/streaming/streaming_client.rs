@@ -1,6 +1,6 @@
 use crate::{
-    streaming::stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
     AccountType, Env, Error, Feed,
+    streaming::stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
 };
 use socketeer::Socketeer;
 use std::collections::VecDeque;
@@ -57,7 +57,9 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         if let Some(ControlMessage::Connected) = connection_confirmation.control() {
             info!("Connected to Alpaca Streaming API");
         } else {
-            return Err(Error::UnexpectedConnectionMessage(connection_confirmation));
+            return Err(Error::UnexpectedConnectionMessage(Box::new(
+                connection_confirmation,
+            )));
         }
 
         // Send our auth information

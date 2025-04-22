@@ -37,7 +37,7 @@ pub enum Error {
     UrlParse(#[source] url::ParseError),
     /// Unexpected connection message
     #[error("Unexpected connection message: {0:?}")]
-    UnexpectedConnectionMessage(StreamMessage),
+    UnexpectedConnectionMessage(Box<StreamMessage>),
     /// StreamingAuth error
     #[error("Streaming Auth error")]
     StreamingAuth,
