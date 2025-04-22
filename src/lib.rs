@@ -1,5 +1,3 @@
-mod account_type;
-pub use account_type::AccountType;
 mod env;
 pub use env::Env;
 pub mod error;
@@ -8,8 +6,17 @@ mod feed;
 pub use feed::Feed;
 
 #[cfg(feature = "restful")]
-mod restful;
-#[cfg(feature = "restful")]
-pub use restful::*;
+pub mod restful;
+
+use serde::{Deserialize, Serialize};
 #[cfg(feature = "streaming")]
 pub mod streaming;
+
+/// The type of Alpaca account
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq, Serialize)]
+pub enum AccountType {
+    /// Paper trading account
+    Paper,
+    /// Live trading account
+    Live,
+}
