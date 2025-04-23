@@ -19,11 +19,17 @@ pub enum AssetClass {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Exchange {
+    /// American Stock Exchang
     Amex,
+    ///
     Arca,
+    /// BATS (Better Alternative Trading System) Exchange
     Bats,
+    /// New York Stock Exchange
     Nyse,
+    /// NASDAQ (National Association of Securities Dealers Automated Quotations) Exchange
     Nasdaq,
+    /// NYSE Archa (Archipelago Exchange)
     Nysearca,
     Otc,
     Crypto,
