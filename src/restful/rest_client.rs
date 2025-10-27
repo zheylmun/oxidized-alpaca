@@ -1,6 +1,6 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 
-use crate::{env::Env, error::Result, AccountType};
+use crate::{AccountType, env::Env, error::Result};
 
 const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";

@@ -1,6 +1,6 @@
 use oxidized_alpaca::{
-    streaming::{stock_data, StreamingMarketDataClient},
     AccountType,
+    streaming::{StreamingMarketDataClient, stock_data},
 };
 
 #[tokio::main]
