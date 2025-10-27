@@ -1,6 +1,6 @@
 [package]
 name = "oxidized_alpaca"
-version = "0.0.2"
+version = "0.0.3"
 edition = "2024"
 description = "Rust client for Alpaca's trading and data APIs"
 authors = ["Zach Heylmun <zheylmun@gmail.com>"]
@@ -14,7 +14,7 @@ streaming = ["dep:socketeer"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-socketeer = { version = "0.1", features = ["tracing"], optional = true }
+socketeer = { version = "0.2", features = ["tracing"], optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 reqwest = { version = "0.12", features = ["json"], optional = true }
