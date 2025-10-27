@@ -13,6 +13,7 @@ pub enum AssetClass {
     UsEquity,
     UsOption,
     Crypto,
+    CryptoPerp,
 }
 
 /// `Exchange` represents the exchange where the asset is traded
@@ -21,8 +22,10 @@ pub enum AssetClass {
 pub enum Exchange {
     /// American Stock Exchang
     Amex,
-    ///
+    /// Archipelago Exchange
     Arca,
+    /// Amsterdam Small Cap Index Exchange
+    Ascx,
     /// BATS (Better Alternative Trading System) Exchange
     Bats,
     /// New York Stock Exchange
