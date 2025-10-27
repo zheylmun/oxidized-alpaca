@@ -67,7 +67,7 @@ pub struct Asset {
 }
 
 impl Asset {
-    pub fn get(client: &RestClient) -> AssetRequest {
+    pub fn get(client: &RestClient) -> AssetRequest<'_> {
         AssetRequest {
             client,
             status: None,
