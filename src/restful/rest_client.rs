@@ -6,7 +6,7 @@ const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";
 const PAPER_TRADING_URL: &str = "https://paper-api.alpaca.markets/v2/";
 const LIVE_TRADING_URL: &str = "https://api.alpaca.markets/v2/";
-const STOCK_DATA_URL: &str = "https://api.alpaca.markets/v2/";
+const STOCK_DATA_URL: &str = "https://data.alpaca.markets/v2/";
 
 pub(crate) enum RequestAPI {
     Trading,

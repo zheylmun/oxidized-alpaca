@@ -99,7 +99,7 @@ impl Request<'_> {
 
     #[tracing::instrument]
     async fn internal_execute(&self) -> Result<Bars, Error> {
-        let path = format!("v2/stocks/{}/bars", self.symbol);
+        let path = format!("stocks/{}/bars", self.symbol);
         let request = self
             .rest_client
             .request(Method::GET, RequestAPI::StockMarketData, &path)
