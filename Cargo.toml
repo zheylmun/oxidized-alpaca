@@ -1,6 +1,6 @@
 [package]
 name = "oxidized_alpaca"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2024"
 description = "Rust client for Alpaca's trading and data APIs"
 authors = ["Zach Heylmun <zheylmun@gmail.com>"]
