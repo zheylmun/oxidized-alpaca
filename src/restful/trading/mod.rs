@@ -1,4 +1,10 @@
+pub mod account_activities;
+pub mod account_configurations;
 pub mod accounts;
 pub mod assets;
+pub mod calendar;
+pub mod clock;
 pub mod orders;
+pub mod portfolio_history;
 pub mod positions;
+pub mod watchlists;
