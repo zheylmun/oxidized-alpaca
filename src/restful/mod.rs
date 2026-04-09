@@ -32,9 +32,9 @@ pub(crate) fn string_as_optional_decimal<'de, D>(
 where
     D: Deserializer<'de>,
 {
-    Ok(Some(
-        String::deserialize(deserializer)?
-            .parse()
-            .map_err(serde::de::Error::custom)?,
-    ))
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(s) => s.parse().map(Some).map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
 }
