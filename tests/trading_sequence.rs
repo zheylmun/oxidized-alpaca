@@ -1,58 +1,52 @@
 use oxidized_alpaca::{
-    AccountType,
-    restful::{
-        RestClient,
-        trading::{
-            accounts::{AccountDetails, Currency},
-            assets::{Asset, AssetClass, Exchange, Status},
-        },
+    AccountType, TradingClient,
+    restful::trading::{
+        accounts::Currency,
+        assets::{AssetClass, Exchange, Status},
     },
 };
 
 #[tokio::test]
 async fn test_account() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
-    // Get the account
-    let account = AccountDetails::get(&client).await.unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
+    let account = client.get_account().await.unwrap();
     assert_eq!(account.currency, Currency::USD);
 }
 
 #[tokio::test]
 async fn trading_sequence() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
 
-    // Get all assets
-    let assets = Asset::get(&client).execute().await.unwrap();
+    let assets = client.list_assets().execute().await.unwrap();
     assert!(!assets.is_empty());
 
-    // Get all active assets
-    let assets = Asset::get(&client)
-        .with_status(Status::Active)
+    let assets = client
+        .list_assets()
+        .status(Status::Active)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    // Get all US equity assets
-    let assets = Asset::get(&client)
-        .with_asset_class(AssetClass::UsEquity)
+    let assets = client
+        .list_assets()
+        .asset_class(AssetClass::UsEquity)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    // Get all OTC assets
-    let assets = Asset::get(&client)
-        .with_exchange(Exchange::Otc)
+    let assets = client
+        .list_assets()
+        .exchange(Exchange::Otc)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    let assets = Asset::get(&client)
-        .with_attribute_string("ptp_no_exception".to_string())
+    let assets = client
+        .list_assets()
+        .attributes("ptp_no_exception".to_string())
         .execute()
         .await
         .unwrap();

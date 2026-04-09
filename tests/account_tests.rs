@@ -1,17 +1,9 @@
-use oxidized_alpaca::{
-    AccountType,
-    restful::{
-        RestClient,
-        trading::accounts::{AccountDetails, Currency},
-    },
-};
+use oxidized_alpaca::{AccountType, TradingClient, restful::trading::accounts::Currency};
 
 #[tokio::test]
 async fn test_account() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
-    // Get the account
-    let account = AccountDetails::get(&client).await.unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
+    let account = client.get_account().await.unwrap();
     assert_eq!(account.currency, Currency::USD);
     println!("{account:#?}");
 }

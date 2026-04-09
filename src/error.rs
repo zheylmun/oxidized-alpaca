@@ -1,8 +1,6 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
-use crate::streaming::stock_data::StreamMessage;
-
 #[derive(Debug, Error)]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
@@ -27,6 +25,10 @@ pub enum Error {
     #[error("Reqwest decoding error: {}", 0)]
     ReqwestDeserialize(#[source] ReqwestError),
 
+    /// API returned a non-2xx status code
+    #[error("API error (HTTP {}): {}", status, body)]
+    ApiError { status: u16, body: String },
+
     /// Socketeer connection error
     #[cfg(feature = "streaming")]
     #[error("Socketeer websocket error: {}", 0)]
@@ -36,8 +38,8 @@ pub enum Error {
     #[error("Url parse error: {}", 0)]
     UrlParse(#[source] url::ParseError),
     /// Unexpected connection message
-    #[error("Unexpected connection message: {0:?}")]
-    UnexpectedConnectionMessage(Box<StreamMessage>),
+    #[error("Unexpected connection message: {0}")]
+    UnexpectedConnectionMessage(String),
     /// StreamingAuth error
     #[error("Streaming Auth error")]
     StreamingAuth,

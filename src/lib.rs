@@ -7,6 +7,8 @@ pub use feed::Feed;
 
 #[cfg(feature = "restful")]
 pub mod restful;
+#[cfg(feature = "restful")]
+pub use restful::{MarketDataClient, TradingClient};
 
 use serde::{Deserialize, Serialize};
 #[cfg(feature = "streaming")]

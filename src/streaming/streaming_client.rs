@@ -57,8 +57,8 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         if let Some(ControlMessage::Connected) = connection_confirmation.control() {
             info!("Connected to Alpaca Streaming API");
         } else {
-            return Err(Error::UnexpectedConnectionMessage(Box::new(
-                connection_confirmation,
+            return Err(Error::UnexpectedConnectionMessage(format!(
+                "{connection_confirmation:?}",
             )));
         }
 

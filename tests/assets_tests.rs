@@ -1,29 +1,21 @@
 use oxidized_alpaca::{
-    AccountType,
-    restful::{
-        RestClient,
-        trading::assets::{Asset, AssetClass, Exchange, Status},
-    },
+    AccountType, TradingClient,
+    restful::trading::assets::{AssetClass, Exchange, Status},
 };
 
 #[tokio::test]
 async fn get_all_assets() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
-
-    // Get all assets
-    let assets = Asset::get(&client).execute().await.unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
+    let assets = client.list_assets().execute().await.unwrap();
     assert!(!assets.is_empty());
 }
 
 #[tokio::test]
 async fn get_all_active_assets() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
-
-    // Get all active assets
-    let assets = Asset::get(&client)
-        .with_status(Status::Active)
+    let client = TradingClient::new(AccountType::Paper).unwrap();
+    let assets = client
+        .list_assets()
+        .status(Status::Active)
         .execute()
         .await
         .unwrap();
@@ -32,47 +24,48 @@ async fn get_all_active_assets() {
 
 #[tokio::test]
 async fn get_all_us_equity_assets() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
 
-    // Get all US equity assets
-    let assets = Asset::get(&client)
-        .with_asset_class(AssetClass::UsEquity)
+    let assets = client
+        .list_assets()
+        .asset_class(AssetClass::UsEquity)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    // Get all OTC assets
-    let assets = Asset::get(&client)
-        .with_exchange(Exchange::Otc)
+    let assets = client
+        .list_assets()
+        .exchange(Exchange::Otc)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    let assets = Asset::get(&client)
-        .with_attribute_string("ptp_no_exception".to_string())
+    let assets = client
+        .list_assets()
+        .attributes("ptp_no_exception".to_string())
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty())
 }
+
 #[tokio::test]
 async fn get_all_otc_assets() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
 
-    // Get all OTC assets
-    let assets = Asset::get(&client)
-        .with_exchange(Exchange::Otc)
+    let assets = client
+        .list_assets()
+        .exchange(Exchange::Otc)
         .execute()
         .await
         .unwrap();
     assert!(!assets.is_empty());
 
-    let assets = Asset::get(&client)
-        .with_attribute_string("ptp_no_exception".to_string())
+    let assets = client
+        .list_assets()
+        .attributes("ptp_no_exception".to_string())
         .execute()
         .await
         .unwrap();
@@ -81,11 +74,11 @@ async fn get_all_otc_assets() {
 
 #[tokio::test]
 async fn get_all_ptp_no_exception_assets() {
-    // Set up our RestClient
-    let client = RestClient::new(AccountType::Paper).unwrap();
+    let client = TradingClient::new(AccountType::Paper).unwrap();
 
-    let assets = Asset::get(&client)
-        .with_attribute_string("ptp_no_exception".to_string())
+    let assets = client
+        .list_assets()
+        .attributes("ptp_no_exception".to_string())
         .execute()
         .await
         .unwrap();
