@@ -1,0 +1,67 @@
+use crate::restful::MarketDataClient;
+use chrono::{DateTime, Utc};
+use reqwest::Method;
+use serde::{Deserialize, Serialize};
+
+use super::OptionBar;
+
+#[derive(Debug, Deserialize)]
+struct BarsResponse {
+    bars: std::collections::HashMap<String, Vec<OptionBar>>,
+    #[allow(dead_code)]
+    next_page_token: Option<String>,
+}
+
+/// Builder for requesting option bars.
+#[derive(Debug, Serialize)]
+#[must_use]
+pub struct OptionBarsRequest<'a> {
+    #[serde(skip)]
+    client: &'a MarketDataClient,
+    symbols: String,
+    timeframe: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    start: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    end: Option<DateTime<Utc>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    limit: Option<usize>,
+}
+
+impl OptionBarsRequest<'_> {
+    pub fn start(mut self, start: DateTime<Utc>) -> Self {
+        self.start = Some(start);
+        self
+    }
+    pub fn end(mut self, end: DateTime<Utc>) -> Self {
+        self.end = Some(end);
+        self
+    }
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
+        self
+    }
+
+    pub async fn execute(self) -> crate::Result<std::collections::HashMap<String, Vec<OptionBar>>> {
+        let request = self
+            .client
+            .request(Method::GET, "v1beta1/options/bars")
+            .query(&self);
+        let response: BarsResponse = self.client.send_and_deserialize(request).await?;
+        Ok(response.bars)
+    }
+}
+
+impl MarketDataClient {
+    /// Request option bars.
+    pub fn option_bars<'a>(&'a self, symbols: &str, timeframe: &str) -> OptionBarsRequest<'a> {
+        OptionBarsRequest {
+            client: self,
+            symbols: symbols.to_string(),
+            timeframe: timeframe.to_string(),
+            start: None,
+            end: None,
+            limit: None,
+        }
+    }
+}
