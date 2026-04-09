@@ -4,6 +4,7 @@ pub mod accounts;
 pub mod assets;
 pub mod calendar;
 pub mod clock;
+pub mod options_contracts;
 pub mod orders;
 pub mod portfolio_history;
 pub mod positions;
