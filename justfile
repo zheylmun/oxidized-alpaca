@@ -1,4 +1,4 @@
-all: check docs lint test
+all: check docs lint test deny semver
 
 check:
     cargo check
@@ -13,3 +13,9 @@ lint:
 test:
     cargo test env
     cargo test -- --skip env
+
+deny:
+    cargo deny check
+
+semver:
+    cargo semver-checks
