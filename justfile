@@ -1,5 +1,8 @@
-all: check docs lint test deny semver
+all: install-tools check docs lint test deny semver
 
+install-tools:
+    sh -c 'command -v cargo-deny >/dev/null 2>&1 || cargo install cargo-deny --locked'
+    sh -c 'command -v cargo-semver-checks >/dev/null 2>&1 || cargo install cargo-semver-checks --locked'
 check:
     cargo check
 
