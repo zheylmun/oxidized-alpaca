@@ -30,8 +30,7 @@ jobs:
       - name: "Setup Rust Toolchain"
         uses: dtolnay/rust-toolchain@stable
         with:
-          components:
-            - rustfmt
+          components: rustfmt
       - name: Rustfmt Check
         uses: actions-rust-lang/rustfmt@v1
 
@@ -45,8 +44,7 @@ jobs:
       - name: "Setup Rust Toolchain"
         uses: dtolnay/rust-toolchain@stable
         with:
-          components:
-            - rustfmt
+          components: clippy
       - run: cargo clippy --all-features --tests --benches -- -Dclippy::all
 
   # Upload coverage to Codecov
@@ -63,8 +61,7 @@ jobs:
       - name: "Setup Rust Toolchain"
         uses: dtolnay/rust-toolchain@stable
         with:
-          components:
-            - rustfmt
+          components: llvm-tools-preview
       - name: "Install cargo-llvm-cov"
         uses: taiki-e/install-action@v2
         with:
