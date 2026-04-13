@@ -6,18 +6,25 @@ use serde::{Deserialize, Serialize};
 /// A stock trade.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct StockTrade {
+    /// The timestamp of the trade.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// The exchange code.
     #[serde(rename = "x")]
     pub exchange: String,
+    /// The trade price.
     #[serde(rename = "p")]
     pub price: f64,
+    /// The trade size.
     #[serde(rename = "s")]
     pub size: u32,
+    /// The trade ID.
     #[serde(rename = "i", default)]
     pub trade_id: Option<u64>,
+    /// Trade condition flags.
     #[serde(rename = "c", default)]
     pub conditions: Vec<String>,
+    /// The tape.
     #[serde(rename = "z", default)]
     pub tape: Option<String>,
 }
@@ -63,18 +70,22 @@ pub struct TradesRequest<'a> {
 }
 
 impl TradesRequest<'_> {
+    /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
         self
     }
+    /// Set the end time filter.
     pub fn end(mut self, end: DateTime<Utc>) -> Self {
         self.end = Some(end);
         self
     }
+    /// Set the data feed to use.
     pub fn feed(mut self, feed: Feed) -> Self {
         self.feed = Some(feed);
         self
     }
+    /// Set the maximum number of trades to return.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self

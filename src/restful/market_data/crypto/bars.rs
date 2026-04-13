@@ -38,19 +38,23 @@ pub struct CryptoBarsRequest<'a> {
 }
 
 impl CryptoBarsRequest<'_> {
+    /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
         self
     }
+    /// Set the end time filter.
     pub fn end(mut self, end: DateTime<Utc>) -> Self {
         self.end = Some(end);
         self
     }
+    /// Set the maximum number of bars to return.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
 
+    /// Execute the request and return bars keyed by symbol.
     pub async fn execute(self) -> crate::Result<std::collections::HashMap<String, Vec<CryptoBar>>> {
         let path = format!("v1beta3/crypto/{}/bars", self.loc.as_str());
         let request = self.client.request(Method::GET, &path).query(&self);

@@ -4,7 +4,9 @@ use reqwest::Method;
 /// Tick type for condition code lookups.
 #[derive(Clone, Copy, Debug)]
 pub enum TickType {
+    /// Trade tick type.
     Trade,
+    /// Quote tick type.
     Quote,
 }
 

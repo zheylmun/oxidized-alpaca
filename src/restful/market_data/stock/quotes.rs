@@ -6,22 +6,31 @@ use serde::{Deserialize, Serialize};
 /// A stock quote (NBBO).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct StockQuote {
+    /// The timestamp of the quote.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// The bid exchange code.
     #[serde(rename = "bx")]
     pub bid_exchange: String,
+    /// The bid price.
     #[serde(rename = "bp")]
     pub bid_price: f64,
+    /// The bid size.
     #[serde(rename = "bs")]
     pub bid_size: u32,
+    /// The ask exchange code.
     #[serde(rename = "ax")]
     pub ask_exchange: String,
+    /// The ask price.
     #[serde(rename = "ap")]
     pub ask_price: f64,
+    /// The ask size.
     #[serde(rename = "as")]
     pub ask_size: u32,
+    /// Quote condition flags.
     #[serde(rename = "c", default)]
     pub conditions: Vec<String>,
+    /// The tape.
     #[serde(rename = "z", default)]
     pub tape: Option<String>,
 }
@@ -67,18 +76,22 @@ pub struct QuotesRequest<'a> {
 }
 
 impl QuotesRequest<'_> {
+    /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
         self
     }
+    /// Set the end time filter.
     pub fn end(mut self, end: DateTime<Utc>) -> Self {
         self.end = Some(end);
         self
     }
+    /// Set the data feed to use.
     pub fn feed(mut self, feed: Feed) -> Self {
         self.feed = Some(feed);
         self
     }
+    /// Set the maximum number of quotes to return.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self

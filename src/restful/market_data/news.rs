@@ -6,21 +6,32 @@ use serde::{Deserialize, Serialize};
 /// A news article.
 #[derive(Clone, Debug, Deserialize)]
 pub struct NewsArticle {
+    /// The article ID.
     pub id: i64,
+    /// The headline.
     pub headline: String,
+    /// A brief summary.
     #[serde(default)]
     pub summary: Option<String>,
+    /// The author name.
     pub author: String,
+    /// When the article was created.
     pub created_at: DateTime<Utc>,
+    /// When the article was last updated.
     pub updated_at: DateTime<Utc>,
+    /// The article URL.
     #[serde(default)]
     pub url: Option<String>,
+    /// The full article content.
     #[serde(default)]
     pub content: Option<String>,
+    /// Related stock symbols.
     #[serde(default)]
     pub symbols: Vec<String>,
+    /// The news source.
     #[serde(default)]
     pub source: Option<String>,
+    /// Associated images.
     #[serde(default)]
     pub images: Vec<NewsImage>,
 }
@@ -28,8 +39,10 @@ pub struct NewsArticle {
 /// An image associated with a news article.
 #[derive(Clone, Debug, Deserialize)]
 pub struct NewsImage {
+    /// The image size descriptor (e.g. "thumb", "small", "large").
     #[serde(default)]
     pub size: Option<String>,
+    /// The image URL.
     pub url: String,
 }
 
@@ -65,35 +78,43 @@ pub struct NewsRequest<'a> {
 }
 
 impl NewsRequest<'_> {
+    /// Filter by comma-separated stock symbols.
     pub fn symbols(mut self, symbols: &str) -> Self {
         self.symbols = Some(symbols.to_string());
         self
     }
+    /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
         self
     }
+    /// Set the end time filter.
     pub fn end(mut self, end: DateTime<Utc>) -> Self {
         self.end = Some(end);
         self
     }
+    /// Set the maximum number of articles to return.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
     }
+    /// Set the sort order (e.g. "asc" or "desc").
     pub fn sort(mut self, sort: &str) -> Self {
         self.sort = Some(sort.to_string());
         self
     }
+    /// Whether to include the full article content.
     pub fn include_content(mut self, include: bool) -> Self {
         self.include_content = Some(include);
         self
     }
+    /// Whether to exclude articles without content.
     pub fn exclude_contentless(mut self, exclude: bool) -> Self {
         self.exclude_contentless = Some(exclude);
         self
     }
 
+    /// Execute the request and return the news articles.
     pub async fn execute(self) -> crate::Result<Vec<NewsArticle>> {
         let request = self
             .client

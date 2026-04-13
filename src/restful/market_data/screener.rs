@@ -5,8 +5,11 @@ use serde::Deserialize;
 /// A most-active stock.
 #[derive(Clone, Debug, Deserialize)]
 pub struct MostActive {
+    /// The stock symbol.
     pub symbol: String,
+    /// The trading volume.
     pub volume: u64,
+    /// The number of trades.
     pub trade_count: u64,
 }
 
@@ -20,9 +23,13 @@ struct MostActivesResponse {
 /// A market mover (gainer or loser).
 #[derive(Clone, Debug, Deserialize)]
 pub struct Mover {
+    /// The stock symbol.
     pub symbol: String,
+    /// The percentage change.
     pub percent_change: f64,
+    /// The absolute price change.
     pub change: f64,
+    /// The current price.
     pub price: f64,
 }
 
@@ -37,7 +44,9 @@ struct MoversResponse {
 /// Market movers result.
 #[derive(Clone, Debug)]
 pub struct MarketMovers {
+    /// Top gaining stocks.
     pub gainers: Vec<Mover>,
+    /// Top losing stocks.
     pub losers: Vec<Mover>,
 }
 

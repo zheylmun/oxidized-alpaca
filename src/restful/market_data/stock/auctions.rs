@@ -6,10 +6,13 @@ use serde::{Deserialize, Serialize};
 /// An auction price entry.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct AuctionPrice {
+    /// The date of the auction.
     #[serde(rename = "d")]
     pub date: Option<String>,
+    /// The opening auction price.
     #[serde(rename = "o")]
     pub open: Option<f64>,
+    /// The closing auction price.
     #[serde(rename = "c")]
     pub close: Option<f64>,
 }
@@ -17,10 +20,13 @@ pub struct AuctionPrice {
 /// A daily auction record.
 #[derive(Clone, Debug, Deserialize)]
 pub struct DailyAuctions {
+    /// The date of the auctions.
     #[serde(rename = "d")]
     pub date: String,
+    /// Opening auction entries.
     #[serde(rename = "o", default)]
     pub opening: Vec<AuctionEntry>,
+    /// Closing auction entries.
     #[serde(rename = "c", default)]
     pub closing: Vec<AuctionEntry>,
 }
@@ -28,14 +34,19 @@ pub struct DailyAuctions {
 /// A single auction entry.
 #[derive(Clone, Debug, Deserialize)]
 pub struct AuctionEntry {
+    /// The timestamp of the auction.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// The auction price.
     #[serde(rename = "p")]
     pub price: f64,
+    /// The auction size.
     #[serde(rename = "s")]
     pub size: u64,
+    /// The exchange code.
     #[serde(rename = "x", default)]
     pub exchange: Option<String>,
+    /// The condition flag.
     #[serde(rename = "c", default)]
     pub condition: Option<String>,
 }
@@ -69,18 +80,22 @@ pub struct AuctionsRequest<'a> {
 }
 
 impl AuctionsRequest<'_> {
+    /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
         self
     }
+    /// Set the end time filter.
     pub fn end(mut self, end: DateTime<Utc>) -> Self {
         self.end = Some(end);
         self
     }
+    /// Set the data feed to use.
     pub fn feed(mut self, feed: Feed) -> Self {
         self.feed = Some(feed);
         self
     }
+    /// Set the maximum number of results to return.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self

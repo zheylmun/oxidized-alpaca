@@ -7,14 +7,19 @@ use super::{Bar, quotes::StockQuote, trades::StockTrade};
 /// A stock snapshot containing latest trade, quote, and bar data.
 #[derive(Clone, Debug, Deserialize)]
 pub struct StockSnapshot {
+    /// The latest trade.
     #[serde(rename = "latestTrade")]
     pub latest_trade: Option<StockTrade>,
+    /// The latest quote.
     #[serde(rename = "latestQuote")]
     pub latest_quote: Option<StockQuote>,
+    /// The latest minute bar.
     #[serde(rename = "minuteBar")]
     pub minute_bar: Option<Bar>,
+    /// The current daily bar.
     #[serde(rename = "dailyBar")]
     pub daily_bar: Option<Bar>,
+    /// The previous day's daily bar.
     #[serde(rename = "prevDailyBar")]
     pub prev_daily_bar: Option<Bar>,
 }

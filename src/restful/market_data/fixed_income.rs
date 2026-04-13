@@ -5,8 +5,11 @@ use serde::Deserialize;
 /// A fixed income price.
 #[derive(Clone, Debug, Deserialize)]
 pub struct FixedIncomePrice {
+    /// The instrument symbol.
     pub symbol: String,
+    /// The price.
     pub price: f64,
+    /// The price timestamp.
     #[serde(default)]
     pub timestamp: Option<String>,
 }

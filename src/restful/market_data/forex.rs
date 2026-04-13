@@ -6,12 +6,16 @@ use serde::Deserialize;
 /// A forex rate.
 #[derive(Clone, Debug, Deserialize)]
 pub struct ForexRate {
+    /// The bid price.
     #[serde(rename = "bp")]
     pub bid_price: f64,
+    /// The ask price.
     #[serde(rename = "ap")]
     pub ask_price: f64,
+    /// The mid price.
     #[serde(rename = "mp")]
     pub mid_price: f64,
+    /// The rate timestamp.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
 }
