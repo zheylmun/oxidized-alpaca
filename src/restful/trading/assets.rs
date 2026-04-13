@@ -8,9 +8,13 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum AssetClass {
+    /// US equity securities.
     UsEquity,
+    /// US options contracts.
     UsOption,
+    /// Cryptocurrency.
     Crypto,
+    /// Cryptocurrency perpetual futures.
     CryptoPerp,
 }
 
@@ -33,7 +37,9 @@ pub enum Exchange {
     Nasdaq,
     /// NYSE Arca
     Nysearca,
+    /// Over-the-counter markets.
     Otc,
+    /// Cryptocurrency exchange.
     Crypto,
 }
 
@@ -42,30 +48,44 @@ pub enum Exchange {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum Status {
+    /// Asset is active and tradable.
     Active,
+    /// Asset is inactive.
     Inactive,
 }
 
+/// An asset as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Asset {
-    /// Asset ID
+    /// Asset ID.
     pub id: String,
-    /// Asset class
+    /// Asset class.
     pub class: AssetClass,
-    /// Exchange the asset is traded on
+    /// Exchange the asset is traded on.
     pub exchange: Exchange,
+    /// Ticker symbol.
     pub symbol: String,
+    /// Asset name.
     pub name: String,
+    /// Active or inactive status.
     pub status: Status,
+    /// Whether the asset is tradable.
     pub tradable: bool,
+    /// Whether the asset is marginable.
     pub marginable: bool,
+    /// Whether the asset is shortable.
     pub shortable: bool,
+    /// Whether the asset is easy to borrow for shorting.
     pub easy_to_borrow: bool,
+    /// Whether the asset supports fractional shares.
     pub fractionable: bool,
+    /// Long margin requirement percentage.
     #[serde(deserialize_with = "string_as_optional_decimal", default)]
     pub margin_requirement_long: Option<Decimal>,
+    /// Short margin requirement percentage.
     #[serde(deserialize_with = "string_as_optional_decimal", default)]
     pub margin_requirement_short: Option<Decimal>,
+    /// Additional asset attributes.
     pub attributes: Vec<String>,
 }
 
@@ -86,18 +106,22 @@ pub struct AssetRequest<'a> {
 }
 
 impl AssetRequest<'_> {
+    /// Filter by asset status.
     pub fn status(mut self, status: Status) -> Self {
         self.status = Some(status);
         self
     }
+    /// Filter by asset class.
     pub fn asset_class(mut self, asset_class: AssetClass) -> Self {
         self.asset_class = Some(asset_class);
         self
     }
+    /// Filter by exchange.
     pub fn exchange(mut self, exchange: Exchange) -> Self {
         self.exchange = Some(exchange);
         self
     }
+    /// Filter by comma-separated attributes.
     pub fn attributes(mut self, attributes: String) -> Self {
         self.attributes = Some(attributes);
         self

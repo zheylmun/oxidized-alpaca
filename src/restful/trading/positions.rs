@@ -8,41 +8,61 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum PositionSide {
+    /// Long position.
     Long,
+    /// Short position.
     Short,
 }
 
 /// An open position as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Position {
+    /// Asset ID.
     pub asset_id: String,
+    /// Ticker symbol.
     pub symbol: String,
+    /// Exchange the asset is traded on.
     pub exchange: String,
+    /// Asset class (e.g., "us_equity").
     pub asset_class: String,
+    /// Whether the asset is marginable.
     pub asset_marginable: Option<bool>,
+    /// Average entry price of the position.
     #[serde(deserialize_with = "string_as_decimal")]
     pub avg_entry_price: Decimal,
+    /// Number of shares in the position.
     #[serde(deserialize_with = "string_as_decimal")]
     pub qty: Decimal,
+    /// Number of shares available to trade.
     #[serde(deserialize_with = "string_as_decimal")]
     pub qty_available: Decimal,
+    /// Long or short side.
     pub side: PositionSide,
+    /// Current market value of the position.
     #[serde(deserialize_with = "string_as_decimal")]
     pub market_value: Decimal,
+    /// Total cost basis.
     #[serde(deserialize_with = "string_as_decimal")]
     pub cost_basis: Decimal,
+    /// Unrealized profit/loss.
     #[serde(deserialize_with = "string_as_decimal")]
     pub unrealized_pl: Decimal,
+    /// Unrealized profit/loss percentage.
     #[serde(deserialize_with = "string_as_decimal")]
     pub unrealized_plpc: Decimal,
+    /// Unrealized intraday profit/loss.
     #[serde(deserialize_with = "string_as_decimal")]
     pub unrealized_intraday_pl: Decimal,
+    /// Unrealized intraday profit/loss percentage.
     #[serde(deserialize_with = "string_as_decimal")]
     pub unrealized_intraday_plpc: Decimal,
+    /// Current asset price.
     #[serde(deserialize_with = "string_as_decimal")]
     pub current_price: Decimal,
+    /// Previous trading day close price.
     #[serde(deserialize_with = "string_as_decimal")]
     pub lastday_price: Decimal,
+    /// Percent change from previous day.
     #[serde(deserialize_with = "string_as_decimal")]
     pub change_today: Decimal,
 }

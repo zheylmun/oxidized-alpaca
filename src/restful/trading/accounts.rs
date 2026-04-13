@@ -29,6 +29,7 @@ pub enum AccountStatus {
 /// Currently, only USD is supported.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub enum Currency {
+    /// US dollars.
     USD,
 }
 

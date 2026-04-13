@@ -42,32 +42,47 @@ pub enum ActivityType {
 /// An account activity event.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Activity {
+    /// Activity ID.
     pub id: String,
+    /// Type of activity.
     pub activity_type: ActivityType,
+    /// Ticker symbol (for trade activities).
     #[serde(default)]
     pub symbol: Option<String>,
+    /// Date of the activity.
     #[serde(default)]
     pub date: Option<NaiveDate>,
+    /// Net dollar amount of the activity.
     #[serde(default)]
     pub net_amount: Option<String>,
+    /// Quantity of shares.
     #[serde(default)]
     pub qty: Option<String>,
+    /// Per-share amount (e.g., dividend per share).
     #[serde(default)]
     pub per_share_amount: Option<String>,
+    /// Price per share.
     #[serde(default)]
     pub price: Option<String>,
+    /// Cumulative quantity filled.
     #[serde(default)]
     pub cum_qty: Option<String>,
+    /// Remaining quantity to fill.
     #[serde(default)]
     pub leaves_qty: Option<String>,
+    /// Buy or sell side.
     #[serde(default)]
     pub side: Option<String>,
+    /// Associated order ID.
     #[serde(default)]
     pub order_id: Option<String>,
+    /// Timestamp of the transaction.
     #[serde(default)]
     pub transaction_time: Option<DateTime<Utc>>,
+    /// Description of the activity.
     #[serde(default)]
     pub description: Option<String>,
+    /// Status of the activity.
     #[serde(default)]
     pub status: Option<String>,
 }
@@ -97,34 +112,42 @@ pub struct ListActivitiesRequest<'a> {
 }
 
 impl ListActivitiesRequest<'_> {
+    /// Filter by activity type.
     pub fn activity_type(mut self, activity_type: ActivityType) -> Self {
         self.activity_type = Some(activity_type);
         self
     }
+    /// Filter by exact date.
     pub fn date(mut self, date: NaiveDate) -> Self {
         self.date = Some(date);
         self
     }
+    /// Only return activities before this timestamp.
     pub fn until(mut self, until: DateTime<Utc>) -> Self {
         self.until = Some(until);
         self
     }
+    /// Only return activities after this timestamp.
     pub fn after(mut self, after: DateTime<Utc>) -> Self {
         self.after = Some(after);
         self
     }
+    /// Sort direction: "asc" or "desc".
     pub fn direction(mut self, direction: &str) -> Self {
         self.direction = Some(direction.to_string());
         self
     }
+    /// Maximum number of results per page.
     pub fn page_size(mut self, size: u32) -> Self {
         self.page_size = Some(size);
         self
     }
+    /// Pagination token for the next page.
     pub fn page_token(mut self, token: impl Into<String>) -> Self {
         self.page_token = Some(token.into());
         self
     }
+    /// Filter by category ("trade" or "non_trade").
     pub fn category(mut self, category: &str) -> Self {
         self.category = Some(category.to_string());
         self

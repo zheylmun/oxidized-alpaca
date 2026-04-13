@@ -6,9 +6,13 @@ use serde::{Deserialize, Serialize};
 /// A market trading day.
 #[derive(Clone, Debug, Deserialize)]
 pub struct MarketDay {
+    /// Calendar date.
     pub date: NaiveDate,
+    /// Market open time (HH:MM format).
     pub open: String,
+    /// Market close time (HH:MM format).
     pub close: String,
+    /// Settlement date.
     #[serde(default)]
     pub settlement_date: Option<NaiveDate>,
 }

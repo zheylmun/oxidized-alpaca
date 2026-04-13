@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OptionType {
+    /// Call option.
     Call,
+    /// Put option.
     Put,
 }
 
@@ -18,7 +20,9 @@ pub enum OptionType {
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OptionStyle {
+    /// American-style (exercisable any time before expiry).
     American,
+    /// European-style (exercisable only at expiry).
     European,
 }
 
@@ -27,37 +31,57 @@ pub enum OptionStyle {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ContractStatus {
+    /// Contract is active and tradable.
     Active,
+    /// Contract is inactive.
     Inactive,
 }
 
 /// An options contract as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct OptionContract {
+    /// Contract ID.
     pub id: String,
+    /// OCC symbol.
     pub symbol: String,
+    /// Human-readable contract name.
     pub name: String,
+    /// Active or inactive status.
     pub status: ContractStatus,
+    /// Whether the contract is tradable.
     pub tradable: bool,
+    /// Option chain ID.
     pub chain_id: Option<String>,
+    /// Option chain symbol.
     pub chain_symbol: Option<String>,
+    /// Contract expiration date.
     pub expiration_date: NaiveDate,
+    /// Root symbol of the option.
     pub root_symbol: Option<String>,
+    /// Underlying asset symbol.
     pub underlying_symbol: String,
+    /// Underlying asset ID.
     pub underlying_asset_id: Option<String>,
+    /// Call or put type.
     #[serde(rename = "type")]
     pub option_type: OptionType,
+    /// Exercise style (American or European).
     pub style: OptionStyle,
+    /// Strike price of the contract.
     #[serde(deserialize_with = "string_as_decimal")]
     pub strike_price: Decimal,
+    /// Contract size (typically "100").
     pub size: Option<String>,
+    /// Open interest.
     pub open_interest: Option<String>,
+    /// Last close price.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub close_price: Option<Decimal>,
+    /// Date of the close price.
     #[serde(default)]
     pub close_price_date: Option<NaiveDate>,
 }

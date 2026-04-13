@@ -5,11 +5,17 @@ use serde::{Deserialize, Serialize};
 /// Portfolio history response.
 #[derive(Clone, Debug, Deserialize)]
 pub struct PortfolioHistory {
+    /// Unix timestamps for each data point.
     pub timestamp: Vec<i64>,
+    /// Equity values at each timestamp.
     pub equity: Vec<f64>,
+    /// Profit/loss values at each timestamp.
     pub profit_loss: Vec<f64>,
+    /// Profit/loss percentage at each timestamp.
     pub profit_loss_pct: Vec<f64>,
+    /// Base portfolio value.
     pub base_value: f64,
+    /// Timeframe of the data points.
     pub timeframe: String,
 }
 

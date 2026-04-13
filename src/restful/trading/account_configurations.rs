@@ -7,8 +7,11 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum DtbpCheck {
+    /// Check on both entry and exit.
     Both,
+    /// Check on entry only.
     Entry,
+    /// Check on exit only.
     Exit,
 }
 
@@ -17,23 +20,34 @@ pub enum DtbpCheck {
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum TradeConfirmEmail {
+    /// Send confirmation emails for all trades.
     All,
+    /// Do not send confirmation emails.
     None,
 }
 
 /// Account configuration settings.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 pub struct AccountConfig {
+    /// Day trading buying power check setting.
     pub dtbp_check: DtbpCheck,
+    /// Trade confirmation email preference.
     pub trade_confirm_email: TradeConfirmEmail,
+    /// Whether trading is suspended.
     pub suspend_trade: bool,
+    /// Whether shorting is disabled.
     pub no_shorting: bool,
+    /// Whether fractional trading is enabled.
     #[serde(default)]
     pub fractional_trading: bool,
+    /// Maximum margin multiplier.
     pub max_margin_multiplier: String,
+    /// Maximum options trading level.
     #[serde(default)]
     pub max_options_trading_level: Option<u8>,
+    /// Pattern day trader check setting.
     pub pdt_check: String,
+    /// Whether PTP no-exception entry is enabled.
     #[serde(default)]
     pub ptp_no_exception_entry: bool,
 }
@@ -65,26 +79,32 @@ pub struct UpdateAccountConfigRequest<'a> {
 }
 
 impl UpdateAccountConfigRequest<'_> {
+    /// Set the DTBP check mode.
     pub fn dtbp_check(mut self, check: DtbpCheck) -> Self {
         self.dtbp_check = Some(check);
         self
     }
+    /// Set the trade confirmation email preference.
     pub fn trade_confirm_email(mut self, email: TradeConfirmEmail) -> Self {
         self.trade_confirm_email = Some(email);
         self
     }
+    /// Set whether trading is suspended.
     pub fn suspend_trade(mut self, suspend: bool) -> Self {
         self.suspend_trade = Some(suspend);
         self
     }
+    /// Set whether shorting is disabled.
     pub fn no_shorting(mut self, no_shorting: bool) -> Self {
         self.no_shorting = Some(no_shorting);
         self
     }
+    /// Set whether fractional trading is enabled.
     pub fn fractional_trading(mut self, fractional: bool) -> Self {
         self.fractional_trading = Some(fractional);
         self
     }
+    /// Set the maximum options trading level.
     pub fn max_options_trading_level(mut self, level: u8) -> Self {
         self.max_options_trading_level = Some(level);
         self

@@ -8,11 +8,17 @@ use super::assets::Asset;
 /// A watchlist as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Watchlist {
+    /// Watchlist ID.
     pub id: String,
+    /// Account ID that owns this watchlist.
     pub account_id: String,
+    /// Timestamp when the watchlist was created.
     pub created_at: DateTime<Utc>,
+    /// Timestamp when the watchlist was last updated.
     pub updated_at: DateTime<Utc>,
+    /// Watchlist name.
     pub name: String,
+    /// Assets in the watchlist.
     #[serde(default)]
     pub assets: Option<Vec<Asset>>,
 }

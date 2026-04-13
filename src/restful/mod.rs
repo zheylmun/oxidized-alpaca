@@ -1,6 +1,8 @@
+/// Market data endpoint types and methods.
 pub mod market_data;
 mod market_data_client;
 pub use market_data_client::MarketDataClient;
+/// Trading endpoint types and methods.
 pub mod trading;
 mod trading_client;
 pub use trading_client::TradingClient;

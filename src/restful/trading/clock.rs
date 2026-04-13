@@ -6,9 +6,13 @@ use serde::Deserialize;
 /// Current market clock status.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Clock {
+    /// Current timestamp.
     pub timestamp: DateTime<Utc>,
+    /// Whether the market is currently open.
     pub is_open: bool,
+    /// Next market open time.
     pub next_open: DateTime<Utc>,
+    /// Next market close time.
     pub next_close: DateTime<Utc>,
 }
 

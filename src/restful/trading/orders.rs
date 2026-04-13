@@ -9,7 +9,9 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum Side {
+    /// Buy order.
     Buy,
+    /// Sell order.
     Sell,
 }
 
@@ -18,10 +20,15 @@ pub enum Side {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum OrderType {
+    /// Market order executed at current price.
     Market,
+    /// Limit order executed at specified price or better.
     Limit,
+    /// Stop order triggered at a specified price.
     Stop,
+    /// Stop limit order combining stop and limit prices.
     StopLimit,
+    /// Trailing stop order with a dynamic stop price.
     TrailingStop,
 }
 
@@ -49,9 +56,13 @@ pub enum TimeInForce {
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OrderClass {
+    /// Simple single-leg order.
     Simple,
+    /// Bracket order with take profit and stop loss.
     Bracket,
+    /// One-cancels-other order.
     Oco,
+    /// One-triggers-other order.
     Oto,
 }
 
@@ -60,35 +71,55 @@ pub enum OrderClass {
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum OrderStatus {
+    /// Order has been received and is new.
     New,
+    /// Order has been partially filled.
     PartiallyFilled,
+    /// Order has been completely filled.
     Filled,
+    /// Order is done for the day.
     DoneForDay,
+    /// Order has been canceled.
     Canceled,
+    /// Order has expired.
     Expired,
+    /// Order has been replaced.
     Replaced,
+    /// Order cancellation is pending.
     PendingCancel,
+    /// Order replacement is pending.
     PendingReplace,
+    /// New order is pending acceptance.
     PendingNew,
+    /// Order has been accepted.
     Accepted,
+    /// Order has been accepted for bidding.
     AcceptedForBidding,
+    /// Order has been stopped.
     Stopped,
+    /// Order has been rejected.
     Rejected,
+    /// Order has been suspended.
     Suspended,
+    /// Order has been calculated.
     Calculated,
+    /// Order is held.
     Held,
 }
 
 /// Take profit configuration for bracket orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct TakeProfit {
+    /// Target limit price for taking profit.
     pub limit_price: Decimal,
 }
 
 /// Stop loss configuration for bracket orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct StopLoss {
+    /// Stop price that triggers the stop loss.
     pub stop_price: Decimal,
+    /// Optional limit price for a stop-limit loss order.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_price: Option<Decimal>,
 }
@@ -96,67 +127,92 @@ pub struct StopLoss {
 /// An order as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct Order {
+    /// Order ID.
     pub id: String,
+    /// Client-specified order ID.
     pub client_order_id: String,
+    /// Timestamp when the order was created.
     pub created_at: DateTime<Utc>,
+    /// Timestamp when the order was last updated.
     pub updated_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order was submitted.
     pub submitted_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order was filled.
     pub filled_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order expired.
     pub expired_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order was canceled.
     pub canceled_at: Option<DateTime<Utc>>,
+    /// Asset ID for the order.
     pub asset_id: String,
+    /// Ticker symbol.
     pub symbol: String,
+    /// Quantity of shares to trade.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub qty: Option<Decimal>,
+    /// Notional (dollar) amount of the order.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub notional: Option<Decimal>,
+    /// Quantity of shares filled so far.
     #[serde(deserialize_with = "string_as_decimal")]
     pub filled_qty: Decimal,
+    /// Average price at which shares were filled.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub filled_avg_price: Option<Decimal>,
+    /// Order type (market, limit, etc.).
     #[serde(rename = "type")]
     pub order_type: OrderType,
+    /// Buy or sell side.
     pub side: Side,
+    /// Time in force for the order.
     pub time_in_force: TimeInForce,
+    /// Current order status.
     pub status: OrderStatus,
+    /// Limit price for limit and stop-limit orders.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub limit_price: Option<Decimal>,
+    /// Stop price for stop and stop-limit orders.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub stop_price: Option<Decimal>,
+    /// Trail price for trailing stop orders.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub trail_price: Option<Decimal>,
+    /// Trail percent for trailing stop orders.
     #[serde(
         default,
         deserialize_with = "string_as_optional_decimal",
         skip_serializing_if = "Option::is_none"
     )]
     pub trail_percent: Option<Decimal>,
+    /// Whether extended hours trading is enabled.
     pub extended_hours: Option<bool>,
+    /// Order class (simple, bracket, etc.).
     pub order_class: Option<OrderClass>,
+    /// Legs of a multi-leg order.
     #[serde(default)]
     pub legs: Option<Vec<Order>>,
 }
@@ -384,31 +440,37 @@ pub struct ReplaceOrderRequest<'a> {
 }
 
 impl ReplaceOrderRequest<'_> {
+    /// Set the new quantity.
     pub fn qty(mut self, qty: Decimal) -> Self {
         self.qty = Some(qty);
         self
     }
 
+    /// Set the new limit price.
     pub fn limit_price(mut self, price: Decimal) -> Self {
         self.limit_price = Some(price);
         self
     }
 
+    /// Set the new stop price.
     pub fn stop_price(mut self, price: Decimal) -> Self {
         self.stop_price = Some(price);
         self
     }
 
+    /// Set the new time in force.
     pub fn time_in_force(mut self, tif: TimeInForce) -> Self {
         self.time_in_force = Some(tif);
         self
     }
 
+    /// Set the new trail value.
     pub fn trail(mut self, trail: Decimal) -> Self {
         self.trail = Some(trail);
         self
     }
 
+    /// Set a new client order ID.
     pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
         self.client_order_id = Some(id.into());
         self
