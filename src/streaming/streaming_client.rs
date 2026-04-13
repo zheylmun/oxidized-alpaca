@@ -7,6 +7,7 @@ use std::collections::VecDeque;
 #[cfg(feature = "tracing")]
 use tracing::{error, info};
 
+/// Client for streaming real-time market data over a WebSocket connection.
 #[derive(Debug)]
 pub struct StreamingMarketDataClient<RxMessage, TxMessage> {
     websocket: Socketeer<RxMessage, TxMessage>,
@@ -15,6 +16,7 @@ pub struct StreamingMarketDataClient<RxMessage, TxMessage> {
 }
 
 impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Request> {
+    /// Create a new streaming client connected to the test feed.
     pub async fn new_test_client(
         account_type: AccountType,
     ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
@@ -24,6 +26,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Self::initialize_with_websocket(env, websocket).await
     }
 
+    /// Create a new streaming client connected to the IEX feed.
     pub async fn new_iex_client(
         account_type: AccountType,
     ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
@@ -33,6 +36,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Self::initialize_with_websocket(env, websocket).await
     }
 
+    /// Create a new streaming client connected to the SIP feed.
     pub async fn new_sip_client(
         account_type: AccountType,
     ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
@@ -78,6 +82,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Ok(client)
     }
 
+    /// Receive the next market data message, filtering out control messages.
     pub async fn next_message(&mut self) -> Result<StreamMessage, Error> {
         let mut message: Option<StreamMessage> = None;
         while message.is_none() {
@@ -87,6 +92,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Ok(message.unwrap())
     }
 
+    /// Subscribe to additional market data streams, returning the updated subscription list.
     pub async fn add_subscriptions(
         &mut self,
         subscriptions: &SubscriptionList,
@@ -98,6 +104,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Ok(self.subscriptions.clone())
     }
 
+    /// Unsubscribe from market data streams, returning the updated subscription list.
     pub async fn remove_subscriptions(
         &mut self,
         subscriptions: &SubscriptionList,
@@ -109,6 +116,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
         Ok(self.subscriptions.clone())
     }
 
+    /// Close the WebSocket connection and shut down the client.
     pub async fn shut_down(self) -> Result<(), Error> {
         self.websocket.close_connection().await?;
         Ok(())
