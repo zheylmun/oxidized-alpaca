@@ -41,11 +41,13 @@ impl Env {
         Ok(Env { key_id, secret_key })
     }
 
+    /// Returns the API key ID.
     #[must_use]
     pub fn key_id(&self) -> &str {
         &self.key_id
     }
 
+    /// Returns the API secret key.
     #[must_use]
     pub fn secret_key(&self) -> &str {
         &self.secret_key

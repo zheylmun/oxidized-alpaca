@@ -44,6 +44,7 @@ pub enum Feed {
 }
 
 impl Feed {
+    /// Returns the WebSocket streaming URL for the given account type.
     #[must_use]
     pub fn streaming_url(&self, account_type: AccountType) -> &str {
         match account_type {

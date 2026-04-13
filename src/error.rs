@@ -1,6 +1,7 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
+/// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
@@ -14,7 +15,9 @@ pub enum Error {
     /// - `ALPACA_LIVE_API_SECRET_KEY`
     #[error("Required environment variable not set: {}", variable_name)]
     MissingEnvironmentVariable {
+        /// Name of the missing environment variable.
         variable_name: String,
+        /// The underlying `VarError`.
         #[source]
         source: std::env::VarError,
     },
@@ -27,7 +30,12 @@ pub enum Error {
 
     /// API returned a non-2xx status code
     #[error("API error (HTTP {}): {}", status, body)]
-    ApiError { status: u16, body: String },
+    ApiError {
+        /// HTTP status code.
+        status: u16,
+        /// Response body text.
+        body: String,
+    },
 
     /// Socketeer connection error
     #[cfg(feature = "streaming")]
@@ -45,4 +53,5 @@ pub enum Error {
     StreamingAuth,
 }
 
+/// A `Result` type alias using [`Error`] as the default error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
