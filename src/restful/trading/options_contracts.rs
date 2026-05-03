@@ -16,7 +16,7 @@ pub enum OptionType {
 }
 
 /// Option exercise style.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OptionStyle {
@@ -27,7 +27,7 @@ pub enum OptionStyle {
 }
 
 /// Option contract status.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ContractStatus {
@@ -103,7 +103,7 @@ pub struct ListOptionContractsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     underlying_symbols: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    status: Option<String>,
+    status: Option<ContractStatus>,
     #[serde(skip_serializing_if = "Option::is_none")]
     expiration_date: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -115,7 +115,7 @@ pub struct ListOptionContractsRequest<'a> {
     #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
     option_type: Option<OptionType>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    style: Option<String>,
+    style: Option<OptionStyle>,
     #[serde(skip_serializing_if = "Option::is_none")]
     strike_price_gte: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -133,9 +133,15 @@ impl ListOptionContractsRequest<'_> {
         self
     }
 
-    /// Filter by status ("active" or "inactive").
-    pub fn status(mut self, status: &str) -> Self {
-        self.status = Some(status.to_string());
+    /// Filter by contract status (active or inactive).
+    pub fn status(mut self, status: ContractStatus) -> Self {
+        self.status = Some(status);
+        self
+    }
+
+    /// Filter by exercise style (American or European).
+    pub fn style(mut self, style: OptionStyle) -> Self {
+        self.style = Some(style);
         self
     }
 
