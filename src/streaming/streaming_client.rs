@@ -1,57 +1,50 @@
 use crate::{
     AccountType, Error, Feed,
     env::Env,
-    streaming::stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
+    streaming::stock_data::{ControlMessage, Request, StreamMessage, SubscriptionList},
 };
 use socketeer::Socketeer;
 use std::collections::VecDeque;
 #[cfg(feature = "tracing")]
 use tracing::{error, info};
 
+type StreamingSocket = Socketeer<Vec<StreamMessage>, Request>;
+
 /// Client for streaming real-time market data over a WebSocket connection.
 #[derive(Debug)]
-pub struct StreamingMarketDataClient<RxMessage, TxMessage> {
-    websocket: Socketeer<RxMessage, TxMessage>,
+pub struct StreamingMarketDataClient {
+    websocket: StreamingSocket,
     messages: VecDeque<StreamMessage>,
     subscriptions: SubscriptionList,
 }
 
-impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Request> {
+impl StreamingMarketDataClient {
     /// Create a new streaming client connected to the test feed.
-    pub async fn new_test_client(
-        account_type: AccountType,
-    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
+    pub async fn new_test_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket: Socketeer<Vec<StreamMessage>, Request> =
-            Socketeer::connect(Feed::Test.streaming_url(account_type)).await?;
+        let websocket = StreamingSocket::connect(Feed::Test.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     /// Create a new streaming client connected to the IEX feed.
-    pub async fn new_iex_client(
-        account_type: AccountType,
-    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
+    pub async fn new_iex_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket: Socketeer<Vec<StreamMessage>, Request> =
-            Socketeer::connect(Feed::IEX.streaming_url(account_type)).await?;
+        let websocket = StreamingSocket::connect(Feed::IEX.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     /// Create a new streaming client connected to the SIP feed.
-    pub async fn new_sip_client(
-        account_type: AccountType,
-    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
+    pub async fn new_sip_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket: Socketeer<Vec<StreamMessage>, Request> =
-            Socketeer::connect(Feed::SIP.streaming_url(account_type)).await?;
+        let websocket = StreamingSocket::connect(Feed::SIP.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     async fn initialize_with_websocket(
         env: Env,
-        websocket: Socketeer<Vec<StreamMessage>, Request>,
-    ) -> Result<StreamingMarketDataClient<Vec<StreamMessage>, Request>, Error> {
-        let mut client = StreamingMarketDataClient {
+        websocket: StreamingSocket,
+    ) -> Result<Self, Error> {
+        let mut client = Self {
             websocket,
             messages: VecDeque::new(),
             subscriptions: SubscriptionList::new(),

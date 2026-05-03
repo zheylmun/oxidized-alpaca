@@ -279,10 +279,13 @@ impl StreamMessage {
     }
 }
 
-/// Streaming Authentication Message
+/// Outgoing wire-protocol message used by the streaming client to talk
+/// to the Alpaca server. Crate-internal: callers go through
+/// [`StreamingMarketDataClient::add_subscriptions`] /
+/// [`remove_subscriptions`] instead of constructing these by hand.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "action")]
-pub enum Request {
+pub(crate) enum Request {
     /// Authenticate with API key and secret.
     #[serde(rename = "auth")]
     AuthMessage {
