@@ -19,14 +19,38 @@ impl TickType {
     }
 }
 
+/// Tape identifier required by the conditions endpoint.
+#[derive(Clone, Copy, Debug)]
+pub enum Tape {
+    /// Tape A — NYSE-listed securities.
+    A,
+    /// Tape B — NYSE Arca / regional exchange-listed securities.
+    B,
+    /// Tape C — NASDAQ-listed securities.
+    C,
+}
+
+impl Tape {
+    fn as_str(&self) -> &str {
+        match self {
+            Self::A => "A",
+            Self::B => "B",
+            Self::C => "C",
+        }
+    }
+}
+
 impl MarketDataClient {
-    /// Get stock trade or quote condition codes.
+    /// Get stock trade or quote condition codes for the given tape.
     pub async fn stock_conditions(
         &self,
         tick_type: TickType,
+        tape: Tape,
     ) -> crate::Result<std::collections::HashMap<String, String>> {
         let path = format!("v2/stocks/meta/conditions/{}", tick_type.as_str());
-        let request = self.request(Method::GET, &path);
+        let request = self
+            .request(Method::GET, &path)
+            .query(&[("tape", tape.as_str())]);
         self.send_and_deserialize(request).await
     }
 
