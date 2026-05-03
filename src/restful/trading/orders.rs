@@ -1,4 +1,4 @@
-use crate::restful::{TradingClient, string_as_decimal, string_as_optional_decimal};
+use crate::restful::{SortDirection, TradingClient, string_as_decimal, string_as_optional_decimal};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -77,6 +77,19 @@ pub enum OrderClass {
     Oco,
     /// One-triggers-other order.
     Oto,
+}
+
+/// Status filter accepted by the list-orders endpoint.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum OrderStatusFilter {
+    /// Only return open orders.
+    Open,
+    /// Only return closed orders.
+    Closed,
+    /// Return both open and closed orders.
+    All,
 }
 
 /// Status of an order.
@@ -358,7 +371,7 @@ pub struct ListOrdersRequest<'a> {
     #[serde(skip)]
     client: &'a TradingClient,
     #[serde(skip_serializing_if = "Option::is_none")]
-    status: Option<String>,
+    status: Option<OrderStatusFilter>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -366,7 +379,7 @@ pub struct ListOrdersRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     until: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    direction: Option<String>,
+    direction: Option<SortDirection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     nested: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -376,9 +389,9 @@ pub struct ListOrdersRequest<'a> {
 }
 
 impl ListOrdersRequest<'_> {
-    /// Filter by status: "open", "closed", or "all".
-    pub fn status(mut self, status: &str) -> Self {
-        self.status = Some(status.to_string());
+    /// Filter by order status (open, closed, or all).
+    pub fn status(mut self, status: OrderStatusFilter) -> Self {
+        self.status = Some(status);
         self
     }
 
@@ -400,9 +413,9 @@ impl ListOrdersRequest<'_> {
         self
     }
 
-    /// Sort direction: "asc" or "desc".
-    pub fn direction(mut self, direction: &str) -> Self {
-        self.direction = Some(direction.to_string());
+    /// Sort direction (ascending or descending).
+    pub fn direction(mut self, direction: SortDirection) -> Self {
+        self.direction = Some(direction);
         self
     }
 

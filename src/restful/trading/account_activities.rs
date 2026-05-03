@@ -1,7 +1,18 @@
-use crate::restful::TradingClient;
+use crate::restful::{SortDirection, TradingClient};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
+
+/// Category filter accepted by the account-activities endpoint.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ActivityCategory {
+    /// Trade-related activities only.
+    Trade,
+    /// Non-trade activities only.
+    NonTrade,
+}
 
 /// Type of account activity.
 ///
@@ -171,13 +182,13 @@ pub struct ListActivitiesRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     after: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    direction: Option<String>,
+    direction: Option<SortDirection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_size: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    category: Option<String>,
+    category: Option<ActivityCategory>,
 }
 
 impl ListActivitiesRequest<'_> {
@@ -201,9 +212,9 @@ impl ListActivitiesRequest<'_> {
         self.after = Some(after);
         self
     }
-    /// Sort direction: "asc" or "desc".
-    pub fn direction(mut self, direction: &str) -> Self {
-        self.direction = Some(direction.to_string());
+    /// Sort direction (ascending or descending).
+    pub fn direction(mut self, direction: SortDirection) -> Self {
+        self.direction = Some(direction);
         self
     }
     /// Cap the total number of activities returned across all
@@ -212,9 +223,9 @@ impl ListActivitiesRequest<'_> {
         self.limit = Some(limit);
         self
     }
-    /// Filter by category ("trade" or "non_trade").
-    pub fn category(mut self, category: &str) -> Self {
-        self.category = Some(category.to_string());
+    /// Filter by activity category (trade or non-trade).
+    pub fn category(mut self, category: ActivityCategory) -> Self {
+        self.category = Some(category);
         self
     }
 

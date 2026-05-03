@@ -1,4 +1,4 @@
-use crate::restful::{MarketDataClient, null_def_vec};
+use crate::restful::{MarketDataClient, SortDirection, null_def_vec};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -68,7 +68,7 @@ pub struct NewsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<u32>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    sort: Option<String>,
+    sort: Option<SortDirection>,
     #[serde(skip_serializing_if = "Option::is_none")]
     include_content: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -98,9 +98,9 @@ impl NewsRequest<'_> {
         self.limit = Some(limit);
         self
     }
-    /// Set the sort order (e.g. "asc" or "desc").
-    pub fn sort(mut self, sort: &str) -> Self {
-        self.sort = Some(sort.to_string());
+    /// Set the sort order (ascending or descending).
+    pub fn sort(mut self, sort: SortDirection) -> Self {
+        self.sort = Some(sort);
         self
     }
     /// Whether to include the full article content.

@@ -8,7 +8,18 @@ mod trading_client;
 pub use trading_client::TradingClient;
 
 use rust_decimal::Decimal;
-use serde::{Deserialize, Deserializer};
+use serde::{Deserialize, Deserializer, Serialize};
+
+/// Sort direction shared across endpoints that accept ordering hints.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum SortDirection {
+    /// Ascending order (oldest first).
+    Asc,
+    /// Descending order (newest first).
+    Desc,
+}
 
 pub(crate) fn null_def_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
 where

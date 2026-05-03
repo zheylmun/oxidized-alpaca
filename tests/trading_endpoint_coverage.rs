@@ -2,7 +2,10 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use oxidized_alpaca::{
     AccountType, Error, TradingClient,
-    restful::trading::orders::{OrderType, Side, TimeInForce},
+    restful::trading::{
+        orders::{OrderStatusFilter, OrderType, Side, TimeInForce},
+        portfolio_history::{HistoryPeriod, HistoryTimeFrame},
+    },
 };
 use rust_decimal::Decimal;
 
@@ -92,7 +95,7 @@ async fn trading_endpoints_live_smoke() {
 
     let _ = client
         .list_orders()
-        .status("all")
+        .status(OrderStatusFilter::All)
         .limit(5)
         .execute()
         .await
@@ -134,8 +137,8 @@ async fn trading_endpoints_live_smoke() {
 
     let portfolio = client
         .portfolio_history()
-        .period("1D")
-        .timeframe("1Min")
+        .period(HistoryPeriod::OneDay)
+        .timeframe(HistoryTimeFrame::OneMinute)
         .execute()
         .await
         .unwrap();
