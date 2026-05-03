@@ -101,7 +101,8 @@ impl TradesRequest<'_> {
         let cap = self.limit;
         let mut all_trades = Vec::new();
         loop {
-            let path = format!("v2/stocks/{}/trades", self.symbol);
+            let symbol = &self.symbol;
+            let path = format!("v2/stocks/{symbol}/trades");
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: TradesResponse = self.client.send_and_deserialize(request).await?;
             all_trades.extend(response.trades);

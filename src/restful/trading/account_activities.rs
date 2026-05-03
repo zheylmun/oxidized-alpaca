@@ -85,6 +85,12 @@ impl ActivityType {
     }
 }
 
+impl std::fmt::Display for ActivityType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 impl Serialize for ActivityType {
     fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
         serializer.serialize_str(self.as_str())
@@ -237,7 +243,7 @@ impl ListActivitiesRequest<'_> {
     pub async fn execute(mut self) -> crate::Result<Vec<Activity>> {
         let cap = self.limit;
         let path = match &self.activity_type {
-            Some(at) => format!("account/activities/{}", at.as_str()),
+            Some(at) => format!("account/activities/{at}"),
             None => "account/activities".to_string(),
         };
         self.page_size = Some(ACTIVITIES_PAGE_SIZE);

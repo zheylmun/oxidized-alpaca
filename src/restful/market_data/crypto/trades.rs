@@ -16,7 +16,7 @@ impl MarketDataClient {
         symbols: &str,
         loc: CryptoLocation,
     ) -> crate::Result<std::collections::HashMap<String, CryptoTrade>> {
-        let path = format!("v1beta3/crypto/{}/latest/trades", loc.as_str());
+        let path = format!("v1beta3/crypto/{loc}/latest/trades");
         let request = self
             .request(Method::GET, &path)
             .query(&[("symbols", symbols)]);

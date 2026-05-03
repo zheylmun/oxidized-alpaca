@@ -10,12 +10,12 @@ pub enum TickType {
     Quote,
 }
 
-impl TickType {
-    fn as_str(&self) -> &str {
-        match self {
+impl std::fmt::Display for TickType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::Trade => "trade",
             Self::Quote => "quote",
-        }
+        })
     }
 }
 
@@ -30,13 +30,13 @@ pub enum Tape {
     C,
 }
 
-impl Tape {
-    fn as_str(&self) -> &str {
-        match self {
+impl std::fmt::Display for Tape {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::A => "A",
             Self::B => "B",
             Self::C => "C",
-        }
+        })
     }
 }
 
@@ -47,10 +47,10 @@ impl MarketDataClient {
         tick_type: TickType,
         tape: Tape,
     ) -> crate::Result<std::collections::HashMap<String, String>> {
-        let path = format!("v2/stocks/meta/conditions/{}", tick_type.as_str());
+        let path = format!("v2/stocks/meta/conditions/{tick_type}");
         let request = self
             .request(Method::GET, &path)
-            .query(&[("tape", tape.as_str())]);
+            .query(&[("tape", tape.to_string())]);
         self.send_and_deserialize(request).await
     }
 

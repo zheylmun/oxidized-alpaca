@@ -77,10 +77,9 @@ impl UpdateWatchlistRequest<'_> {
 
     /// Submit the update.
     pub async fn execute(self) -> crate::Result<Watchlist> {
-        let request = self
-            .client
-            .request(Method::PUT, &format!("watchlists/{}", self.watchlist_id))
-            .json(&self);
+        let watchlist_id = &self.watchlist_id;
+        let path = format!("watchlists/{watchlist_id}");
+        let request = self.client.request(Method::PUT, &path).json(&self);
         self.client.send_and_deserialize(request).await
     }
 }

@@ -112,7 +112,8 @@ impl AuctionsRequest<'_> {
         let cap = self.limit;
         let mut all = Vec::new();
         loop {
-            let path = format!("v2/stocks/{}/auctions", self.symbol);
+            let symbol = &self.symbol;
+            let path = format!("v2/stocks/{symbol}/auctions");
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: AuctionsResponse = self.client.send_and_deserialize(request).await?;
             all.extend(response.auctions);

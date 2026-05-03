@@ -60,12 +60,12 @@ pub enum MoverMarket {
     Crypto,
 }
 
-impl MoverMarket {
-    fn as_str(&self) -> &'static str {
-        match self {
+impl std::fmt::Display for MoverMarket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(match self {
             Self::Stocks => "stocks",
             Self::Crypto => "crypto",
-        }
+        })
     }
 }
 
@@ -86,7 +86,7 @@ impl MarketDataClient {
         market: MoverMarket,
         top: Option<u32>,
     ) -> crate::Result<MarketMovers> {
-        let path = format!("v1beta1/screener/{}/movers", market.as_str());
+        let path = format!("v1beta1/screener/{market}/movers");
         let mut request = self.request(Method::GET, &path);
         if let Some(top) = top {
             request = request.query(&[("top", top)]);

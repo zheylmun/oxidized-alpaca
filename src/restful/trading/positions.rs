@@ -98,10 +98,9 @@ impl ClosePositionRequest<'_> {
 
     /// Execute the close request.
     pub async fn execute(self) -> crate::Result<Order> {
-        let request = self
-            .client
-            .request(Method::DELETE, &format!("positions/{}", self.symbol_or_id))
-            .query(&self);
+        let symbol_or_id = &self.symbol_or_id;
+        let path = format!("positions/{symbol_or_id}");
+        let request = self.client.request(Method::DELETE, &path).query(&self);
         self.client.send_and_deserialize(request).await
     }
 }

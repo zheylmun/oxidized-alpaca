@@ -64,7 +64,8 @@ impl CryptoBarsRequest<'_> {
         let mut combined: std::collections::HashMap<String, Vec<CryptoBar>> =
             std::collections::HashMap::new();
         loop {
-            let path = format!("v1beta3/crypto/{}/bars", self.loc.as_str());
+            let loc = self.loc;
+            let path = format!("v1beta3/crypto/{loc}/bars");
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: BarsResponse = self.client.send_and_deserialize(request).await?;
             for (symbol, bars) in response.bars {
@@ -110,7 +111,7 @@ impl MarketDataClient {
         symbols: &str,
         loc: CryptoLocation,
     ) -> crate::Result<std::collections::HashMap<String, CryptoBar>> {
-        let path = format!("v1beta3/crypto/{}/latest/bars", loc.as_str());
+        let path = format!("v1beta3/crypto/{loc}/latest/bars");
         let request = self
             .request(Method::GET, &path)
             .query(&[("symbols", symbols)]);

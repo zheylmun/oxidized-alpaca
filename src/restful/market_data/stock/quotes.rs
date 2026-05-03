@@ -107,7 +107,8 @@ impl QuotesRequest<'_> {
         let cap = self.limit;
         let mut all_quotes = Vec::new();
         loop {
-            let path = format!("v2/stocks/{}/quotes", self.symbol);
+            let symbol = &self.symbol;
+            let path = format!("v2/stocks/{symbol}/quotes");
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: QuotesResponse = self.client.send_and_deserialize(request).await?;
             all_quotes.extend(response.quotes);

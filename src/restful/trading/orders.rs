@@ -505,10 +505,9 @@ impl ReplaceOrderRequest<'_> {
 
     /// Submit the replacement.
     pub async fn execute(self) -> crate::Result<Order> {
-        let request = self
-            .client
-            .request(Method::PATCH, &format!("orders/{}", self.order_id))
-            .json(&self);
+        let order_id = &self.order_id;
+        let path = format!("orders/{order_id}");
+        let request = self.client.request(Method::PATCH, &path).json(&self);
         self.client.send_and_deserialize(request).await
     }
 }
