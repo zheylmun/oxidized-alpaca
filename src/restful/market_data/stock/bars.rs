@@ -23,10 +23,9 @@ pub struct Request<'a> {
     /// The time frame for the bars.
     #[serde(rename = "timeframe")]
     time_frame: TimeFrame,
-    /// The maximum number of bars to be returned for each symbol.
+    /// The maximum total number of bars to return across all pages.
     ///
-    /// It can be between 1 and 10000. Defaults to 1000 if the provided
-    /// value is None.
+    /// When unset all matching bars are returned.
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<usize>,
     /// Filter bars equal to or after this time.
@@ -50,7 +49,7 @@ pub struct Request<'a> {
 }
 
 impl Request<'_> {
-    /// Set the `limit` for the number of bars to be returned for each symbol.
+    /// Cap the total number of bars returned across all auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
@@ -87,12 +86,21 @@ impl Request<'_> {
     /// - Returns a [`Error::ReqwestDeserialize`] if the response cannot be parsed
     #[tracing::instrument]
     pub async fn execute(mut self) -> Result<Vec<Bar>, Error> {
-        let mut response = self.internal_execute().await?;
-        let mut results = response.bars;
-        while response.next_page_token.is_some() {
-            self.page_token = response.next_page_token;
-            response = self.internal_execute().await?;
+        let cap = self.limit;
+        let mut results = Vec::new();
+        loop {
+            let response = self.internal_execute().await?;
             results.extend(response.bars);
+            if let Some(cap) = cap
+                && results.len() >= cap
+            {
+                results.truncate(cap);
+                break;
+            }
+            match response.next_page_token {
+                Some(token) => self.page_token = Some(token),
+                None => break,
+            }
         }
         Ok(results)
     }

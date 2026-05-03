@@ -95,20 +95,28 @@ impl QuotesRequest<'_> {
         self.feed = Some(feed);
         self
     }
-    /// Set the maximum number of quotes to return.
+    /// Cap the total number of quotes returned across all auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Execute with auto-pagination.
+    /// Execute the request, auto-paginating until all matching quotes are
+    /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<StockQuote>> {
+        let cap = self.limit;
         let mut all_quotes = Vec::new();
         loop {
             let path = format!("v2/stocks/{}/quotes", self.symbol);
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: QuotesResponse = self.client.send_and_deserialize(request).await?;
             all_quotes.extend(response.quotes);
+            if let Some(cap) = cap
+                && all_quotes.len() >= cap
+            {
+                all_quotes.truncate(cap);
+                break;
+            }
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,

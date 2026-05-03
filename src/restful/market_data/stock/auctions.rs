@@ -99,20 +99,29 @@ impl AuctionsRequest<'_> {
         self.feed = Some(feed);
         self
     }
-    /// Set the maximum number of results to return.
+    /// Cap the total number of daily auctions returned across all
+    /// auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Execute with auto-pagination.
+    /// Execute the request, auto-paginating until all matching auctions are
+    /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<DailyAuctions>> {
+        let cap = self.limit;
         let mut all = Vec::new();
         loop {
             let path = format!("v2/stocks/{}/auctions", self.symbol);
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: AuctionsResponse = self.client.send_and_deserialize(request).await?;
             all.extend(response.auctions);
+            if let Some(cap) = cap
+                && all.len() >= cap
+            {
+                all.truncate(cap);
+                break;
+            }
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,

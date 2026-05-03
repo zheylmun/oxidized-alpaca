@@ -89,20 +89,28 @@ impl TradesRequest<'_> {
         self.feed = Some(feed);
         self
     }
-    /// Set the maximum number of trades to return.
+    /// Cap the total number of trades returned across all auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Execute with auto-pagination.
+    /// Execute the request, auto-paginating until all matching trades are
+    /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<StockTrade>> {
+        let cap = self.limit;
         let mut all_trades = Vec::new();
         loop {
             let path = format!("v2/stocks/{}/trades", self.symbol);
             let request = self.client.request(Method::GET, &path).query(&self);
             let response: TradesResponse = self.client.send_and_deserialize(request).await?;
             all_trades.extend(response.trades);
+            if let Some(cap) = cap
+                && all_trades.len() >= cap
+            {
+                all_trades.truncate(cap);
+                break;
+            }
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,
