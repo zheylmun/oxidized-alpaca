@@ -13,7 +13,7 @@ use super::{Adjustment, Bar, TimeFrame};
 #[derive(Debug, Serialize)]
 #[must_use]
 #[serde(rename_all = "snake_case")]
-pub struct Request<'a> {
+pub struct StockBarsRequest<'a> {
     /// The `MarketDataClient` to use.
     #[serde(skip)]
     client: &'a MarketDataClient,
@@ -47,7 +47,7 @@ pub struct Request<'a> {
     page_token: Option<String>,
 }
 
-impl Request<'_> {
+impl StockBarsRequest<'_> {
     /// Cap the total number of bars returned across all auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
@@ -134,8 +134,8 @@ impl MarketDataClient {
     ///     .limit(100)
     ///     .execute().await?;
     /// ```
-    pub fn stock_bars<'a>(&'a self, symbol: &str, timeframe: TimeFrame) -> Request<'a> {
-        Request {
+    pub fn stock_bars<'a>(&'a self, symbol: &str, timeframe: TimeFrame) -> StockBarsRequest<'a> {
+        StockBarsRequest {
             client: self,
             symbol: symbol.to_string(),
             timeframe,
