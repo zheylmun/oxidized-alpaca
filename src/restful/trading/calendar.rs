@@ -1,5 +1,5 @@
 use crate::restful::TradingClient;
-use chrono::NaiveDate;
+use chrono::{NaiveDate, NaiveTime};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
@@ -8,13 +8,23 @@ use serde::{Deserialize, Serialize};
 pub struct MarketDay {
     /// Calendar date.
     pub date: NaiveDate,
-    /// Market open time (HH:MM format).
-    pub open: String,
-    /// Market close time (HH:MM format).
-    pub close: String,
+    /// Market open time (`HH:MM`).
+    #[serde(deserialize_with = "deserialize_hhmm")]
+    pub open: NaiveTime,
+    /// Market close time (`HH:MM`).
+    #[serde(deserialize_with = "deserialize_hhmm")]
+    pub close: NaiveTime,
     /// Settlement date.
     #[serde(default)]
     pub settlement_date: Option<NaiveDate>,
+}
+
+fn deserialize_hhmm<'de, D>(deserializer: D) -> Result<NaiveTime, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let raw = String::deserialize(deserializer)?;
+    NaiveTime::parse_from_str(&raw, "%H:%M").map_err(serde::de::Error::custom)
 }
 
 /// Builder for requesting the market calendar.
