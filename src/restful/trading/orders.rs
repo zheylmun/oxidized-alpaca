@@ -2,7 +2,19 @@ use crate::restful::{TradingClient, string_as_decimal, string_as_optional_decima
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
+
+fn empty_string_as_none_order_class<'de, D>(deserializer: D) -> Result<Option<OrderClass>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt.as_deref() {
+        None | Some("") => Ok(None),
+        Some(s) => OrderClass::deserialize(serde::de::value::StrDeserializer::<D::Error>::new(s))
+            .map(Some),
+    }
+}
 
 /// Side determines whether an order is a buy or sell order
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -211,6 +223,7 @@ pub struct Order {
     /// Whether extended hours trading is enabled.
     pub extended_hours: Option<bool>,
     /// Order class (simple, bracket, etc.).
+    #[serde(default, deserialize_with = "empty_string_as_none_order_class")]
     pub order_class: Option<OrderClass>,
     /// Legs of a multi-leg order.
     #[serde(default)]
