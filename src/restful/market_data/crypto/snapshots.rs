@@ -13,13 +13,13 @@ impl MarketDataClient {
     /// Get crypto snapshots.
     pub async fn crypto_snapshots(
         &self,
-        symbols: &str,
+        symbols: &[&str],
         loc: CryptoLocation,
     ) -> crate::Result<std::collections::HashMap<String, CryptoSnapshot>> {
         let path = format!("v1beta3/crypto/{loc}/snapshots");
         let request = self
             .request(Method::GET, &path)
-            .query(&[("symbols", symbols)]);
+            .query(&[("symbols", symbols.join(","))]);
         let response: SnapshotsResponse = self.send_and_deserialize(request).await?;
         Ok(response.snapshots)
     }

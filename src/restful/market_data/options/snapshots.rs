@@ -13,11 +13,11 @@ impl MarketDataClient {
     /// Get option snapshots for given symbols.
     pub async fn option_snapshots(
         &self,
-        symbols: &str,
+        symbols: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, OptionSnapshot>> {
         let request = self
             .request(Method::GET, "v1beta1/options/snapshots")
-            .query(&[("symbols", symbols)]);
+            .query(&[("symbols", symbols.join(","))]);
         let response: SnapshotsResponse = self.send_and_deserialize(request).await?;
         Ok(response.snapshots)
     }

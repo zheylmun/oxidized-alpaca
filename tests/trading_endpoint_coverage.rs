@@ -59,7 +59,7 @@ async fn trading_endpoints_live_smoke() {
     let contracts = expect_ok_or_status(
         client
             .list_option_contracts()
-            .underlying_symbols("AAPL")
+            .underlying_symbols(&["AAPL"])
             .limit(1)
             .execute()
             .await,

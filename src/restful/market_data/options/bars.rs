@@ -80,10 +80,10 @@ impl OptionBarsRequest<'_> {
 
 impl MarketDataClient {
     /// Request option bars.
-    pub fn option_bars<'a>(&'a self, symbols: &str, timeframe: &str) -> OptionBarsRequest<'a> {
+    pub fn option_bars<'a>(&'a self, symbols: &[&str], timeframe: &str) -> OptionBarsRequest<'a> {
         OptionBarsRequest {
             client: self,
-            symbols: symbols.to_string(),
+            symbols: symbols.join(","),
             timeframe: timeframe.to_string(),
             start: None,
             end: None,

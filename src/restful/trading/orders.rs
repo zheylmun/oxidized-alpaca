@@ -425,9 +425,9 @@ impl ListOrdersRequest<'_> {
         self
     }
 
-    /// Filter by comma-separated symbols.
-    pub fn symbols(mut self, symbols: &str) -> Self {
-        self.symbols = Some(symbols.to_string());
+    /// Filter by symbols.
+    pub fn symbols(mut self, symbols: &[&str]) -> Self {
+        self.symbols = Some(symbols.join(","));
         self
     }
 

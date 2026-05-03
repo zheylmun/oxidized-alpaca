@@ -78,9 +78,9 @@ pub struct NewsRequest<'a> {
 }
 
 impl NewsRequest<'_> {
-    /// Filter by comma-separated stock symbols.
-    pub fn symbols(mut self, symbols: &str) -> Self {
-        self.symbols = Some(symbols.to_string());
+    /// Filter by stock symbols.
+    pub fn symbols(mut self, symbols: &[&str]) -> Self {
+        self.symbols = Some(symbols.join(","));
         self
     }
     /// Set the start time filter.

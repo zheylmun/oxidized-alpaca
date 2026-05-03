@@ -131,9 +131,9 @@ pub struct ListOptionContractsRequest<'a> {
 }
 
 impl ListOptionContractsRequest<'_> {
-    /// Filter by underlying symbol(s), comma-separated.
-    pub fn underlying_symbols(mut self, symbols: &str) -> Self {
-        self.underlying_symbols = Some(symbols.to_string());
+    /// Filter by underlying symbols.
+    pub fn underlying_symbols(mut self, symbols: &[&str]) -> Self {
+        self.underlying_symbols = Some(symbols.join(","));
         self
     }
 
@@ -232,7 +232,7 @@ impl TradingClient {
     /// use rust_decimal_macros::dec;
     ///
     /// let contracts = client.list_option_contracts()
-    ///     .underlying_symbols("AAPL")
+    ///     .underlying_symbols(&["AAPL"])
     ///     .option_type(OptionType::Call)
     ///     .strike_price_gte(dec!(150))
     ///     .execute().await?;

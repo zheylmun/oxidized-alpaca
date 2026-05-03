@@ -89,14 +89,14 @@ impl MarketDataClient {
     /// Request crypto bars.
     pub fn crypto_bars<'a>(
         &'a self,
-        symbols: &str,
+        symbols: &[&str],
         timeframe: &str,
         loc: CryptoLocation,
     ) -> CryptoBarsRequest<'a> {
         CryptoBarsRequest {
             client: self,
             loc,
-            symbols: symbols.to_string(),
+            symbols: symbols.join(","),
             timeframe: timeframe.to_string(),
             start: None,
             end: None,
@@ -108,13 +108,13 @@ impl MarketDataClient {
     /// Get the latest crypto bars.
     pub async fn crypto_latest_bars(
         &self,
-        symbols: &str,
+        symbols: &[&str],
         loc: CryptoLocation,
     ) -> crate::Result<std::collections::HashMap<String, CryptoBar>> {
         let path = format!("v1beta3/crypto/{loc}/latest/bars");
         let request = self
             .request(Method::GET, &path)
-            .query(&[("symbols", symbols)]);
+            .query(&[("symbols", symbols.join(","))]);
         let response: LatestBarsResponse = self.send_and_deserialize(request).await?;
         Ok(response.bars)
     }

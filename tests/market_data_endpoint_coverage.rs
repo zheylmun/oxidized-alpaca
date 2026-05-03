@@ -93,7 +93,7 @@ async fn market_data_endpoints_live_smoke() {
 
     // Crypto
     let crypto_bars = client
-        .crypto_bars("BTC/USD", "1Day", CryptoLocation::Us)
+        .crypto_bars(&["BTC/USD"], "1Day", CryptoLocation::Us)
         .limit(1)
         .execute()
         .await
@@ -101,31 +101,31 @@ async fn market_data_endpoints_live_smoke() {
     let _ = crypto_bars;
 
     let latest_crypto_bars = client
-        .crypto_latest_bars("BTC/USD", CryptoLocation::Us)
+        .crypto_latest_bars(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = latest_crypto_bars;
 
     let latest_crypto_trades = client
-        .crypto_latest_trades("BTC/USD", CryptoLocation::Us)
+        .crypto_latest_trades(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = latest_crypto_trades;
 
     let latest_crypto_quotes = client
-        .crypto_latest_quotes("BTC/USD", CryptoLocation::Us)
+        .crypto_latest_quotes(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = latest_crypto_quotes;
 
     let crypto_snapshots = client
-        .crypto_snapshots("BTC/USD", CryptoLocation::Us)
+        .crypto_snapshots(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = crypto_snapshots;
 
     let crypto_orderbooks = client
-        .crypto_latest_orderbooks("BTC/USD", CryptoLocation::Us)
+        .crypto_latest_orderbooks(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = crypto_orderbooks;
@@ -146,7 +146,7 @@ async fn market_data_endpoints_live_smoke() {
 
     let _ = expect_ok_or_status(
         client
-            .option_bars(&option_symbol, "1Day")
+            .option_bars(&[&option_symbol], "1Day")
             .limit(1)
             .execute()
             .await,
@@ -155,19 +155,19 @@ async fn market_data_endpoints_live_smoke() {
     );
 
     let _ = expect_ok_or_status(
-        client.option_latest_trades(&option_symbol).await,
+        client.option_latest_trades(&[&option_symbol]).await,
         &[403, 404, 422],
         "option_latest_trades",
     );
 
     let _ = expect_ok_or_status(
-        client.option_latest_quotes(&option_symbol).await,
+        client.option_latest_quotes(&[&option_symbol]).await,
         &[403, 404, 422],
         "option_latest_quotes",
     );
 
     let _ = expect_ok_or_status(
-        client.option_snapshots(&option_symbol).await,
+        client.option_snapshots(&[&option_symbol]).await,
         &[403, 404, 422],
         "option_snapshots",
     );
@@ -175,7 +175,7 @@ async fn market_data_endpoints_live_smoke() {
     // News / screener / reference data
     let news = client
         .news()
-        .symbols("AAPL")
+        .symbols(&["AAPL"])
         .limit(1)
         .execute()
         .await
@@ -202,13 +202,13 @@ async fn market_data_endpoints_live_smoke() {
     );
 
     let _ = expect_ok_or_status(
-        client.forex_latest_rates("EUR/USD").await,
+        client.forex_latest_rates(&["EUR/USD"]).await,
         &[403, 404, 422],
         "forex_latest_rates",
     );
 
     let _ = expect_ok_or_status(
-        client.fixed_income_latest_prices("US10Y").await,
+        client.fixed_income_latest_prices(&["US10Y"]).await,
         &[403, 404, 422],
         "fixed_income_latest_prices",
     );

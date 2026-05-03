@@ -13,13 +13,13 @@ impl MarketDataClient {
     /// Get the latest crypto quotes.
     pub async fn crypto_latest_quotes(
         &self,
-        symbols: &str,
+        symbols: &[&str],
         loc: CryptoLocation,
     ) -> crate::Result<std::collections::HashMap<String, CryptoQuote>> {
         let path = format!("v1beta3/crypto/{loc}/latest/quotes");
         let request = self
             .request(Method::GET, &path)
-            .query(&[("symbols", symbols)]);
+            .query(&[("symbols", symbols.join(","))]);
         let response: LatestQuotesResponse = self.send_and_deserialize(request).await?;
         Ok(response.quotes)
     }

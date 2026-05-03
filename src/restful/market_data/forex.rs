@@ -29,11 +29,11 @@ impl MarketDataClient {
     /// Get the latest forex rates.
     pub async fn forex_latest_rates(
         &self,
-        currency_pairs: &str,
+        currency_pairs: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, ForexRate>> {
         let request = self
             .request(Method::GET, "v1beta1/forex/latest/rates")
-            .query(&[("currency_pairs", currency_pairs)]);
+            .query(&[("currency_pairs", currency_pairs.join(","))]);
         let response: RatesResponse = self.send_and_deserialize(request).await?;
         Ok(response.rates)
     }
