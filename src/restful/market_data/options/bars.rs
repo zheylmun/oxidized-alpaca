@@ -8,7 +8,6 @@ use super::OptionBar;
 #[derive(Debug, Deserialize)]
 struct BarsResponse {
     bars: std::collections::HashMap<String, Vec<OptionBar>>,
-    #[allow(dead_code)]
     next_page_token: Option<String>,
 }
 
@@ -26,6 +25,8 @@ pub struct OptionBarsRequest<'a> {
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<usize>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    page_token: Option<String>,
 }
 
 impl OptionBarsRequest<'_> {
@@ -39,20 +40,41 @@ impl OptionBarsRequest<'_> {
         self.end = Some(end);
         self
     }
-    /// Set the maximum number of bars to return.
+    /// Cap the number of bars returned per symbol after auto-pagination.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Execute the request and return bars keyed by symbol.
-    pub async fn execute(self) -> crate::Result<std::collections::HashMap<String, Vec<OptionBar>>> {
-        let request = self
-            .client
-            .request(Method::GET, "v1beta1/options/bars")
-            .query(&self);
-        let response: BarsResponse = self.client.send_and_deserialize(request).await?;
-        Ok(response.bars)
+    /// Execute the request, auto-paginating until all matching bars are
+    /// retrieved. When `limit` is set, each symbol's series is truncated to
+    /// at most that many bars after pagination completes.
+    pub async fn execute(
+        mut self,
+    ) -> crate::Result<std::collections::HashMap<String, Vec<OptionBar>>> {
+        let cap = self.limit;
+        let mut combined: std::collections::HashMap<String, Vec<OptionBar>> =
+            std::collections::HashMap::new();
+        loop {
+            let request = self
+                .client
+                .request(Method::GET, "v1beta1/options/bars")
+                .query(&self);
+            let response: BarsResponse = self.client.send_and_deserialize(request).await?;
+            for (symbol, bars) in response.bars {
+                combined.entry(symbol).or_default().extend(bars);
+            }
+            match response.next_page_token {
+                Some(token) => self.page_token = Some(token),
+                None => break,
+            }
+        }
+        if let Some(cap) = cap {
+            for bars in combined.values_mut() {
+                bars.truncate(cap);
+            }
+        }
+        Ok(combined)
     }
 }
 
@@ -66,6 +88,7 @@ impl MarketDataClient {
             start: None,
             end: None,
             limit: None,
+            page_token: None,
         }
     }
 }
