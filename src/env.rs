@@ -12,20 +12,18 @@ const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
 /// Debug value for sensitive information
 const CENSORED_SECRET: &str = "********";
 
-/// `Env` loads and stores the required information about the requested Alpaca Environment
+/// Loads and stores the credentials for the requested Alpaca environment.
+/// Crate-internal: callers always reach Env through one of the client
+/// constructors.
 #[derive(Clone)]
-pub struct Env {
-    /// The Alpaca API key ID
+pub(crate) struct Env {
     key_id: String,
-    /// The Alpaca secret key
     secret_key: String,
 }
 
 impl Env {
-    /// Attempt to create a new `Env` instance with the given [`AccountType`]
-    /// # Errors
-    /// Returns an error if the required environment variables are not set
-    pub fn new(account_type: &AccountType) -> Result<Env, Error> {
+    /// Attempt to create a new `Env` instance with the given [`AccountType`].
+    pub(crate) fn new(account_type: &AccountType) -> Result<Env, Error> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),
             AccountType::Live => (LIVE_KEY_ID_ENV, LIVE_SECRET_KEY_ENV),
@@ -41,15 +39,11 @@ impl Env {
         Ok(Env { key_id, secret_key })
     }
 
-    /// Returns the API key ID.
-    #[must_use]
-    pub fn key_id(&self) -> &str {
+    pub(crate) fn key_id(&self) -> &str {
         &self.key_id
     }
 
-    /// Returns the API secret key.
-    #[must_use]
-    pub fn secret_key(&self) -> &str {
+    pub(crate) fn secret_key(&self) -> &str {
         &self.secret_key
     }
 }

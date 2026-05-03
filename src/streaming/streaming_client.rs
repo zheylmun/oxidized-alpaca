@@ -1,5 +1,6 @@
 use crate::{
-    AccountType, Env, Error, Feed,
+    AccountType, Error, Feed,
+    env::Env,
     streaming::stock_data::{self, ControlMessage, Request, StreamMessage, SubscriptionList},
 };
 use socketeer::Socketeer;

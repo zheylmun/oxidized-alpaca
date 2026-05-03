@@ -1,8 +1,6 @@
 //! Oxidized Alpaca - A Rust client library for the Alpaca trading API.
 #![warn(missing_docs)]
-/// Environment configuration for Alpaca API credentials.
 mod env;
-pub use env::Env;
 /// Error types for the crate.
 pub mod error;
 pub use error::{Error, Result};
