@@ -84,12 +84,12 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
 
     /// Receive the next market data message, filtering out control messages.
     pub async fn next_message(&mut self) -> Result<StreamMessage, Error> {
-        let mut message: Option<StreamMessage> = None;
-        while message.is_none() {
-            let incoming_message = self.next_message_internal().await?;
-            message = self.handle_subscription_update(incoming_message);
+        loop {
+            let incoming = self.next_message_internal().await?;
+            if let Some(message) = self.handle_subscription_update(incoming) {
+                return Ok(message);
+            }
         }
-        Ok(message.unwrap())
     }
 
     /// Subscribe to additional market data streams, returning the updated subscription list.
@@ -150,7 +150,7 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
     }
 
     async fn next_message_internal(&mut self) -> Result<StreamMessage, Error> {
-        if self.messages.is_empty() {
+        while self.messages.is_empty() {
             match self.websocket.next_message().await {
                 Ok(messages) => self.messages.extend(messages),
                 Err(e) => {
@@ -159,7 +159,10 @@ impl StreamingMarketDataClient<Vec<stock_data::StreamMessage>, stock_data::Reque
                 }
             }
         }
-        Ok(self.messages.pop_front().unwrap())
+        Ok(self
+            .messages
+            .pop_front()
+            .expect("loop above guarantees the queue is non-empty"))
     }
 
     fn handle_subscription_update(&mut self, message: StreamMessage) -> Option<StreamMessage> {
