@@ -1,7 +1,9 @@
 use oxidized_alpaca::{
     AccountType, Error, MarketDataClient,
     restful::market_data::{
+        corporate_actions::CorporateActionType,
         crypto::CryptoLocation,
+        screener::MoverMarket,
         stock::{
             TimeFrame,
             meta::{Tape, TickType},
@@ -183,14 +185,17 @@ async fn market_data_endpoints_live_smoke() {
     let most_actives = client.most_actives(Some(5)).await.unwrap();
     let _ = most_actives;
 
-    let movers = client.market_movers("stocks", Some(5)).await.unwrap();
+    let movers = client
+        .market_movers(MoverMarket::Stocks, Some(5))
+        .await
+        .unwrap();
     let _ = movers;
 
     let _ = expect_ok_or_status(client.logo("AAPL").await, &[403, 404, 422], "logo");
 
     let _ = expect_ok_or_status(
         client
-            .corporate_actions(Some("AAPL"), Some("cash_dividend"))
+            .corporate_actions(&["AAPL"], &[CorporateActionType::CashDividend])
             .await,
         &[403, 404, 422],
         "corporate_actions",

@@ -50,6 +50,25 @@ pub struct MarketMovers {
     pub losers: Vec<Mover>,
 }
 
+/// Market category supported by the movers screener.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum MoverMarket {
+    /// Equity market.
+    Stocks,
+    /// Crypto market.
+    Crypto,
+}
+
+impl MoverMarket {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::Stocks => "stocks",
+            Self::Crypto => "crypto",
+        }
+    }
+}
+
 impl MarketDataClient {
     /// Get most active stocks by volume.
     pub async fn most_actives(&self, top: Option<u32>) -> crate::Result<Vec<MostActive>> {
@@ -64,10 +83,10 @@ impl MarketDataClient {
     /// Get top market movers (gainers and losers).
     pub async fn market_movers(
         &self,
-        market_type: &str,
+        market: MoverMarket,
         top: Option<u32>,
     ) -> crate::Result<MarketMovers> {
-        let path = format!("v1beta1/screener/{market_type}/movers");
+        let path = format!("v1beta1/screener/{}/movers", market.as_str());
         let mut request = self.request(Method::GET, &path);
         if let Some(top) = top {
             request = request.query(&[("top", top)]);

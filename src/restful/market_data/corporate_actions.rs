@@ -2,6 +2,64 @@ use crate::restful::MarketDataClient;
 use reqwest::Method;
 use serde::Deserialize;
 
+/// Categories of corporate action accepted by the `types` filter.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum CorporateActionType {
+    /// Forward stock split.
+    ForwardSplit,
+    /// Reverse stock split.
+    ReverseSplit,
+    /// Unit split.
+    UnitSplit,
+    /// Cash dividend.
+    CashDividend,
+    /// Stock dividend.
+    StockDividend,
+    /// Spin-off.
+    SpinOff,
+    /// Cash merger.
+    CashMerger,
+    /// Stock merger.
+    StockMerger,
+    /// Stock-and-cash merger.
+    StockAndCashMerger,
+    /// Redemption.
+    Redemption,
+    /// Name change.
+    NameChange,
+    /// Worthless removal.
+    WorthlessRemoval,
+    /// Rights distribution.
+    RightsDistribution,
+    /// Contract adjustment.
+    ContractAdjustment,
+    /// Partial call.
+    PartialCall,
+}
+
+impl CorporateActionType {
+    fn as_str(&self) -> &'static str {
+        match self {
+            Self::ForwardSplit => "forward_split",
+            Self::ReverseSplit => "reverse_split",
+            Self::UnitSplit => "unit_split",
+            Self::CashDividend => "cash_dividend",
+            Self::StockDividend => "stock_dividend",
+            Self::SpinOff => "spin_off",
+            Self::CashMerger => "cash_merger",
+            Self::StockMerger => "stock_merger",
+            Self::StockAndCashMerger => "stock_and_cash_merger",
+            Self::Redemption => "redemption",
+            Self::NameChange => "name_change",
+            Self::WorthlessRemoval => "worthless_removal",
+            Self::RightsDistribution => "rights_distribution",
+            Self::ContractAdjustment => "contract_adjustment",
+            Self::PartialCall => "partial_call",
+        }
+    }
+}
+
 /// Corporate action types returned by the API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct CorporateActions {
@@ -41,18 +99,20 @@ impl MarketDataClient {
     /// Get corporate actions (splits, dividends, mergers, etc.).
     ///
     /// Returns raw JSON values for corporate action events since the schema
-    /// varies significantly by action type.
+    /// varies significantly by action type. Pass an empty slice for either
+    /// `symbols` or `types` to omit that filter.
     pub async fn corporate_actions(
         &self,
-        symbols: Option<&str>,
-        types: Option<&str>,
+        symbols: &[&str],
+        types: &[CorporateActionType],
     ) -> crate::Result<CorporateActions> {
         let mut request = self.request(Method::GET, "v1/corporate-actions");
-        if let Some(symbols) = symbols {
-            request = request.query(&[("symbols", symbols)]);
+        if !symbols.is_empty() {
+            request = request.query(&[("symbols", symbols.join(","))]);
         }
-        if let Some(types) = types {
-            request = request.query(&[("types", types)]);
+        if !types.is_empty() {
+            let joined: Vec<&str> = types.iter().map(CorporateActionType::as_str).collect();
+            request = request.query(&[("types", joined.join(","))]);
         }
         self.send_and_deserialize(request).await
     }
