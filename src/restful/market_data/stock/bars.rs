@@ -21,8 +21,7 @@ pub struct Request<'a> {
     #[serde(skip)]
     symbol: String,
     /// The time frame for the bars.
-    #[serde(rename = "timeframe")]
-    time_frame: TimeFrame,
+    timeframe: TimeFrame,
     /// The maximum total number of bars to return across all pages.
     ///
     /// When unset all matching bars are returned.
@@ -135,11 +134,11 @@ impl MarketDataClient {
     ///     .limit(100)
     ///     .execute().await?;
     /// ```
-    pub fn stock_bars<'a>(&'a self, symbol: &str, time_frame: TimeFrame) -> Request<'a> {
+    pub fn stock_bars<'a>(&'a self, symbol: &str, timeframe: TimeFrame) -> Request<'a> {
         Request {
             client: self,
             symbol: symbol.to_string(),
-            time_frame,
+            timeframe,
             limit: None,
             start: None,
             end: None,
