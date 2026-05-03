@@ -53,11 +53,11 @@ pub struct AccountConfig {
 }
 
 /// Builder for updating account configuration.
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 #[must_use]
 pub struct UpdateAccountConfigRequest<'a> {
     #[serde(skip)]
-    client: Option<&'a TradingClient>,
+    client: &'a TradingClient,
     #[serde(skip_serializing_if = "Option::is_none")]
     dtbp_check: Option<DtbpCheck>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -112,11 +112,11 @@ impl UpdateAccountConfigRequest<'_> {
 
     /// Submit the configuration update.
     pub async fn execute(self) -> crate::Result<AccountConfig> {
-        let client = self.client.unwrap();
-        let request = client
+        let request = self
+            .client
             .request(Method::PATCH, "account/configurations")
             .json(&self);
-        client.send_and_deserialize(request).await
+        self.client.send_and_deserialize(request).await
     }
 }
 
@@ -136,8 +136,16 @@ impl TradingClient {
     /// ```
     pub fn update_account_config(&self) -> UpdateAccountConfigRequest<'_> {
         UpdateAccountConfigRequest {
-            client: Some(self),
-            ..Default::default()
+            client: self,
+            dtbp_check: None,
+            trade_confirm_email: None,
+            suspend_trade: None,
+            no_shorting: None,
+            fractional_trading: None,
+            max_margin_multiplier: None,
+            max_options_trading_level: None,
+            pdt_check: None,
+            ptp_no_exception_entry: None,
         }
     }
 }
