@@ -4,7 +4,11 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
 /// Type of account activity.
-#[derive(Clone, Debug, Deserialize, Serialize, PartialEq, Eq)]
+///
+/// Alpaca exposes a long and growing list of activity codes; the variants
+/// below are the ones with stable, well-known semantics. Anything else is
+/// preserved verbatim under [`ActivityType::Other`].
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ActivityType {
     /// Order fills
@@ -29,6 +33,8 @@ pub enum ActivityType {
     JNLS,
     /// Interest
     INT,
+    /// Fees
+    FEE,
     /// Option assignment
     OPASN,
     /// Option exercise
@@ -37,6 +43,63 @@ pub enum ActivityType {
     OPXRC,
     /// Splits
     SPLIT,
+    /// Any activity code not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl ActivityType {
+    fn as_str(&self) -> &str {
+        match self {
+            Self::FILL => "FILL",
+            Self::TRANS => "TRANS",
+            Self::MISC => "MISC",
+            Self::ACATC => "ACATC",
+            Self::ACATS => "ACATS",
+            Self::CSD => "CSD",
+            Self::CSW => "CSW",
+            Self::DIV => "DIV",
+            Self::JNLC => "JNLC",
+            Self::JNLS => "JNLS",
+            Self::INT => "INT",
+            Self::FEE => "FEE",
+            Self::OPASN => "OPASN",
+            Self::OPEXP => "OPEXP",
+            Self::OPXRC => "OPXRC",
+            Self::SPLIT => "SPLIT",
+            Self::Other(raw) => raw,
+        }
+    }
+}
+
+impl Serialize for ActivityType {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> Deserialize<'de> for ActivityType {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "FILL" => Self::FILL,
+            "TRANS" => Self::TRANS,
+            "MISC" => Self::MISC,
+            "ACATC" => Self::ACATC,
+            "ACATS" => Self::ACATS,
+            "CSD" => Self::CSD,
+            "CSW" => Self::CSW,
+            "DIV" => Self::DIV,
+            "JNLC" => Self::JNLC,
+            "JNLS" => Self::JNLS,
+            "INT" => Self::INT,
+            "FEE" => Self::FEE,
+            "OPASN" => Self::OPASN,
+            "OPEXP" => Self::OPEXP,
+            "OPXRC" => Self::OPXRC,
+            "SPLIT" => Self::SPLIT,
+            _ => Self::Other(raw),
+        })
+    }
 }
 
 /// An account activity event.
@@ -87,6 +150,10 @@ pub struct Activity {
     pub status: Option<String>,
 }
 
+/// Default per-page batch size used internally when auto-paginating
+/// account activities. The trading API caps `page_size` at 100.
+const ACTIVITIES_PAGE_SIZE: u32 = 100;
+
 /// Builder for listing account activities.
 #[derive(Debug, Serialize)]
 #[must_use]
@@ -95,6 +162,8 @@ pub struct ListActivitiesRequest<'a> {
     client: &'a TradingClient,
     #[serde(skip)]
     activity_type: Option<ActivityType>,
+    #[serde(skip)]
+    limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     date: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -137,14 +206,10 @@ impl ListActivitiesRequest<'_> {
         self.direction = Some(direction.to_string());
         self
     }
-    /// Maximum number of results per page.
-    pub fn page_size(mut self, size: u32) -> Self {
-        self.page_size = Some(size);
-        self
-    }
-    /// Pagination token for the next page.
-    pub fn page_token(mut self, token: impl Into<String>) -> Self {
-        self.page_token = Some(token.into());
+    /// Cap the total number of activities returned across all
+    /// auto-paginated pages.
+    pub fn limit(mut self, limit: usize) -> Self {
+        self.limit = Some(limit);
         self
     }
     /// Filter by category ("trade" or "non_trade").
@@ -153,30 +218,56 @@ impl ListActivitiesRequest<'_> {
         self
     }
 
-    /// Execute the request.
-    pub async fn execute(self) -> crate::Result<Vec<Activity>> {
+    /// Execute the request, auto-paginating until all matching activities are
+    /// retrieved or the configured `limit` is reached.
+    pub async fn execute(mut self) -> crate::Result<Vec<Activity>> {
+        let cap = self.limit;
         let path = match &self.activity_type {
-            Some(at) => format!("account/activities/{at:?}"),
+            Some(at) => format!("account/activities/{}", at.as_str()),
             None => "account/activities".to_string(),
         };
-        let request = self.client.request(Method::GET, &path).query(&self);
-        self.client.send_and_deserialize(request).await
+        self.page_size = Some(ACTIVITIES_PAGE_SIZE);
+        let mut all: Vec<Activity> = Vec::new();
+        loop {
+            let request = self.client.request(Method::GET, &path).query(&self);
+            let page: Vec<Activity> = self.client.send_and_deserialize(request).await?;
+            let received = page.len();
+            let last_id = page.last().map(|a| a.id.clone());
+            all.extend(page);
+            if let Some(cap) = cap
+                && all.len() >= cap
+            {
+                all.truncate(cap);
+                break;
+            }
+            if received < ACTIVITIES_PAGE_SIZE as usize {
+                break;
+            }
+            match last_id {
+                Some(id) => self.page_token = Some(id),
+                None => break,
+            }
+        }
+        Ok(all)
     }
 }
 
 impl TradingClient {
-    /// List account activities with optional filters.
+    /// List account activities with optional filters. The result is fully
+    /// auto-paginated; the trading API's `page_size` parameter is managed
+    /// internally.
     ///
     /// ```ignore
     /// let activities = client.list_activities()
     ///     .activity_type(ActivityType::FILL)
-    ///     .page_size(50)
+    ///     .limit(500)
     ///     .execute().await?;
     /// ```
     pub fn list_activities(&self) -> ListActivitiesRequest<'_> {
         ListActivitiesRequest {
             client: self,
             activity_type: None,
+            limit: None,
             date: None,
             until: None,
             after: None,
