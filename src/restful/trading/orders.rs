@@ -11,8 +11,9 @@ where
     let opt = Option::<String>::deserialize(deserializer)?;
     match opt.as_deref() {
         None | Some("") => Ok(None),
-        Some(s) => OrderClass::deserialize(serde::de::value::StrDeserializer::<D::Error>::new(s))
-            .map(Some),
+        Some(s) => {
+            OrderClass::deserialize(serde::de::value::StrDeserializer::<D::Error>::new(s)).map(Some)
+        }
     }
 }
 

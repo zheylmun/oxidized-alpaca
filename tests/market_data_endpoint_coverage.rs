@@ -9,7 +9,11 @@ use oxidized_alpaca::{
     },
 };
 
-fn expect_ok_or_status<T>(result: Result<T, Error>, allowed_statuses: &[u16], context: &str) -> Option<T> {
+fn expect_ok_or_status<T>(
+    result: Result<T, Error>,
+    allowed_statuses: &[u16],
+    context: &str,
+) -> Option<T> {
     match result {
         Ok(value) => Some(value),
         Err(Error::ApiError { status, .. }) if allowed_statuses.contains(&status) => None,
@@ -30,7 +34,12 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = bars;
 
-    let trades = client.stock_trades("AAPL").limit(1).execute().await.unwrap();
+    let trades = client
+        .stock_trades("AAPL")
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
     let _ = trades;
 
     client.stock_latest_trade("AAPL").await.unwrap();
@@ -38,7 +47,12 @@ async fn market_data_endpoints_live_smoke() {
     let latest_trades = client.stock_latest_trades(&["AAPL", "MSFT"]).await.unwrap();
     let _ = latest_trades;
 
-    let quotes = client.stock_quotes("AAPL").limit(1).execute().await.unwrap();
+    let quotes = client
+        .stock_quotes("AAPL")
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
     let _ = quotes;
 
     client.stock_latest_quote("AAPL").await.unwrap();
@@ -54,7 +68,10 @@ async fn market_data_endpoints_live_smoke() {
 
     client.stock_snapshot("AAPL", None).await.unwrap();
 
-    let snapshots = client.stock_snapshots(&["AAPL", "MSFT"], None).await.unwrap();
+    let snapshots = client
+        .stock_snapshots(&["AAPL", "MSFT"], None)
+        .await
+        .unwrap();
     let _ = snapshots;
 
     let trade_conditions = client
@@ -154,7 +171,13 @@ async fn market_data_endpoints_live_smoke() {
     );
 
     // News / screener / reference data
-    let news = client.news().symbols("AAPL").limit(1).execute().await.unwrap();
+    let news = client
+        .news()
+        .symbols("AAPL")
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
     let _ = news;
 
     let most_actives = client.most_actives(Some(5)).await.unwrap();

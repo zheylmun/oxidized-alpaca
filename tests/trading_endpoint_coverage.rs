@@ -6,7 +6,11 @@ use oxidized_alpaca::{
 };
 use rust_decimal::Decimal;
 
-fn expect_ok_or_status<T>(result: Result<T, Error>, allowed_statuses: &[u16], context: &str) -> Option<T> {
+fn expect_ok_or_status<T>(
+    result: Result<T, Error>,
+    allowed_statuses: &[u16],
+    context: &str,
+) -> Option<T> {
     match result {
         Ok(value) => Some(value),
         Err(Error::ApiError { status, .. }) if allowed_statuses.contains(&status) => None,
@@ -40,7 +44,12 @@ async fn trading_endpoints_live_smoke() {
         .await
         .unwrap();
 
-    let _ = client.list_activities().page_size(1).execute().await.unwrap();
+    let _ = client
+        .list_activities()
+        .page_size(1)
+        .execute()
+        .await
+        .unwrap();
 
     let assets = client.list_assets().execute().await.unwrap();
     assert!(!assets.is_empty());
@@ -86,7 +95,13 @@ async fn trading_endpoints_live_smoke() {
         "create_order",
     );
 
-    let _ = client.list_orders().status("all").limit(5).execute().await.unwrap();
+    let _ = client
+        .list_orders()
+        .status("all")
+        .limit(5)
+        .execute()
+        .await
+        .unwrap();
 
     let order_id = order
         .as_ref()
