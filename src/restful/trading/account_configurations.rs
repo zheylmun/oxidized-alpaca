@@ -1,5 +1,8 @@
-use crate::restful::TradingClient;
+use crate::restful::{
+    TradingClient, decimal_as_string, optional_decimal_as_string, string_as_decimal,
+};
 use reqwest::Method;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// DTBP (Day Trading Buying Power) check setting.
@@ -7,6 +10,19 @@ use serde::{Deserialize, Serialize};
 #[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum DtbpCheck {
+    /// Check on both entry and exit.
+    Both,
+    /// Check on entry only.
+    Entry,
+    /// Check on exit only.
+    Exit,
+}
+
+/// Pattern day trader check setting.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "lowercase")]
+#[non_exhaustive]
+pub enum PdtCheck {
     /// Check on both entry and exit.
     Both,
     /// Check on entry only.
@@ -40,13 +56,15 @@ pub struct AccountConfig {
     /// Whether fractional trading is enabled.
     #[serde(default)]
     pub fractional_trading: bool,
-    /// Maximum margin multiplier.
-    pub max_margin_multiplier: String,
+    /// Maximum margin multiplier (e.g. 1, 2, 4).
+    #[serde(deserialize_with = "string_as_decimal")]
+    #[serde(serialize_with = "decimal_as_string")]
+    pub max_margin_multiplier: Decimal,
     /// Maximum options trading level.
     #[serde(default)]
     pub max_options_trading_level: Option<u8>,
     /// Pattern day trader check setting.
-    pub pdt_check: String,
+    pub pdt_check: PdtCheck,
     /// Whether PTP no-exception entry is enabled.
     #[serde(default)]
     pub ptp_no_exception_entry: bool,
@@ -68,12 +86,16 @@ pub struct UpdateAccountConfigRequest<'a> {
     no_shorting: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
     fractional_trading: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    max_margin_multiplier: Option<String>,
+    #[serde(
+        default,
+        skip_serializing_if = "Option::is_none",
+        serialize_with = "optional_decimal_as_string"
+    )]
+    max_margin_multiplier: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
     max_options_trading_level: Option<u8>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    pdt_check: Option<String>,
+    pdt_check: Option<PdtCheck>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ptp_no_exception_entry: Option<bool>,
 }
@@ -107,6 +129,24 @@ impl UpdateAccountConfigRequest<'_> {
     /// Set the maximum options trading level.
     pub fn max_options_trading_level(mut self, level: u8) -> Self {
         self.max_options_trading_level = Some(level);
+        self
+    }
+
+    /// Set the maximum margin multiplier (e.g. 1, 2, 4).
+    pub fn max_margin_multiplier(mut self, multiplier: Decimal) -> Self {
+        self.max_margin_multiplier = Some(multiplier);
+        self
+    }
+
+    /// Set the pattern day trader check mode.
+    pub fn pdt_check(mut self, check: PdtCheck) -> Self {
+        self.pdt_check = Some(check);
+        self
+    }
+
+    /// Set whether PTP no-exception entry is enabled.
+    pub fn ptp_no_exception_entry(mut self, enabled: bool) -> Self {
+        self.ptp_no_exception_entry = Some(enabled);
         self
     }
 

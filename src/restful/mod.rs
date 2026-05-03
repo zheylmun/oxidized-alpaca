@@ -51,3 +51,23 @@ where
         None => Ok(None),
     }
 }
+
+pub(crate) fn optional_decimal_as_string<S>(
+    value: &Option<Decimal>,
+    serializer: S,
+) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    match value {
+        Some(d) => serializer.serialize_str(&d.to_string()),
+        None => serializer.serialize_none(),
+    }
+}
+
+pub(crate) fn decimal_as_string<S>(value: &Decimal, serializer: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    serializer.serialize_str(&value.to_string())
+}
