@@ -1,4 +1,7 @@
-use crate::{Feed, restful::MarketDataClient};
+use crate::{
+    Feed,
+    restful::{MarketDataClient, null_def_vec},
+};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -53,6 +56,7 @@ pub struct AuctionEntry {
 
 #[derive(Debug, Deserialize)]
 struct AuctionsResponse {
+    #[serde(default, deserialize_with = "null_def_vec")]
     auctions: Vec<DailyAuctions>,
     #[allow(dead_code)]
     symbol: String,

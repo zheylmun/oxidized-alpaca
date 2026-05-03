@@ -1,4 +1,4 @@
-use crate::restful::MarketDataClient;
+use crate::restful::{MarketDataClient, null_def_vec};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -48,6 +48,7 @@ pub struct NewsImage {
 
 #[derive(Debug, Deserialize)]
 struct NewsResponse {
+    #[serde(default, deserialize_with = "null_def_vec")]
     news: Vec<NewsArticle>,
     #[allow(dead_code)]
     next_page_token: Option<String>,

@@ -1,4 +1,7 @@
-use crate::{Feed, restful::MarketDataClient};
+use crate::{
+    Feed,
+    restful::{MarketDataClient, null_def_vec},
+};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -37,6 +40,7 @@ pub struct StockQuote {
 
 #[derive(Debug, Deserialize)]
 struct QuotesResponse {
+    #[serde(default, deserialize_with = "null_def_vec")]
     quotes: Vec<StockQuote>,
     #[allow(dead_code)]
     symbol: String,
