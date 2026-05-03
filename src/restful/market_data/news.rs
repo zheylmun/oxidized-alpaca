@@ -50,7 +50,6 @@ pub struct NewsImage {
 struct NewsResponse {
     #[serde(default, deserialize_with = "null_def_vec")]
     news: Vec<NewsArticle>,
-    #[allow(dead_code)]
     next_page_token: Option<String>,
 }
 
@@ -94,7 +93,7 @@ impl NewsRequest<'_> {
         self.end = Some(end);
         self
     }
-    /// Set the maximum number of articles to return.
+    /// Cap the total number of articles returned across all auto-paginated pages.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
@@ -115,14 +114,30 @@ impl NewsRequest<'_> {
         self
     }
 
-    /// Execute the request and return the news articles.
-    pub async fn execute(self) -> crate::Result<Vec<NewsArticle>> {
-        let request = self
-            .client
-            .request(Method::GET, "v1beta1/news")
-            .query(&self);
-        let response: NewsResponse = self.client.send_and_deserialize(request).await?;
-        Ok(response.news)
+    /// Execute the request, auto-paginating until all matching articles are
+    /// retrieved or the configured `limit` is reached.
+    pub async fn execute(mut self) -> crate::Result<Vec<NewsArticle>> {
+        let cap = self.limit.map(|n| n as usize);
+        let mut all = Vec::new();
+        loop {
+            let request = self
+                .client
+                .request(Method::GET, "v1beta1/news")
+                .query(&self);
+            let response: NewsResponse = self.client.send_and_deserialize(request).await?;
+            all.extend(response.news);
+            if let Some(cap) = cap
+                && all.len() >= cap
+            {
+                all.truncate(cap);
+                break;
+            }
+            match response.next_page_token {
+                Some(token) => self.page_token = Some(token),
+                None => break,
+            }
+        }
+        Ok(all)
     }
 }
 
