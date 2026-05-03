@@ -46,7 +46,7 @@ async fn trading_sequence() {
 
     let assets = client
         .list_assets()
-        .attributes("ptp_no_exception".to_string())
+        .attributes(&["ptp_no_exception"])
         .execute()
         .await
         .unwrap();

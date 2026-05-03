@@ -331,8 +331,8 @@ impl CreateOrderRequest<'_> {
     }
 
     /// Set a client-defined order ID (max 128 characters).
-    pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
-        self.client_order_id = Some(id.into());
+    pub fn client_order_id(mut self, id: &str) -> Self {
+        self.client_order_id = Some(id.to_string());
         self
     }
 
@@ -498,8 +498,8 @@ impl ReplaceOrderRequest<'_> {
     }
 
     /// Set a new client order ID.
-    pub fn client_order_id(mut self, id: impl Into<String>) -> Self {
-        self.client_order_id = Some(id.into());
+    pub fn client_order_id(mut self, id: &str) -> Self {
+        self.client_order_id = Some(id.to_string());
         self
     }
 

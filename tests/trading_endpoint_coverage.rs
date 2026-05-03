@@ -86,7 +86,7 @@ async fn trading_endpoints_live_smoke() {
             .qty(Decimal::from_str_exact("1").unwrap())
             .limit_price(Decimal::from_str_exact("100").unwrap())
             .time_in_force(TimeInForce::Gtc)
-            .client_order_id(order_client_id.clone())
+            .client_order_id(&order_client_id)
             .execute()
             .await,
         &[400, 403, 404, 422, 500],

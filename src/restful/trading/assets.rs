@@ -122,9 +122,9 @@ impl AssetRequest<'_> {
         self.exchange = Some(exchange);
         self
     }
-    /// Filter by comma-separated attributes.
-    pub fn attributes(mut self, attributes: String) -> Self {
-        self.attributes = Some(attributes);
+    /// Filter by attributes.
+    pub fn attributes(mut self, attributes: &[&str]) -> Self {
+        self.attributes = Some(attributes.join(","));
         self
     }
 
