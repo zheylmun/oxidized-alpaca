@@ -1,4 +1,6 @@
-use crate::restful::{TradingClient, string_as_decimal, string_as_optional_decimal};
+use crate::restful::{
+    TradingClient, string_as_decimal, string_as_optional_decimal, string_as_optional_u64,
+};
 use chrono::NaiveDate;
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -70,10 +72,12 @@ pub struct OptionContract {
     /// Strike price of the contract.
     #[serde(deserialize_with = "string_as_decimal")]
     pub strike_price: Decimal,
-    /// Contract size (typically "100").
-    pub size: Option<String>,
+    /// Contract size (typically 100 — number of underlying shares per contract).
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub size: Option<Decimal>,
     /// Open interest.
-    pub open_interest: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_u64")]
+    pub open_interest: Option<u64>,
     /// Last close price.
     #[serde(
         default,

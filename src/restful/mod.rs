@@ -71,3 +71,14 @@ where
 {
     serializer.serialize_str(&value.to_string())
 }
+
+pub(crate) fn string_as_optional_u64<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(s) => s.parse().map(Some).map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
