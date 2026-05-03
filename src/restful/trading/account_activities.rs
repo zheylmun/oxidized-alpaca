@@ -1,7 +1,10 @@
-use crate::restful::{SortDirection, TradingClient};
+use crate::restful::{SortDirection, TradingClient, string_as_optional_decimal};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+
+use super::orders::Side;
 
 /// Category filter accepted by the account-activities endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
@@ -127,26 +130,26 @@ pub struct Activity {
     #[serde(default)]
     pub date: Option<NaiveDate>,
     /// Net dollar amount of the activity.
-    #[serde(default)]
-    pub net_amount: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub net_amount: Option<Decimal>,
     /// Quantity of shares.
-    #[serde(default)]
-    pub qty: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub qty: Option<Decimal>,
     /// Per-share amount (e.g., dividend per share).
-    #[serde(default)]
-    pub per_share_amount: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub per_share_amount: Option<Decimal>,
     /// Price per share.
-    #[serde(default)]
-    pub price: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub price: Option<Decimal>,
     /// Cumulative quantity filled.
-    #[serde(default)]
-    pub cum_qty: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub cum_qty: Option<Decimal>,
     /// Remaining quantity to fill.
-    #[serde(default)]
-    pub leaves_qty: Option<String>,
+    #[serde(default, deserialize_with = "string_as_optional_decimal")]
+    pub leaves_qty: Option<Decimal>,
     /// Buy or sell side.
     #[serde(default)]
-    pub side: Option<String>,
+    pub side: Option<Side>,
     /// Associated order ID.
     #[serde(default)]
     pub order_id: Option<String>,
