@@ -91,7 +91,6 @@ pub struct OptionContract {
 struct OptionContractsResponse {
     option_contracts: Vec<OptionContract>,
     #[serde(default)]
-    #[allow(dead_code)]
     next_page_token: Option<String>,
 }
 
@@ -182,20 +181,37 @@ impl ListOptionContractsRequest<'_> {
         self
     }
 
-    /// Maximum number of results per page.
+    /// Cap the total number of contracts returned across all auto-paginated pages.
     pub fn limit(mut self, limit: u32) -> Self {
         self.limit = Some(limit);
         self
     }
 
-    /// Execute the request (single page).
-    pub async fn execute(self) -> crate::Result<Vec<OptionContract>> {
-        let request = self
-            .client
-            .request(Method::GET, "options/contracts")
-            .query(&self);
-        let response: OptionContractsResponse = self.client.send_and_deserialize(request).await?;
-        Ok(response.option_contracts)
+    /// Execute the request, auto-paginating until all matching contracts are
+    /// retrieved or the configured `limit` is reached.
+    pub async fn execute(mut self) -> crate::Result<Vec<OptionContract>> {
+        let cap = self.limit.map(|n| n as usize);
+        let mut all = Vec::new();
+        loop {
+            let request = self
+                .client
+                .request(Method::GET, "options/contracts")
+                .query(&self);
+            let response: OptionContractsResponse =
+                self.client.send_and_deserialize(request).await?;
+            all.extend(response.option_contracts);
+            if let Some(cap) = cap
+                && all.len() >= cap
+            {
+                all.truncate(cap);
+                break;
+            }
+            match response.next_page_token {
+                Some(token) => self.page_token = Some(token),
+                None => break,
+            }
+        }
+        Ok(all)
     }
 }
 
