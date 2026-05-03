@@ -1,4 +1,4 @@
-use crate::restful::{TradingClient, string_as_optional_decimal};
+use crate::restful::{TradingClient, null_def_vec, string_as_optional_decimal};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
@@ -86,6 +86,7 @@ pub struct Asset {
     #[serde(deserialize_with = "string_as_optional_decimal", default)]
     pub margin_requirement_short: Option<Decimal>,
     /// Additional asset attributes.
+    #[serde(default, deserialize_with = "null_def_vec")]
     pub attributes: Vec<String>,
 }
 
