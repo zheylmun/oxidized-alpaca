@@ -567,7 +567,7 @@ impl TradingClient {
     /// Get an order by client order ID.
     pub async fn get_order_by_client_id(&self, client_order_id: &str) -> crate::Result<Order> {
         let request = self
-            .request(Method::GET, "orders:by_client_order_id")
+            .request(Method::GET, "orders/by_client_order_id")
             .query(&[("client_order_id", client_order_id)]);
         self.send_and_deserialize(request).await
     }
