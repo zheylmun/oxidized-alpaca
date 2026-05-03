@@ -39,7 +39,10 @@ impl TradingClient {
     }
 
     pub(crate) fn request(&self, method: Method, path: &str) -> RequestBuilder {
-        let url = Url::parse(self.base_url()).unwrap().join(path).unwrap();
+        let url = Url::parse(self.base_url())
+            .expect("base URL constants are valid")
+            .join(path)
+            .expect("path must be a valid relative URL");
         self.client
             .request(method, url)
             .header(KEY_ID_HEADER, self.env.key_id())
