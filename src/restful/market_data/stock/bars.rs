@@ -108,7 +108,7 @@ impl StockBarsRequest<'_> {
     async fn internal_execute(&self) -> Result<Bars, Error> {
         let symbol = &self.symbol;
         let path = format!("v2/stocks/{symbol}/bars");
-        let request = self.client.request(Method::GET, &path).query(&self);
+        let request = self.client.request(Method::GET, &path)?.query(&self);
         self.client.send_and_deserialize(request).await
     }
 }

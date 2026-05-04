@@ -205,7 +205,7 @@ impl ListOptionContractsRequest<'_> {
         loop {
             let request = self
                 .client
-                .request(Method::GET, "options/contracts")
+                .request(Method::GET, "options/contracts")?
                 .query(&self);
             let response: OptionContractsResponse =
                 self.client.send_and_deserialize(request).await?;
@@ -257,7 +257,7 @@ impl TradingClient {
 
     /// Get a specific option contract by symbol or ID.
     pub async fn get_option_contract(&self, symbol_or_id: &str) -> crate::Result<OptionContract> {
-        let request = self.request(Method::GET, &format!("options/contracts/{symbol_or_id}"));
+        let request = self.request(Method::GET, &format!("options/contracts/{symbol_or_id}"))?;
         self.send_and_deserialize(request).await
     }
 }

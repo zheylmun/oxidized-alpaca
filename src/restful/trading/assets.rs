@@ -132,7 +132,7 @@ impl AssetRequest<'_> {
     pub async fn execute(self) -> crate::Result<Vec<Asset>> {
         let request = self
             .client
-            .request(reqwest::Method::GET, "assets")
+            .request(reqwest::Method::GET, "assets")?
             .query(&self);
         self.client.send_and_deserialize(request).await
     }
@@ -159,7 +159,7 @@ impl TradingClient {
 
     /// Get a specific asset by symbol or asset ID.
     pub async fn get_asset(&self, symbol_or_id: &str) -> crate::Result<Asset> {
-        let request = self.request(reqwest::Method::GET, &format!("assets/{symbol_or_id}"));
+        let request = self.request(reqwest::Method::GET, &format!("assets/{symbol_or_id}"))?;
         self.send_and_deserialize(request).await
     }
 }

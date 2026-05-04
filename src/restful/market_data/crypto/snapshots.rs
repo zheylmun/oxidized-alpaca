@@ -18,7 +18,7 @@ impl MarketDataClient {
     ) -> crate::Result<std::collections::HashMap<String, CryptoSnapshot>> {
         let path = format!("v1beta3/crypto/{loc}/snapshots");
         let request = self
-            .request(Method::GET, &path)
+            .request(Method::GET, &path)?
             .query(&[("symbols", symbols.join(","))]);
         let response: SnapshotsResponse = self.send_and_deserialize(request).await?;
         Ok(response.snapshots)

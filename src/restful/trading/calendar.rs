@@ -54,7 +54,7 @@ impl CalendarRequest<'_> {
 
     /// Execute the request.
     pub async fn execute(self) -> crate::Result<Vec<MarketDay>> {
-        let request = self.client.request(Method::GET, "calendar").query(&self);
+        let request = self.client.request(Method::GET, "calendar")?.query(&self);
         self.client.send_and_deserialize(request).await
     }
 }

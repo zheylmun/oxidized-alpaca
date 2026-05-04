@@ -122,7 +122,7 @@ impl NewsRequest<'_> {
         loop {
             let request = self
                 .client
-                .request(Method::GET, "v1beta1/news")
+                .request(Method::GET, "v1beta1/news")?
                 .query(&self);
             let response: NewsResponse = self.client.send_and_deserialize(request).await?;
             all.extend(response.news);

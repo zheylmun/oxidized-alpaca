@@ -249,7 +249,7 @@ impl ListActivitiesRequest<'_> {
         self.page_size = Some(ACTIVITIES_PAGE_SIZE);
         let mut all: Vec<Activity> = Vec::new();
         loop {
-            let request = self.client.request(Method::GET, &path).query(&self);
+            let request = self.client.request(Method::GET, &path)?.query(&self);
             let page: Vec<Activity> = self.client.send_and_deserialize(request).await?;
             let received = page.len();
             let last_id = page.last().map(|a| a.id.clone());

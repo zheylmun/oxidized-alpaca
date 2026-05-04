@@ -58,7 +58,7 @@ impl OptionBarsRequest<'_> {
         loop {
             let request = self
                 .client
-                .request(Method::GET, "v1beta1/options/bars")
+                .request(Method::GET, "v1beta1/options/bars")?
                 .query(&self);
             let response: BarsResponse = self.client.send_and_deserialize(request).await?;
             for (symbol, bars) in response.bars {

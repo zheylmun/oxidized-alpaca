@@ -21,7 +21,7 @@ impl TradingClient {
     ///
     /// Returns whether the market is open and when it next opens/closes.
     pub async fn get_clock(&self) -> crate::Result<Clock> {
-        let request = self.request(Method::GET, "clock");
+        let request = self.request(Method::GET, "clock")?;
         self.send_and_deserialize(request).await
     }
 }

@@ -103,7 +103,7 @@ impl TradesRequest<'_> {
         loop {
             let symbol = &self.symbol;
             let path = format!("v2/stocks/{symbol}/trades");
-            let request = self.client.request(Method::GET, &path).query(&self);
+            let request = self.client.request(Method::GET, &path)?.query(&self);
             let response: TradesResponse = self.client.send_and_deserialize(request).await?;
             all_trades.extend(response.trades);
             if let Some(cap) = cap
@@ -138,7 +138,7 @@ impl MarketDataClient {
     /// Get the latest trade for a single stock symbol.
     pub async fn stock_latest_trade(&self, symbol: &str) -> crate::Result<StockTrade> {
         let path = format!("v2/stocks/{symbol}/trades/latest");
-        let request = self.request(Method::GET, &path);
+        let request = self.request(Method::GET, &path)?;
         let response: LatestTradeResponse = self.send_and_deserialize(request).await?;
         Ok(response.trade)
     }
@@ -149,7 +149,7 @@ impl MarketDataClient {
         symbols: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, StockTrade>> {
         let request = self
-            .request(Method::GET, "v2/stocks/trades/latest")
+            .request(Method::GET, "v2/stocks/trades/latest")?
             .query(&[("symbols", symbols.join(","))]);
         let response: MultiLatestTradesResponse = self.send_and_deserialize(request).await?;
         Ok(response.trades)

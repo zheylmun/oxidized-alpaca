@@ -109,7 +109,7 @@ impl QuotesRequest<'_> {
         loop {
             let symbol = &self.symbol;
             let path = format!("v2/stocks/{symbol}/quotes");
-            let request = self.client.request(Method::GET, &path).query(&self);
+            let request = self.client.request(Method::GET, &path)?.query(&self);
             let response: QuotesResponse = self.client.send_and_deserialize(request).await?;
             all_quotes.extend(response.quotes);
             if let Some(cap) = cap
@@ -144,7 +144,7 @@ impl MarketDataClient {
     /// Get the latest quote for a single stock symbol.
     pub async fn stock_latest_quote(&self, symbol: &str) -> crate::Result<StockQuote> {
         let path = format!("v2/stocks/{symbol}/quotes/latest");
-        let request = self.request(Method::GET, &path);
+        let request = self.request(Method::GET, &path)?;
         let response: LatestQuoteResponse = self.send_and_deserialize(request).await?;
         Ok(response.quote)
     }
@@ -155,7 +155,7 @@ impl MarketDataClient {
         symbols: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, StockQuote>> {
         let request = self
-            .request(Method::GET, "v2/stocks/quotes/latest")
+            .request(Method::GET, "v2/stocks/quotes/latest")?
             .query(&[("symbols", symbols.join(","))]);
         let response: MultiLatestQuotesResponse = self.send_and_deserialize(request).await?;
         Ok(response.quotes)

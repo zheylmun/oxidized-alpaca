@@ -150,7 +150,7 @@ impl PortfolioHistoryRequest<'_> {
     pub async fn execute(self) -> crate::Result<PortfolioHistory> {
         let request = self
             .client
-            .request(Method::GET, "account/portfolio/history")
+            .request(Method::GET, "account/portfolio/history")?
             .query(&self);
         self.client.send_and_deserialize(request).await
     }

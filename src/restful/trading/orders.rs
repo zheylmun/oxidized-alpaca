@@ -359,7 +359,7 @@ impl CreateOrderRequest<'_> {
 
     /// Submit the order.
     pub async fn execute(self) -> crate::Result<Order> {
-        let request = self.client.request(Method::POST, "orders").json(&self);
+        let request = self.client.request(Method::POST, "orders")?.json(&self);
         self.client.send_and_deserialize(request).await
     }
 }
@@ -439,7 +439,7 @@ impl ListOrdersRequest<'_> {
 
     /// Execute the list request.
     pub async fn execute(self) -> crate::Result<Vec<Order>> {
-        let request = self.client.request(Method::GET, "orders").query(&self);
+        let request = self.client.request(Method::GET, "orders")?.query(&self);
         self.client.send_and_deserialize(request).await
     }
 }
@@ -507,7 +507,7 @@ impl ReplaceOrderRequest<'_> {
     pub async fn execute(self) -> crate::Result<Order> {
         let order_id = &self.order_id;
         let path = format!("orders/{order_id}");
-        let request = self.client.request(Method::PATCH, &path).json(&self);
+        let request = self.client.request(Method::PATCH, &path)?.json(&self);
         self.client.send_and_deserialize(request).await
     }
 }
@@ -573,21 +573,21 @@ impl TradingClient {
 
     /// Get a specific order by ID.
     pub async fn get_order(&self, order_id: &str) -> crate::Result<Order> {
-        let request = self.request(Method::GET, &format!("orders/{order_id}"));
+        let request = self.request(Method::GET, &format!("orders/{order_id}"))?;
         self.send_and_deserialize(request).await
     }
 
     /// Get an order by client order ID.
     pub async fn get_order_by_client_id(&self, client_order_id: &str) -> crate::Result<Order> {
         let request = self
-            .request(Method::GET, "orders/by_client_order_id")
+            .request(Method::GET, "orders/by_client_order_id")?
             .query(&[("client_order_id", client_order_id)]);
         self.send_and_deserialize(request).await
     }
 
     /// Cancel a specific order.
     pub async fn cancel_order(&self, order_id: &str) -> crate::Result<()> {
-        let request = self.request(Method::DELETE, &format!("orders/{order_id}"));
+        let request = self.request(Method::DELETE, &format!("orders/{order_id}"))?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
         if !status.is_success() {
@@ -602,7 +602,7 @@ impl TradingClient {
 
     /// Cancel all open orders.
     pub async fn cancel_all_orders(&self) -> crate::Result<()> {
-        let request = self.request(Method::DELETE, "orders");
+        let request = self.request(Method::DELETE, "orders")?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
         if !status.is_success() {

@@ -40,15 +40,16 @@ impl MarketDataClient {
 
     /// Build a request for the given path, which should include the version prefix
     /// (e.g., `"v2/stocks/AAPL/bars"` or `"v1beta1/news"`).
-    pub(crate) fn request(&self, method: Method, path: &str) -> RequestBuilder {
+    pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = Url::parse(MARKET_DATA_URL)
             .expect("MARKET_DATA_URL is a valid base URL")
             .join(path)
-            .expect("path must be a valid relative URL");
-        self.client
+            .map_err(Error::UrlParse)?;
+        Ok(self
+            .client
             .request(method, url)
             .header(KEY_ID_HEADER, self.env.key_id())
-            .header(SECRET_KEY_HEADER, self.env.secret_key())
+            .header(SECRET_KEY_HEADER, self.env.secret_key()))
     }
 
     /// Send a request and deserialize the JSON response, returning an

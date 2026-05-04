@@ -49,7 +49,7 @@ impl MarketDataClient {
     ) -> crate::Result<std::collections::HashMap<String, String>> {
         let path = format!("v2/stocks/meta/conditions/{tick_type}");
         let request = self
-            .request(Method::GET, &path)
+            .request(Method::GET, &path)?
             .query(&[("tape", tape.to_string())]);
         self.send_and_deserialize(request).await
     }
@@ -58,7 +58,7 @@ impl MarketDataClient {
     pub async fn stock_exchanges(
         &self,
     ) -> crate::Result<std::collections::HashMap<String, String>> {
-        let request = self.request(Method::GET, "v2/stocks/meta/exchanges");
+        let request = self.request(Method::GET, "v2/stocks/meta/exchanges")?;
         self.send_and_deserialize(request).await
     }
 }

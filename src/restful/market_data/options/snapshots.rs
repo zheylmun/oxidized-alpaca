@@ -16,7 +16,7 @@ impl MarketDataClient {
         symbols: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, OptionSnapshot>> {
         let request = self
-            .request(Method::GET, "v1beta1/options/snapshots")
+            .request(Method::GET, "v1beta1/options/snapshots")?
             .query(&[("symbols", symbols.join(","))]);
         let response: SnapshotsResponse = self.send_and_deserialize(request).await?;
         Ok(response.snapshots)
@@ -28,7 +28,7 @@ impl MarketDataClient {
         underlying_symbol: &str,
     ) -> crate::Result<std::collections::HashMap<String, OptionSnapshot>> {
         let path = format!("v1beta1/options/snapshots/{underlying_symbol}");
-        let request = self.request(Method::GET, &path);
+        let request = self.request(Method::GET, &path)?;
         let response: SnapshotsResponse = self.send_and_deserialize(request).await?;
         Ok(response.snapshots)
     }

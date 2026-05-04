@@ -100,7 +100,7 @@ impl ClosePositionRequest<'_> {
     pub async fn execute(self) -> crate::Result<Order> {
         let symbol_or_id = &self.symbol_or_id;
         let path = format!("positions/{symbol_or_id}");
-        let request = self.client.request(Method::DELETE, &path).query(&self);
+        let request = self.client.request(Method::DELETE, &path)?.query(&self);
         self.client.send_and_deserialize(request).await
     }
 }
@@ -110,13 +110,13 @@ use super::orders::Order;
 impl TradingClient {
     /// List all open positions.
     pub async fn list_positions(&self) -> crate::Result<Vec<Position>> {
-        let request = self.request(Method::GET, "positions");
+        let request = self.request(Method::GET, "positions")?;
         self.send_and_deserialize(request).await
     }
 
     /// Get a specific open position by symbol or asset ID.
     pub async fn get_position(&self, symbol_or_id: &str) -> crate::Result<Position> {
-        let request = self.request(Method::GET, &format!("positions/{symbol_or_id}"));
+        let request = self.request(Method::GET, &format!("positions/{symbol_or_id}"))?;
         self.send_and_deserialize(request).await
     }
 
@@ -142,7 +142,7 @@ impl TradingClient {
 
     /// Close all open positions.
     pub async fn close_all_positions(&self) -> crate::Result<Vec<Order>> {
-        let request = self.request(Method::DELETE, "positions");
+        let request = self.request(Method::DELETE, "positions")?;
         self.send_and_deserialize(request).await
     }
 
@@ -151,7 +151,7 @@ impl TradingClient {
         let request = self.request(
             Method::POST,
             &format!("positions/{symbol_or_contract_id}/exercise"),
-        );
+        )?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
         if !status.is_success() {
@@ -169,7 +169,7 @@ impl TradingClient {
         let request = self.request(
             Method::POST,
             &format!("positions/{symbol_or_contract_id}/do-not-exercise"),
-        );
+        )?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
         if !status.is_success() {

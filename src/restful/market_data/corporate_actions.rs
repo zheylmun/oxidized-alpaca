@@ -106,7 +106,7 @@ impl MarketDataClient {
         symbols: &[&str],
         types: &[CorporateActionType],
     ) -> crate::Result<CorporateActions> {
-        let mut request = self.request(Method::GET, "v1/corporate-actions");
+        let mut request = self.request(Method::GET, "v1/corporate-actions")?;
         if !symbols.is_empty() {
             request = request.query(&[("symbols", symbols.join(","))]);
         }

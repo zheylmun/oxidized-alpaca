@@ -72,7 +72,7 @@ impl std::fmt::Display for MoverMarket {
 impl MarketDataClient {
     /// Get most active stocks by volume.
     pub async fn most_actives(&self, limit: Option<u32>) -> crate::Result<Vec<MostActive>> {
-        let mut request = self.request(Method::GET, "v1beta1/screener/stocks/most-actives");
+        let mut request = self.request(Method::GET, "v1beta1/screener/stocks/most-actives")?;
         if let Some(limit) = limit {
             request = request.query(&[("top", limit)]);
         }
@@ -87,7 +87,7 @@ impl MarketDataClient {
         limit: Option<u32>,
     ) -> crate::Result<MarketMovers> {
         let path = format!("v1beta1/screener/{market}/movers");
-        let mut request = self.request(Method::GET, &path);
+        let mut request = self.request(Method::GET, &path)?;
         if let Some(limit) = limit {
             request = request.query(&[("top", limit)]);
         }

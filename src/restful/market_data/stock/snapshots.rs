@@ -32,7 +32,7 @@ impl MarketDataClient {
         feed: Option<Feed>,
     ) -> crate::Result<StockSnapshot> {
         let path = format!("v2/stocks/{symbol}/snapshot");
-        let mut request = self.request(Method::GET, &path);
+        let mut request = self.request(Method::GET, &path)?;
         if let Some(feed) = feed {
             #[derive(Serialize)]
             struct FeedQuery {
@@ -50,7 +50,7 @@ impl MarketDataClient {
         feed: Option<Feed>,
     ) -> crate::Result<std::collections::HashMap<String, StockSnapshot>> {
         let mut request = self
-            .request(Method::GET, "v2/stocks/snapshots")
+            .request(Method::GET, "v2/stocks/snapshots")?
             .query(&[("symbols", symbols.join(","))]);
         if let Some(feed) = feed {
             #[derive(Serialize)]

@@ -32,7 +32,7 @@ impl MarketDataClient {
         currency_pairs: &[&str],
     ) -> crate::Result<std::collections::HashMap<String, ForexRate>> {
         let request = self
-            .request(Method::GET, "v1beta1/forex/latest/rates")
+            .request(Method::GET, "v1beta1/forex/latest/rates")?
             .query(&[("currency_pairs", currency_pairs.join(","))]);
         let response: RatesResponse = self.send_and_deserialize(request).await?;
         Ok(response.rates)
