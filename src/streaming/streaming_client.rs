@@ -5,8 +5,21 @@ use crate::{
 };
 use socketeer::Socketeer;
 use std::collections::VecDeque;
-#[cfg(feature = "tracing")]
-use tracing::{error, info};
+
+// Local shims so log call sites compile whether or not the `tracing`
+// feature is enabled.
+macro_rules! info {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "tracing")]
+        tracing::info!($($arg)*);
+    };
+}
+macro_rules! error {
+    ($($arg:tt)*) => {
+        #[cfg(feature = "tracing")]
+        tracing::error!($($arg)*);
+    };
+}
 
 type StreamingSocket = Socketeer<Vec<StreamMessage>, Request>;
 

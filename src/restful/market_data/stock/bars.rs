@@ -83,7 +83,7 @@ impl StockBarsRequest<'_> {
     /// # Errors
     /// - Returns a [`Error::ReqwestSend`] if the rest request fails.
     /// - Returns a [`Error::ReqwestDeserialize`] if the response cannot be parsed
-    #[tracing::instrument]
+    #[cfg_attr(feature = "tracing", tracing::instrument)]
     pub async fn execute(mut self) -> Result<Vec<Bar>, Error> {
         let cap = self.limit;
         let mut results = Vec::new();
@@ -104,7 +104,7 @@ impl StockBarsRequest<'_> {
         Ok(results)
     }
 
-    #[tracing::instrument]
+    #[cfg_attr(feature = "tracing", tracing::instrument)]
     async fn internal_execute(&self) -> Result<Bars, Error> {
         let symbol = &self.symbol;
         let path = format!("v2/stocks/{symbol}/bars");

@@ -1,3 +1,4 @@
+#[cfg(feature = "restful")]
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
@@ -22,9 +23,11 @@ pub enum Error {
         source: std::env::VarError,
     },
     /// Reqwest Send Error
+    #[cfg(feature = "restful")]
     #[error("Reqwest send error: {}", "source")]
     ReqwestSend(#[source] ReqwestError),
     /// Reqwest Deserialize Error
+    #[cfg(feature = "restful")]
     #[error("Reqwest decoding error: {}", 0)]
     ReqwestDeserialize(#[source] ReqwestError),
 
