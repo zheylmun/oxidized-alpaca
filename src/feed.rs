@@ -16,6 +16,7 @@ const STREAMING_NEWS_SANDBOX_URL: &str = "wss://stream.data.alpaca.markets/v1bet
 /// Supported data feeds
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum Feed {
     /// Investors Exchange (IEX) stock data source.
     ///
@@ -25,6 +26,9 @@ pub enum Feed {
     ///
     /// This feed is only usable with the unlimited data plan
     SIP,
+    /// Delayed SIP data (15-minute delay).
+    #[serde(rename = "delayed_sip")]
+    DelayedSip,
     /// Test data feed for simulated stock data.
     ///
     /// This feed is available outside of market hours and is useful for testing
@@ -35,9 +39,12 @@ pub enum Feed {
     Crypto,
     /// News data feed for news data.
     News,
+    /// Over-the-counter exchanges.
+    Otc,
 }
 
 impl Feed {
+    /// Returns the WebSocket streaming URL for the given account type.
     #[must_use]
     pub fn streaming_url(&self, account_type: AccountType) -> &str {
         match account_type {
@@ -49,22 +56,24 @@ impl Feed {
     #[must_use]
     fn streaming_url_paper(&self) -> &str {
         match self {
-            Feed::IEX => STREAMING_IEX_SANDBOX_URL,
-            Feed::SIP => STREAMING_SIP_SANDBOX_URL,
-            Feed::Test => STREAMING_TEST_URL,
-            Feed::Crypto => STREAMING_CRYPTO_SANDBOX_URL,
-            Feed::News => STREAMING_NEWS_SANDBOX_URL,
+            Self::IEX => STREAMING_IEX_SANDBOX_URL,
+            Self::SIP | Self::DelayedSip => STREAMING_SIP_SANDBOX_URL,
+            Self::Test => STREAMING_TEST_URL,
+            Self::Crypto => STREAMING_CRYPTO_SANDBOX_URL,
+            Self::News => STREAMING_NEWS_SANDBOX_URL,
+            Self::Otc => STREAMING_IEX_SANDBOX_URL,
         }
     }
 
     #[must_use]
     fn streaming_url_live(&self) -> &str {
         match self {
-            Feed::IEX => STREAMING_IEX_URL,
-            Feed::SIP => STREAMING_SIP_URL,
-            Feed::Test => STREAMING_TEST_URL,
-            Feed::Crypto => STREAMING_CRYPTO_URL,
-            Feed::News => STREAMING_NEWS_URL,
+            Self::IEX => STREAMING_IEX_URL,
+            Self::SIP | Self::DelayedSip => STREAMING_SIP_URL,
+            Self::Test => STREAMING_TEST_URL,
+            Self::Crypto => STREAMING_CRYPTO_URL,
+            Self::News => STREAMING_NEWS_URL,
+            Self::Otc => STREAMING_IEX_URL,
         }
     }
 }

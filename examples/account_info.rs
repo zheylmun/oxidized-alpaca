@@ -1,12 +1,9 @@
-use oxidized_alpaca::{
-    AccountType, Error,
-    restful::{RestClient, trading::accounts::AccountDetails},
-};
+use oxidized_alpaca::{AccountType, Error, TradingClient};
 
 #[tokio::main]
 async fn main() -> Result<(), Error> {
-    let client = RestClient::new(AccountType::Paper)?;
-    let account_details = AccountDetails::get(&client).await?;
+    let client = TradingClient::new(AccountType::Paper)?;
+    let account_details = client.get_account().await?;
     print!("{:?}", account_details);
     Ok(())
 }

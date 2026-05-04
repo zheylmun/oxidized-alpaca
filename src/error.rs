@@ -1,8 +1,8 @@
+#[cfg(feature = "restful")]
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
-use crate::streaming::stock_data::StreamMessage;
-
+/// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
@@ -16,16 +16,29 @@ pub enum Error {
     /// - `ALPACA_LIVE_API_SECRET_KEY`
     #[error("Required environment variable not set: {}", variable_name)]
     MissingEnvironmentVariable {
+        /// Name of the missing environment variable.
         variable_name: String,
+        /// The underlying `VarError`.
         #[source]
         source: std::env::VarError,
     },
     /// Reqwest Send Error
+    #[cfg(feature = "restful")]
     #[error("Reqwest send error: {}", "source")]
     ReqwestSend(#[source] ReqwestError),
     /// Reqwest Deserialize Error
+    #[cfg(feature = "restful")]
     #[error("Reqwest decoding error: {}", 0)]
     ReqwestDeserialize(#[source] ReqwestError),
+
+    /// API returned a non-2xx status code
+    #[error("API error (HTTP {}): {}", status, body)]
+    ApiError {
+        /// HTTP status code.
+        status: u16,
+        /// Response body text.
+        body: String,
+    },
 
     /// Socketeer connection error
     #[cfg(feature = "streaming")]
@@ -36,11 +49,12 @@ pub enum Error {
     #[error("Url parse error: {}", 0)]
     UrlParse(#[source] url::ParseError),
     /// Unexpected connection message
-    #[error("Unexpected connection message: {0:?}")]
-    UnexpectedConnectionMessage(Box<StreamMessage>),
+    #[error("Unexpected connection message: {0}")]
+    UnexpectedConnectionMessage(String),
     /// StreamingAuth error
     #[error("Streaming Auth error")]
     StreamingAuth,
 }
 
+/// A `Result` type alias using [`Error`] as the default error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;

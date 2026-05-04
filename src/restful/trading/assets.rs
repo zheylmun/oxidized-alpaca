@@ -1,26 +1,29 @@
-use crate::{
-    Error,
-    restful::{RestClient, rest_client::RequestAPI, string_as_optional_f64},
-};
-use futures::TryFutureExt;
+use crate::restful::{TradingClient, null_def_vec, string_as_optional_decimal};
+use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
 /// `AssetClass` represents the category to which the asset belongs to.
 /// It serves to identify the nature of the financial instrument
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum AssetClass {
+    /// US equity securities.
     UsEquity,
+    /// US options contracts.
     UsOption,
+    /// Cryptocurrency.
     Crypto,
+    /// Cryptocurrency perpetual futures.
     CryptoPerp,
 }
 
 /// `Exchange` represents the exchange where the asset is traded
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+#[non_exhaustive]
 pub enum Exchange {
-    /// American Stock Exchang
+    /// American Stock Exchange
     Amex,
     /// Archipelago Exchange
     Arca,
@@ -30,77 +33,69 @@ pub enum Exchange {
     Bats,
     /// New York Stock Exchange
     Nyse,
-    /// NASDAQ (National Association of Securities Dealers Automated Quotations) Exchange
+    /// NASDAQ Exchange
     Nasdaq,
-    /// NYSE Archa (Archipelago Exchange)
+    /// NYSE Arca
     Nysearca,
+    /// Over-the-counter markets.
     Otc,
+    /// Cryptocurrency exchange.
     Crypto,
 }
 
 /// `Status` represents whether an asset is active or inactive.
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
+#[non_exhaustive]
 pub enum Status {
+    /// Asset is active and tradable.
     Active,
+    /// Asset is inactive.
     Inactive,
 }
 
+/// An asset as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 pub struct Asset {
-    /// Asset ID
-    id: String,
-    /// Asset class
-    class: AssetClass,
-    /// Exchange the asset is traded on
-    exchange: Exchange,
-    symbol: String,
-    name: String,
-    status: Status,
-    tradable: bool,
-    marginable: bool,
-    shortable: bool,
-    easy_to_borrow: bool,
-    fractionable: bool,
-    #[serde(deserialize_with = "string_as_optional_f64", default)]
-    margin_requirement_long: Option<f64>,
-    #[serde(deserialize_with = "string_as_optional_f64", default)]
-    margin_requirement_short: Option<f64>,
-    attributes: Vec<String>,
+    /// Asset ID.
+    pub id: String,
+    /// Asset class.
+    pub class: AssetClass,
+    /// Exchange the asset is traded on.
+    pub exchange: Exchange,
+    /// Ticker symbol.
+    pub symbol: String,
+    /// Asset name.
+    pub name: String,
+    /// Active or inactive status.
+    pub status: Status,
+    /// Whether the asset is tradable.
+    pub tradable: bool,
+    /// Whether the asset is marginable.
+    pub marginable: bool,
+    /// Whether the asset is shortable.
+    pub shortable: bool,
+    /// Whether the asset is easy to borrow for shorting.
+    pub easy_to_borrow: bool,
+    /// Whether the asset supports fractional shares.
+    pub fractionable: bool,
+    /// Long margin requirement percentage.
+    #[serde(deserialize_with = "string_as_optional_decimal", default)]
+    pub margin_requirement_long: Option<Decimal>,
+    /// Short margin requirement percentage.
+    #[serde(deserialize_with = "string_as_optional_decimal", default)]
+    pub margin_requirement_short: Option<Decimal>,
+    /// Additional asset attributes.
+    #[serde(default, deserialize_with = "null_def_vec")]
+    pub attributes: Vec<String>,
 }
 
-impl Asset {
-    pub fn get(client: &RestClient) -> AssetRequest<'_> {
-        AssetRequest {
-            client,
-            status: None,
-            asset_class: None,
-            exchange: None,
-            attributes: None,
-        }
-    }
-
-    pub async fn get_by_id(client: &RestClient, id: &str) -> Result<Asset, Error> {
-        let response = client
-            .request(
-                reqwest::Method::GET,
-                RequestAPI::Trading,
-                &format!("assets/{}", id),
-            )
-            .send()
-            .await
-            .map_err(Error::ReqwestSend)?;
-        response
-            .json::<Asset>()
-            .map_err(Error::ReqwestDeserialize)
-            .await
-    }
-}
-
+/// Builder for filtering asset list requests.
 #[derive(Clone, Debug, Serialize)]
+#[must_use]
 pub struct AssetRequest<'a> {
     #[serde(skip)]
-    client: &'a RestClient,
+    client: &'a TradingClient,
     #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<Status>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -112,30 +107,60 @@ pub struct AssetRequest<'a> {
 }
 
 impl AssetRequest<'_> {
-    pub fn with_status(mut self, status: Status) -> Self {
+    /// Filter by asset status.
+    pub fn status(mut self, status: Status) -> Self {
         self.status = Some(status);
         self
     }
-    pub fn with_asset_class(mut self, asset_class: AssetClass) -> Self {
+    /// Filter by asset class.
+    pub fn asset_class(mut self, asset_class: AssetClass) -> Self {
         self.asset_class = Some(asset_class);
         self
     }
-    pub fn with_exchange(mut self, exchange: Exchange) -> Self {
+    /// Filter by exchange.
+    pub fn exchange(mut self, exchange: Exchange) -> Self {
         self.exchange = Some(exchange);
         self
     }
-    pub fn with_attribute_string(mut self, attributes: String) -> Self {
-        self.attributes = Some(attributes);
+    /// Filter by attributes.
+    pub fn attributes(mut self, attributes: &[&str]) -> Self {
+        self.attributes = Some(attributes.join(","));
         self
     }
 
-    pub async fn execute(self) -> Result<Vec<Asset>, reqwest::Error> {
-        let response = self
+    /// Execute the request and return matching assets.
+    pub async fn execute(self) -> crate::Result<Vec<Asset>> {
+        let request = self
             .client
-            .request(reqwest::Method::GET, RequestAPI::Trading, "assets")
-            .send()
-            .await?;
-        response.json::<Vec<Asset>>().await
+            .request(reqwest::Method::GET, "assets")?
+            .query(&self);
+        self.client.send_and_deserialize(request).await
+    }
+}
+
+impl TradingClient {
+    /// List assets with optional filters.
+    ///
+    /// ```ignore
+    /// let assets = client.list_assets()
+    ///     .status(Status::Active)
+    ///     .asset_class(AssetClass::UsEquity)
+    ///     .execute().await?;
+    /// ```
+    pub fn list_assets(&self) -> AssetRequest<'_> {
+        AssetRequest {
+            client: self,
+            status: None,
+            asset_class: None,
+            exchange: None,
+            attributes: None,
+        }
+    }
+
+    /// Get a specific asset by symbol or asset ID.
+    pub async fn get_asset(&self, symbol_or_id: &str) -> crate::Result<Asset> {
+        let request = self.request(reqwest::Method::GET, &format!("assets/{symbol_or_id}"))?;
+        self.send_and_deserialize(request).await
     }
 }
 
@@ -144,7 +169,7 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_asset_deserilization() {
+    async fn test_asset_deserialization() {
         let sample = r#"{
             "id": "931bb17d-f64d-4344-a7c8-af552886c3ff",
             "class": "us_equity",
@@ -162,6 +187,10 @@ mod tests {
             "fractionable": false,
             "attributes": []
             }"#;
-        let _asset: Asset = serde_json::from_str(sample).unwrap();
+        let asset: Asset = serde_json::from_str(sample).unwrap();
+        assert_eq!(
+            asset.margin_requirement_long,
+            Some(Decimal::from_str_exact("100").unwrap())
+        );
     }
 }

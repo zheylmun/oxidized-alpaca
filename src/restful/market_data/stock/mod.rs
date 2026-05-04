@@ -1,7 +1,18 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 
+/// Stock auctions endpoint types and methods.
+pub mod auctions;
+/// Stock bars endpoint types and methods.
 pub mod bars;
+/// Stock metadata endpoint types and methods.
+pub mod meta;
+/// Stock quotes endpoint types and methods.
+pub mod quotes;
+/// Stock snapshots endpoint types and methods.
+pub mod snapshots;
+/// Stock trades endpoint types and methods.
+pub mod trades;
 
 /// Supported Time frames for bars
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]

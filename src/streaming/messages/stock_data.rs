@@ -114,86 +114,125 @@ impl Default for SubscriptionList {
     }
 }
 
+/// Server control message indicating connection or authentication success.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ControlMessage {
+    /// Connection to the streaming server was successful.
     Connected,
+    /// Authentication was successful.
     Authenticated,
 }
+/// Error codes returned by the streaming API.
 #[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
 #[repr(u16)]
 pub enum ErrorCode {
+    /// The request had invalid syntax.
     InvalidSyntax = 400,
+    /// The client is not authenticated.
     NotAuthenticated = 401,
+    /// Authentication credentials were rejected.
     AuthFailed = 402,
+    /// The client is already authorized.
     AlreadyAuthorized = 403,
 }
 
+/// Error message from the streaming API.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Error {
+    /// Error code indicating the type of error.
     pub code: ErrorCode,
+    /// Human-readable error message.
     #[serde(rename = "msg")]
     pub message: String,
 }
 
+/// OHLCV bar for a stock symbol.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Bar {
+    /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
+    /// Opening price.
     #[serde(rename = "o")]
     pub open: f64,
+    /// High price.
     #[serde(rename = "h")]
     pub high: f64,
+    /// Low price.
     #[serde(rename = "l")]
     pub low: f64,
+    /// Closing price.
     #[serde(rename = "c")]
     pub close: f64,
+    /// Trade volume.
     #[serde(rename = "v")]
     pub volume: i64,
+    /// Bar timestamp.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
 }
 
+/// Real-time quote with bid and ask data.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Quote {
+    /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
+    /// Ask exchange code.
     #[serde(rename = "ax")]
     pub ask_exchange: Option<String>,
+    /// Ask price.
     #[serde(rename = "ap")]
     pub ask_price: f64,
+    /// Ask size.
     #[serde(rename = "as")]
     pub ask_size: f64,
+    /// Bid exchange code.
     #[serde(rename = "bx")]
     pub bid_exchange: Option<String>,
+    /// Bid price.
     #[serde(rename = "bp")]
     pub bid_price: f64,
+    /// Bid size.
     #[serde(rename = "bs")]
     pub bid_size: f64,
+    /// Trade size.
     #[serde(rename = "s")]
     pub trade_size: Option<f64>,
+    /// Quote timestamp.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// Tape identifier.
     #[serde(rename = "z")]
     pub tape: Option<String>,
 }
 
+/// Real-time trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Trade {
+    /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
+    /// Trade ID.
     #[serde(rename = "i")]
     pub trade_id: i64,
+    /// Exchange code where the trade occurred.
     #[serde(rename = "x")]
     pub exchange: Option<String>,
+    /// Trade price.
     #[serde(rename = "p")]
     pub price: f64,
+    /// Trade size.
     #[serde(rename = "s")]
     pub size: f64,
+    /// Trade timestamp.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// Trade condition flags.
     #[serde(rename = "c")]
     pub conditions: Option<Vec<String>>,
+    /// Tape identifier.
     #[serde(rename = "z")]
     pub tape: Option<String>,
 }
@@ -204,19 +243,29 @@ pub struct Trade {
 pub enum StreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests
     #[serde(rename = "success")]
-    Control { msg: ControlMessage },
+    Control {
+        /// The control message payload.
+        msg: ControlMessage,
+    },
+    /// Error message from the server.
     #[serde(rename = "error")]
     Error(Error),
+    /// Subscription confirmation with the current subscription list.
     #[serde(rename = "subscription")]
     Subscription(SubscriptionList),
+    /// Minute bar update.
     #[serde(rename = "b")]
     Bar(Bar),
+    /// Daily bar update.
     #[serde(rename = "d")]
     DailyBar(Bar),
+    /// Updated (corrected) bar.
     #[serde(rename = "u")]
     UpdatedBar(Bar),
+    /// Trade event.
     #[serde(rename = "t")]
     Trade(Trade),
+    /// Quote update.
     #[serde(rename = "q")]
     Quote(Quote),
 }
@@ -230,14 +279,25 @@ impl StreamMessage {
     }
 }
 
-/// Streaming Authentication Message
+/// Outgoing wire-protocol message used by the streaming client to talk
+/// to the Alpaca server. Crate-internal: callers go through
+/// [`StreamingMarketDataClient::add_subscriptions`] /
+/// [`remove_subscriptions`] instead of constructing these by hand.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "action")]
-pub enum Request {
+pub(crate) enum Request {
+    /// Authenticate with API key and secret.
     #[serde(rename = "auth")]
-    AuthMessage { key: String, secret: String },
+    AuthMessage {
+        /// API key ID.
+        key: String,
+        /// API secret key.
+        secret: String,
+    },
+    /// Subscribe to market data streams.
     #[serde(rename = "subscribe")]
     Subscribe(SubscriptionList),
+    /// Unsubscribe from market data streams.
     #[serde(rename = "unsubscribe")]
     Unsubscribe(SubscriptionList),
 }
