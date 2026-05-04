@@ -3,28 +3,23 @@
 ![Build](https://github.com/VoidstarSolutions/oxidized-alpaca/actions/workflows/ci.yml/badge.svg)
 [![codecov](https://codecov.io/gh/VoidstarSolutions/oxidized-alpaca/branch/main/graph/badge.svg?token=FPSZKGUEZ4)](https://codecov.io/gh/VoidstarSolutions/oxidized-alpaca)
 
-Oxidized Alpaca is a pure Rust wrapper for the [Alpaca](https://alpaca.markets) trading and market data APIs.
-It is a work in progress and is not yet recommended for production use; I am building
-it as a learning experiment in Rust. If you need a well-supported client for Alpaca,
-please see these much more mature projects (which I have referenced heavily while
-building this one):
-
-- [APCA](https://github.com/d-e-s-o/apca)
-- [Alpaca-Finance](https://github.com/fbriden/alpaca-finance-rs)
+Oxidized Alpaca is a pure Rust wrapper for the [Alpaca](https://alpaca.markets)
+trading and market data APIs.
 
 ## Features
 
-The crate is organized around two opt-in feature flags, both enabled by default:
+The crate is organized around three opt-in feature flags, all enabled by default:
 
 - `restful` — REST clients for the trading and market data APIs (built on `reqwest`).
 - `streaming` — WebSocket streaming clients for real-time market data.
 - `tracing` — emit `tracing` spans/events from internal request handling.
 
-Disable defaults and pick what you need, e.g. `oxidized_alpaca = { version = "*", default-features = false, features = ["restful"] }`.
+Disable defaults and pick what you need, e.g.
+`oxidized_alpaca = { version = "*", default-features = false, features = ["restful"] }`.
 
 ## Authentication
 
-Credentials are loaded from environment variables based on the [`AccountType`] you
+Credentials are loaded from environment variables based on the `AccountType` you
 select when constructing a client:
 
 | Account type | Key ID env var             | Secret key env var             |
@@ -33,22 +28,21 @@ select when constructing a client:
 | `Live`       | `ALPACA_LIVE_API_KEY_ID`   | `ALPACA_LIVE_API_SECRET_KEY`   |
 
 Construction returns `Err(Error::MissingEnvironmentVariable)` if the required
-variables for the chosen account are not set. The `Env` type implements a custom
-`Debug` that censors secrets so they are not accidentally logged.
+variables for the chosen account are not set.
 
 ## REST API overview
 
 Two REST clients are exposed at the crate root:
 
-- [`TradingClient`] — talks to `paper-api.alpaca.markets` or `api.alpaca.markets`
-  depending on the [`AccountType`]. Used for everything that mutates or queries
+- `TradingClient` — talks to `paper-api.alpaca.markets` or `api.alpaca.markets`
+  depending on the `AccountType`. Used for everything that mutates or queries
   account state (orders, positions, watchlists, etc.).
-- [`MarketDataClient`] — always talks to `data.alpaca.markets`. Used for stock,
+- `MarketDataClient` — always talks to `data.alpaca.markets`. Used for stock,
   crypto, and options market data, news, screeners, logos, and reference data.
 
-Both clients are cheap to clone and safe to share across tasks/threads — internally
-they wrap a single `reqwest::Client`. You should generally create one instance per
-account type and reuse it.
+Both clients are cheap to clone and safe to share across tasks/threads —
+internally they wrap a single `reqwest::Client`. Generally create one instance
+per account type and reuse it.
 
 ### Request style
 
@@ -56,8 +50,8 @@ Endpoints come in two flavors:
 
 1. **Direct async methods** for simple calls — e.g. `client.get_account().await?`
    or `client.stock_latest_trade("AAPL").await?`.
-2. **Builder methods** for endpoints with optional query parameters — these return
-   a request struct with chainable setters and a terminal `.execute().await?`. For
+2. **Builder methods** for endpoints with optional parameters — these return a
+   request struct with chainable setters and a terminal `.execute().await?`. For
    example:
 
    ```rust
@@ -65,17 +59,37 @@ Endpoints come in two flavors:
        .stock_bars("AAPL", TimeFrame::OneDay)
        .start(start)
        .end(end)
-       .feed(Feed::Iex)
+       .feed(Feed::IEX)
        .limit(1000)
        .execute()
        .await?;
    ```
 
 All endpoints return `crate::Result<T>`, where errors are normalized into the
-[`Error`] enum. Non-2xx HTTP responses surface as `Error::ApiError { status, body }`
-with the raw payload preserved for inspection; transport and deserialization
-failures are reported separately as `Error::ReqwestSend` and
-`Error::ReqwestDeserialize`.
+`Error` enum. Non-2xx HTTP responses surface as `Error::ApiError { status, body }`
+with the raw payload preserved for inspection; transport, deserialization, and
+URL-build failures are reported separately as `Error::ReqwestSend`,
+`Error::ReqwestDeserialize`, and `Error::UrlParse`.
+
+### Strongly-typed parameters
+
+Closed-vocabulary parameters are modeled as enums rather than free-form strings.
+Filters and direction hints (`SortDirection`, `OrderStatusFilter`,
+`ActivityCategory`, `ContractStatus`, `OptionStyle`, `MoverMarket`,
+`CorporateActionType`, `Tape`), durations and resolutions
+(`HistoryPeriod`, `HistoryTimeFrame`, `IntradayReporting`, `PnlReset`,
+`TimeFrame`), and account-config knobs (`DtbpCheck`, `PdtCheck`,
+`TradeConfirmEmail`) all expose typed values that round-trip through serde.
+
+Multi-symbol parameters take `&[&str]` slices (`stock_latest_quotes(&["AAPL",
+"MSFT"])`), and monetary or quantity fields on responses come back as
+`rust_decimal::Decimal` rather than strings.
+
+### Pagination
+
+Endpoints that paginate auto-fetch the entire result set. Setting `.limit(n)`
+on a paginated builder caps the total number of items returned across all
+pages — there are no `page_token` or `page_size` knobs on the public API.
 
 ## REST API coverage
 
@@ -115,7 +129,7 @@ such as `.qty`, `.notional`, `.time_in_force`, `.limit_price`, `.stop_price`,
 | Quotes                 | `stock_quotes`, `stock_latest_quote`, `stock_latest_quotes` |
 | Auctions               | `stock_auctions` |
 | Snapshots              | `stock_snapshot`, `stock_snapshots` |
-| Reference / metadata   | `stock_conditions`, `stock_exchanges` |
+| Reference / metadata   | `stock_conditions(tick_type, tape)`, `stock_exchanges` |
 
 #### Crypto (`v1beta3/crypto/...`)
 
