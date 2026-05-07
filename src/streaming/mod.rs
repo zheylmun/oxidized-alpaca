@@ -9,3 +9,6 @@ pub use stock_client::StreamingStockClient;
 
 mod crypto_client;
 pub use crypto_client::StreamingCryptoClient;
+
+mod news_client;
+pub use news_client::StreamingNewsClient;

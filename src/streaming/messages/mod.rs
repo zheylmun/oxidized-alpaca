@@ -5,3 +5,7 @@ pub use stock::*;
 /// Streaming crypto market data message types.
 pub mod crypto;
 pub use crypto::*;
+
+/// Streaming news message types.
+pub mod news;
+pub use news::*;
