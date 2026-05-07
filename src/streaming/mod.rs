@@ -1,4 +1,8 @@
 mod messages;
 pub use messages::*;
-mod streaming_client;
-pub use streaming_client::StreamingMarketDataClient;
+
+mod wire;
+pub use wire::{ControlMessage, StreamError, StreamErrorCode};
+
+mod stock_client;
+pub use stock_client::StreamingStockClient;

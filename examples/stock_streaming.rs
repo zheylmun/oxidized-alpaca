@@ -1,15 +1,15 @@
 use oxidized_alpaca::{
     AccountType,
-    streaming::{StreamingMarketDataClient, stock_data},
+    streaming::{StockSubscriptionList, StreamingStockClient},
 };
 
 #[tokio::main]
 async fn main() {
-    let mut client = StreamingMarketDataClient::new_test_client(AccountType::Paper)
+    let mut client = StreamingStockClient::new_test_client(AccountType::Paper)
         .await
         .unwrap();
 
-    let subscriptions = stock_data::SubscriptionList::new()
+    let subscriptions = StockSubscriptionList::new()
         .add_minute_bars("FAKEPACA")
         .add_daily_bars("FAKEPACA")
         .add_updated_bars("FAKEPACA")

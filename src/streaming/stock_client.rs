@@ -1,13 +1,14 @@
 use crate::{
     AccountType, Error, Feed,
     env::Env,
-    streaming::stock_data::{ControlMessage, Request, StreamMessage, SubscriptionList},
+    streaming::{
+        messages::{StockStreamMessage, StockSubscriptionList},
+        wire::{ControlMessage, Request},
+    },
 };
 use socketeer::Socketeer;
 use std::collections::VecDeque;
 
-// Local shims so log call sites compile whether or not the `tracing`
-// feature is enabled.
 macro_rules! info {
     ($($arg:tt)*) => {
         #[cfg(feature = "tracing")]
@@ -21,50 +22,45 @@ macro_rules! error {
     };
 }
 
-type StreamingSocket = Socketeer<Vec<StreamMessage>, Request>;
+type StockSocket = Socketeer<Vec<StockStreamMessage>, Request<StockSubscriptionList>>;
 
-/// Client for streaming real-time market data over a WebSocket connection.
+/// Client for streaming real-time stock market data over a WebSocket connection.
 #[derive(Debug)]
-pub struct StreamingMarketDataClient {
-    websocket: StreamingSocket,
-    messages: VecDeque<StreamMessage>,
-    subscriptions: SubscriptionList,
+pub struct StreamingStockClient {
+    websocket: StockSocket,
+    messages: VecDeque<StockStreamMessage>,
+    subscriptions: StockSubscriptionList,
 }
 
-impl StreamingMarketDataClient {
+impl StreamingStockClient {
     /// Create a new streaming client connected to the test feed.
     pub async fn new_test_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket = StreamingSocket::connect(Feed::Test.streaming_url(account_type)).await?;
+        let websocket = StockSocket::connect(Feed::Test.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     /// Create a new streaming client connected to the IEX feed.
     pub async fn new_iex_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket = StreamingSocket::connect(Feed::IEX.streaming_url(account_type)).await?;
+        let websocket = StockSocket::connect(Feed::IEX.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
     /// Create a new streaming client connected to the SIP feed.
     pub async fn new_sip_client(account_type: AccountType) -> Result<Self, Error> {
         let env = Env::new(&account_type)?;
-        let websocket = StreamingSocket::connect(Feed::SIP.streaming_url(account_type)).await?;
+        let websocket = StockSocket::connect(Feed::SIP.streaming_url(account_type)).await?;
         Self::initialize_with_websocket(env, websocket).await
     }
 
-    async fn initialize_with_websocket(
-        env: Env,
-        websocket: StreamingSocket,
-    ) -> Result<Self, Error> {
+    async fn initialize_with_websocket(env: Env, websocket: StockSocket) -> Result<Self, Error> {
         let mut client = Self {
             websocket,
             messages: VecDeque::new(),
-            subscriptions: SubscriptionList::new(),
+            subscriptions: StockSubscriptionList::new(),
         };
-        // Wait for the server to confirm our connection
         let connection_confirmation = client.next_message_internal().await?;
-        // Make sure we get the connection confirmation message
         if let Some(ControlMessage::Connected) = connection_confirmation.control() {
             info!("Connected to Alpaca Streaming API");
         } else {
@@ -73,7 +69,6 @@ impl StreamingMarketDataClient {
             )));
         }
 
-        // Send our auth information
         client
             .websocket
             .send(Request::AuthMessage {
@@ -81,16 +76,15 @@ impl StreamingMarketDataClient {
                 secret: env.secret_key().to_string(),
             })
             .await?;
-        // Await the authentication response
         let auth_response = client.next_message_internal().await?;
-        if let Some(ControlMessage::Connected) = auth_response.control() {
+        if let Some(ControlMessage::Authenticated) = auth_response.control() {
             info!("Authenticated with Alpaca Streaming API");
         }
         Ok(client)
     }
 
     /// Receive the next market data message, filtering out control messages.
-    pub async fn next_message(&mut self) -> Result<StreamMessage, Error> {
+    pub async fn next_message(&mut self) -> Result<StockStreamMessage, Error> {
         loop {
             let incoming = self.next_message_internal().await?;
             if let Some(message) = self.handle_subscription_update(incoming) {
@@ -102,8 +96,8 @@ impl StreamingMarketDataClient {
     /// Subscribe to additional market data streams, returning the updated subscription list.
     pub async fn add_subscriptions(
         &mut self,
-        subscriptions: &SubscriptionList,
-    ) -> Result<SubscriptionList, Error> {
+        subscriptions: &StockSubscriptionList,
+    ) -> Result<StockSubscriptionList, Error> {
         self.websocket
             .send(Request::Subscribe(subscriptions.clone()))
             .await?;
@@ -114,8 +108,8 @@ impl StreamingMarketDataClient {
     /// Unsubscribe from market data streams, returning the updated subscription list.
     pub async fn remove_subscriptions(
         &mut self,
-        subscriptions: &SubscriptionList,
-    ) -> Result<SubscriptionList, Error> {
+        subscriptions: &StockSubscriptionList,
+    ) -> Result<StockSubscriptionList, Error> {
         self.websocket
             .send(Request::Unsubscribe(subscriptions.clone()))
             .await?;
@@ -129,8 +123,6 @@ impl StreamingMarketDataClient {
         Ok(())
     }
 
-    /// Pull messages from the socket until we receive a control message
-    /// normal messages go into our message queue
     async fn await_subscription_update_message(&mut self) -> Result<(), Error> {
         let mut received = false;
         while !received {
@@ -156,7 +148,7 @@ impl StreamingMarketDataClient {
         Ok(())
     }
 
-    async fn next_message_internal(&mut self) -> Result<StreamMessage, Error> {
+    async fn next_message_internal(&mut self) -> Result<StockStreamMessage, Error> {
         while self.messages.is_empty() {
             match self.websocket.next_message().await {
                 Ok(messages) => self.messages.extend(messages),
@@ -172,10 +164,13 @@ impl StreamingMarketDataClient {
             .expect("loop above guarantees the queue is non-empty"))
     }
 
-    fn handle_subscription_update(&mut self, message: StreamMessage) -> Option<StreamMessage> {
+    fn handle_subscription_update(
+        &mut self,
+        message: StockStreamMessage,
+    ) -> Option<StockStreamMessage> {
         match message {
-            StreamMessage::Subscription(updated_subsciptions) => {
-                self.subscriptions = updated_subsciptions;
+            StockStreamMessage::Subscription(updated) => {
+                self.subscriptions = updated;
                 None
             }
             _ => Some(message),

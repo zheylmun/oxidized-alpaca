@@ -1,11 +1,12 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
+
+use crate::streaming::wire::StreamError;
 
 /// List of subscriptions to market data types available for streaming clients
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
-pub struct SubscriptionList {
+pub struct StockSubscriptionList {
     /// List of symbols for minute bars subscriptions
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bars: Option<Vec<String>>,
@@ -26,8 +27,8 @@ pub struct SubscriptionList {
     pub news: Option<Vec<String>>,
 }
 
-impl SubscriptionList {
-    /// Create a new SubscriptionList
+impl StockSubscriptionList {
+    /// Create a new StockSubscriptionList
     pub fn new() -> Self {
         Self {
             bars: None,
@@ -108,48 +109,15 @@ impl SubscriptionList {
     }
 }
 
-impl Default for SubscriptionList {
+impl Default for StockSubscriptionList {
     fn default() -> Self {
         Self::new()
     }
 }
 
-/// Server control message indicating connection or authentication success.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(rename_all = "lowercase")]
-pub enum ControlMessage {
-    /// Connection to the streaming server was successful.
-    Connected,
-    /// Authentication was successful.
-    Authenticated,
-}
-/// Error codes returned by the streaming API.
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
-#[repr(u16)]
-pub enum ErrorCode {
-    /// The request had invalid syntax.
-    InvalidSyntax = 400,
-    /// The client is not authenticated.
-    NotAuthenticated = 401,
-    /// Authentication credentials were rejected.
-    AuthFailed = 402,
-    /// The client is already authorized.
-    AlreadyAuthorized = 403,
-}
-
-/// Error message from the streaming API.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Error {
-    /// Error code indicating the type of error.
-    pub code: ErrorCode,
-    /// Human-readable error message.
-    #[serde(rename = "msg")]
-    pub message: String,
-}
-
 /// OHLCV bar for a stock symbol.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Bar {
+pub struct StockBar {
     /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -175,7 +143,7 @@ pub struct Bar {
 
 /// Real-time quote with bid and ask data.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Quote {
+pub struct StockQuote {
     /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -210,7 +178,7 @@ pub struct Quote {
 
 /// Real-time trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
-pub struct Trade {
+pub struct StockTrade {
     /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -240,64 +208,41 @@ pub struct Trade {
 /// The following represent messages we can listen for
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "T")]
-pub enum StreamMessage {
+pub enum StockStreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests
     #[serde(rename = "success")]
     Control {
         /// The control message payload.
-        msg: ControlMessage,
+        msg: crate::streaming::wire::ControlMessage,
     },
     /// Error message from the server.
     #[serde(rename = "error")]
-    Error(Error),
+    Error(StreamError),
     /// Subscription confirmation with the current subscription list.
     #[serde(rename = "subscription")]
-    Subscription(SubscriptionList),
+    Subscription(StockSubscriptionList),
     /// Minute bar update.
     #[serde(rename = "b")]
-    Bar(Bar),
+    Bar(StockBar),
     /// Daily bar update.
     #[serde(rename = "d")]
-    DailyBar(Bar),
+    DailyBar(StockBar),
     /// Updated (corrected) bar.
     #[serde(rename = "u")]
-    UpdatedBar(Bar),
+    UpdatedBar(StockBar),
     /// Trade event.
     #[serde(rename = "t")]
-    Trade(Trade),
+    Trade(StockTrade),
     /// Quote update.
     #[serde(rename = "q")]
-    Quote(Quote),
+    Quote(StockQuote),
 }
 
-impl StreamMessage {
-    pub(crate) const fn control(&self) -> Option<&ControlMessage> {
+impl StockStreamMessage {
+    pub(crate) const fn control(&self) -> Option<&crate::streaming::wire::ControlMessage> {
         match self {
-            StreamMessage::Control { msg } => Some(msg),
+            StockStreamMessage::Control { msg } => Some(msg),
             _ => None,
         }
     }
-}
-
-/// Outgoing wire-protocol message used by the streaming client to talk
-/// to the Alpaca server. Crate-internal: callers go through
-/// [`StreamingMarketDataClient::add_subscriptions`] /
-/// [`remove_subscriptions`] instead of constructing these by hand.
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(tag = "action")]
-pub(crate) enum Request {
-    /// Authenticate with API key and secret.
-    #[serde(rename = "auth")]
-    AuthMessage {
-        /// API key ID.
-        key: String,
-        /// API secret key.
-        secret: String,
-    },
-    /// Subscribe to market data streams.
-    #[serde(rename = "subscribe")]
-    Subscribe(SubscriptionList),
-    /// Unsubscribe from market data streams.
-    #[serde(rename = "unsubscribe")]
-    Unsubscribe(SubscriptionList),
 }
