@@ -1800,9 +1800,9 @@ dependencies = [
 
 [[package]]
 name = "socketeer"
-version = "0.3.0"
+version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f16fbdb22cfc0195318ba67ae56152fdf1540d538ba435d0da4ea077270bccd3"
+checksum = "ee1f8d29bc96b56387626d9bbb625af1a2166231e9f10dd126a404293fdaf926"
 dependencies = [
  "bytes",
  "futures",
