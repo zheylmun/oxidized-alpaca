@@ -326,14 +326,27 @@ mod tests {
 
     #[test]
     fn each_event_variant_round_trips_via_snake_case() {
+        // Covers every event documented at
+        // https://docs.alpaca.markets/docs/websocket-streaming. If Alpaca
+        // renames or adds an event, this test should fail loudly.
         let cases = [
             (TradeUpdateEvent::New, "\"new\""),
+            (TradeUpdateEvent::Accepted, "\"accepted\""),
+            (TradeUpdateEvent::PendingNew, "\"pending_new\""),
             (TradeUpdateEvent::Fill, "\"fill\""),
             (TradeUpdateEvent::PartialFill, "\"partial_fill\""),
             (TradeUpdateEvent::Canceled, "\"canceled\""),
+            (TradeUpdateEvent::PendingCancel, "\"pending_cancel\""),
             (TradeUpdateEvent::OrderCancelRejected, "\"order_cancel_rejected\""),
+            (TradeUpdateEvent::Replaced, "\"replaced\""),
+            (TradeUpdateEvent::PendingReplace, "\"pending_replace\""),
             (TradeUpdateEvent::OrderReplaceRejected, "\"order_replace_rejected\""),
+            (TradeUpdateEvent::Expired, "\"expired\""),
+            (TradeUpdateEvent::Rejected, "\"rejected\""),
+            (TradeUpdateEvent::Stopped, "\"stopped\""),
+            (TradeUpdateEvent::Suspended, "\"suspended\""),
             (TradeUpdateEvent::DoneForDay, "\"done_for_day\""),
+            (TradeUpdateEvent::Calculated, "\"calculated\""),
         ];
         for (variant, expected) in cases {
             assert_eq!(serde_json::to_string(&variant).unwrap(), expected);
