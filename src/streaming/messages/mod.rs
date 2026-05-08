@@ -13,3 +13,7 @@ pub use news::*;
 /// Streaming options market data message types.
 pub mod option;
 pub use option::*;
+
+/// Streaming trade-updates (account/order events) message types.
+pub mod trade_update;
+pub use trade_update::*;
