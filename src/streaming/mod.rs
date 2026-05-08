@@ -15,3 +15,6 @@ pub use crypto_client::{CryptoProtocol, StreamingCryptoClient};
 
 mod news_client;
 pub use news_client::{NewsProtocol, StreamingNewsClient};
+
+mod option_client;
+pub use option_client::{OptionProtocol, StreamingOptionClient};

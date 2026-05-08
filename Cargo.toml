@@ -14,7 +14,7 @@ streaming = ["dep:socketeer"]
 tracing = ["dep:tracing"]
 
 [dependencies]
-socketeer = { version = "0.4", features = ["tracing"], optional = true }
+socketeer = { version = "0.4", features = ["msgpack", "tracing"], optional = true }
 chrono = { version = "0.4", features = ["serde"] }
 futures = "0.3"
 reqwest = { version = "0.13", features = ["json", "query"], optional = true }
@@ -33,3 +33,4 @@ serial_test = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = "0.3"
 serde_urlencoded = "0.7"
+rmp-serde = "1"

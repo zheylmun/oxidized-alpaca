@@ -9,3 +9,7 @@ pub use crypto::*;
 /// Streaming news message types.
 pub mod news;
 pub use news::*;
+
+/// Streaming options market data message types.
+pub mod option;
+pub use option::*;
