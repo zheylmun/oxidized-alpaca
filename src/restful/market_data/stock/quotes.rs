@@ -1,10 +1,12 @@
 use crate::{
     RestFeed,
-    restful::{MarketDataClient, null_def_vec},
+    restful::{MarketDataClient, SortDirection, null_def_vec},
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
+
+use super::AsOf;
 
 /// A stock quote (NBBO).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -76,6 +78,12 @@ pub struct QuotesRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    asof: Option<AsOf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    currency: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sort: Option<SortDirection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
 }
 
@@ -98,6 +106,22 @@ impl QuotesRequest<'_> {
     /// Cap the total number of quotes returned across all auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
+        self
+    }
+    /// Set the `asof` value, used to anchor symbol mapping for renamed
+    /// instruments. Pass [`AsOf::SkipSymbolMapping`] to disable mapping.
+    pub fn asof(mut self, asof: AsOf) -> Self {
+        self.asof = Some(asof);
+        self
+    }
+    /// Set the response `currency` (ISO 4217). Defaults to USD when unset.
+    pub fn currency(mut self, currency: impl Into<String>) -> Self {
+        self.currency = Some(currency.into());
+        self
+    }
+    /// Set the result `sort` order. Defaults to ascending when unset.
+    pub fn sort(mut self, sort: SortDirection) -> Self {
+        self.sort = Some(sort);
         self
     }
 
@@ -137,6 +161,9 @@ impl MarketDataClient {
             end: None,
             feed: None,
             limit: None,
+            asof: None,
+            currency: None,
+            sort: None,
             page_token: None,
         }
     }

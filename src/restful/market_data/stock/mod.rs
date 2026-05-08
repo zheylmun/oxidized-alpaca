@@ -1,5 +1,5 @@
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
+use chrono::{DateTime, NaiveDate, Utc};
+use serde::{Deserialize, Serialize, Serializer};
 
 /// Stock auctions endpoint types and methods.
 pub mod auctions;
@@ -49,6 +49,29 @@ pub enum TimeFrame {
     OneMonth,
 }
 
+/// Value passed to the historical stock endpoints' `asof` query parameter.
+///
+/// Alpaca uses `asof` to resolve symbol mapping across renames. Pass a
+/// [`Date`][AsOf::Date] to anchor the mapping at a specific calendar day,
+/// or [`SkipSymbolMapping`][AsOf::SkipSymbolMapping] to disable mapping
+/// (sent as the literal `"-"`).
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum AsOf {
+    /// A specific calendar date (sent as `YYYY-MM-DD`).
+    Date(NaiveDate),
+    /// Skip symbol mapping (sent as the literal `-`).
+    SkipSymbolMapping,
+}
+
+impl Serialize for AsOf {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        match self {
+            Self::Date(date) => serializer.collect_str(&date.format("%Y-%m-%d")),
+            Self::SkipSymbolMapping => serializer.serialize_str("-"),
+        }
+    }
+}
+
 ///  Data adjustment Options
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -84,4 +107,24 @@ pub struct Bar {
     /// The trading volume.
     #[serde(rename = "v")]
     pub volume: usize,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AsOf;
+    use chrono::NaiveDate;
+
+    #[test]
+    fn asof_date_serializes_as_iso_calendar_day() {
+        let asof = AsOf::Date(NaiveDate::from_ymd_opt(2024, 1, 15).unwrap());
+        assert_eq!(serde_json::to_string(&asof).unwrap(), "\"2024-01-15\"");
+    }
+
+    #[test]
+    fn asof_skip_mapping_serializes_as_dash() {
+        assert_eq!(
+            serde_json::to_string(&AsOf::SkipSymbolMapping).unwrap(),
+            "\"-\""
+        );
+    }
 }

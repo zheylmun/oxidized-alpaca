@@ -34,6 +34,8 @@ pub enum RestFeed {
     DelayedSip,
     /// Over-the-counter exchanges.
     Otc,
+    /// Blue Ocean ATS overnight feed.
+    Boats,
 }
 
 /// Stock streaming feed selector. Each variant maps to a distinct
@@ -143,5 +145,6 @@ mod tests {
             "\"delayed_sip\""
         );
         assert_eq!(serde_json::to_string(&RestFeed::Otc).unwrap(), "\"otc\"");
+        assert_eq!(serde_json::to_string(&RestFeed::Boats).unwrap(), "\"boats\"");
     }
 }
