@@ -23,6 +23,28 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt
+      # Diagnostic: the marketplace action below silently discards the
+      # stderr of any release-pr call that returns HTTP 422, which has
+      # been masking the real cause of repeated PR-creation failures.
+      # Run release-plz release-pr ourselves first, with stderr surfaced
+      # to the log, so the actual GitHub validation error is visible.
+      # Remove this step once the underlying cause is fixed.
+      - name: "Install release-plz (diagnostic)"
+        uses: taiki-e/install-action@v2
+        with:
+          tool: release-plz
+      - name: "Diagnose release-plz release-pr"
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set +e
+          release-plz release-pr \
+            --git-token "$GITHUB_TOKEN" \
+            --repo-url "https://github.com/${GITHUB_REPOSITORY}" \
+            --verbose \
+            -o json
+          echo "::notice::diagnose exit=$?"
       - name: Run release-plz
         uses: release-plz/action@v0.5
         with:
