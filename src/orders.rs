@@ -144,8 +144,28 @@ pub struct Order {
     pub expired_at: Option<DateTime<Utc>>,
     /// Timestamp when the order was canceled.
     pub canceled_at: Option<DateTime<Utc>>,
+    /// Timestamp when cancellation of this order was requested.
+    /// Populated on streaming trade-updates events; absent on REST responses.
+    #[serde(default)]
+    pub cancel_requested_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order failed (e.g. rejection by the venue).
+    #[serde(default)]
+    pub failed_at: Option<DateTime<Utc>>,
+    /// Timestamp when the order was replaced by a successor order.
+    #[serde(default)]
+    pub replaced_at: Option<DateTime<Utc>>,
+    /// ID of the order that replaced this one, if any.
+    #[serde(default)]
+    pub replaced_by: Option<String>,
+    /// ID of the order that this order replaces, if any.
+    #[serde(default)]
+    pub replaces: Option<String>,
     /// Asset ID for the order.
     pub asset_id: String,
+    /// Asset class (e.g. `us_equity`, `crypto`, `us_option`). Populated on
+    /// streaming trade-updates events; may be absent on REST responses.
+    #[serde(default)]
+    pub asset_class: Option<String>,
     /// Ticker symbol.
     pub symbol: String,
     /// Quantity of shares to trade.
@@ -209,6 +229,14 @@ pub struct Order {
         skip_serializing_if = "Option::is_none"
     )]
     pub trail_percent: Option<Decimal>,
+    /// High-water mark for trailing stop orders (the highest favorable price
+    /// reached since the order was submitted).
+    #[serde(
+        default,
+        deserialize_with = "string_as_optional_decimal",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub hwm: Option<Decimal>,
     /// Whether extended hours trading is enabled.
     pub extended_hours: Option<bool>,
     /// Order class (simple, bracket, etc.).
