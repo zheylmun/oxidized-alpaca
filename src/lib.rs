@@ -7,6 +7,10 @@ pub use error::{Error, Result};
 /// Data feed types for streaming and market data sources.
 mod feed;
 pub use feed::{RestFeed, StreamingFeed};
+/// Order domain types shared between the REST trading API and the streaming
+/// trade-updates feed.
+pub mod orders;
+mod serde_helpers;
 
 /// RESTful API client and endpoint types.
 #[cfg(feature = "restful")]

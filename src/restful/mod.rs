@@ -7,8 +7,12 @@ pub mod trading;
 mod trading_client;
 pub use trading_client::TradingClient;
 
-use rust_decimal::Decimal;
-use serde::{Deserialize, Deserializer, Serialize};
+use serde::{Deserialize, Serialize};
+
+pub(crate) use crate::serde_helpers::{
+    decimal_as_string, null_def_vec, optional_decimal_as_string, string_as_decimal,
+    string_as_optional_decimal, string_as_optional_u64,
+};
 
 /// Sort direction shared across endpoints that accept ordering hints.
 #[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
@@ -19,66 +23,4 @@ pub enum SortDirection {
     Asc,
     /// Descending order (newest first).
     Desc,
-}
-
-pub(crate) fn null_def_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
-where
-    D: Deserializer<'de>,
-    T: Deserialize<'de>,
-{
-    let opt = Option::<Vec<T>>::deserialize(deserializer)?;
-    Ok(opt.unwrap_or_default())
-}
-
-pub(crate) fn string_as_decimal<'de, D>(deserializer: D) -> Result<Decimal, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    String::deserialize(deserializer)?
-        .parse()
-        .map_err(serde::de::Error::custom)
-}
-
-pub(crate) fn string_as_optional_decimal<'de, D>(
-    deserializer: D,
-) -> Result<Option<Decimal>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt = Option::<String>::deserialize(deserializer)?;
-    match opt {
-        Some(s) => s.parse().map(Some).map_err(serde::de::Error::custom),
-        None => Ok(None),
-    }
-}
-
-pub(crate) fn optional_decimal_as_string<S>(
-    value: &Option<Decimal>,
-    serializer: S,
-) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    match value {
-        Some(d) => serializer.serialize_str(&d.to_string()),
-        None => serializer.serialize_none(),
-    }
-}
-
-pub(crate) fn decimal_as_string<S>(value: &Decimal, serializer: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    serializer.serialize_str(&value.to_string())
-}
-
-pub(crate) fn string_as_optional_u64<'de, D>(deserializer: D) -> Result<Option<u64>, D::Error>
-where
-    D: Deserializer<'de>,
-{
-    let opt = Option::<String>::deserialize(deserializer)?;
-    match opt {
-        Some(s) => s.parse().map(Some).map_err(serde::de::Error::custom),
-        None => Ok(None),
-    }
 }
