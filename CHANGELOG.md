@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.5...v0.0.6) - 2026-05-08
+
+### Other
+
+- Surface release-plz release-pr stderr (diagnostic)
+- Cover symmetric null-opening and multi-day auctions cases
+- Add permissive licenses to cargo.toml
+- cargo fmt
+- Tolerate null opening/closing auction fields
+- Add asof/currency/sort to stock historical builders
+- Round-trip every documented trade-updates event
+- Add us-1, us-2, eu-1, bs-1 crypto market-data locations
+- Add TradingUpdatesClient
+- Add trade-updates message types
+- Add trade-updates fields to Order
+- Lift Order to a feature-agnostic module
+- Add Kraken-backed US and EU crypto streaming feeds
+- Add Boats and Overnight stock streaming feeds
+- Split Feed into RestFeed and StreamingFeed
+- Add StreamingOptionClient
+- Make StreamProtocol pick its wire codec
+- Collapse streaming clients onto a shared generic
+- Add StreamingNewsClient
+- Add StreamingCryptoClient
+- Fill in missing stock streaming message types and fields
+- Reorganize streaming module under stock-prefixed names
+- Update dependencies
+
 ## [0.0.5](https://github.com/VoidstarSolutions/oxidized-alpaca/compare/v0.0.4...v0.0.5) - 2026-05-07
 
 ### Fixed
