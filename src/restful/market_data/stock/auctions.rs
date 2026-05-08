@@ -173,4 +173,61 @@ mod tests {
         assert_eq!(parsed.auctions[0].opening.len(), 1);
         assert!(parsed.auctions[0].closing.is_empty());
     }
+
+    /// Symmetric case: when only the closing auction has occurred, the
+    /// opening field can come back null.
+    #[test]
+    fn deserializes_daily_auction_with_null_opening() {
+        let json = r#"{
+            "auctions": [
+                {
+                    "o": null,
+                    "d": "2026-05-08",
+                    "c": [
+                        {"c":"M","p":291.5,"s":1234,"t":"2026-05-08T20:00:00Z","x":"Q"}
+                    ]
+                }
+            ],
+            "next_page_token": null,
+            "symbol": "AAPL"
+        }"#;
+        let parsed: AuctionsResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.auctions.len(), 1);
+        assert!(parsed.auctions[0].opening.is_empty());
+        assert_eq!(parsed.auctions[0].closing.len(), 1);
+        assert_eq!(parsed.auctions[0].closing[0].price, 291.5);
+        assert_eq!(parsed.auctions[0].closing[0].size, 1234);
+        assert_eq!(parsed.auctions[0].closing[0].exchange.as_deref(), Some("Q"));
+        assert_eq!(
+            parsed.auctions[0].closing[0].condition.as_deref(),
+            Some("M")
+        );
+    }
+
+    /// A normal post-close response with both sides populated across
+    /// multiple days exercises the happy path and pagination signal.
+    #[test]
+    fn deserializes_multi_day_response_with_pagination_token() {
+        let json = r#"{
+            "auctions": [
+                {
+                    "d": "2026-05-07",
+                    "o": [{"c":"Q","p":287.1,"s":100,"t":"2026-05-07T13:30:00Z","x":"P"}],
+                    "c": [{"c":"M","p":290.0,"s":200,"t":"2026-05-07T20:00:00Z","x":"Q"}]
+                },
+                {
+                    "d": "2026-05-08",
+                    "o": [{"c":"Q","p":290.5,"s":150,"t":"2026-05-08T13:30:00Z","x":"P"}],
+                    "c": [{"c":"M","p":291.5,"s":250,"t":"2026-05-08T20:00:00Z","x":"Q"}]
+                }
+            ],
+            "next_page_token": "abc123",
+            "symbol": "AAPL"
+        }"#;
+        let parsed: AuctionsResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.auctions.len(), 2);
+        assert_eq!(parsed.auctions[0].date, "2026-05-07");
+        assert_eq!(parsed.auctions[1].date, "2026-05-08");
+        assert_eq!(parsed.next_page_token.as_deref(), Some("abc123"));
+    }
 }
