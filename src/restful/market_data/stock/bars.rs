@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::{Adjustment, AsOf, Bar, TimeFrame};
+use super::{Adjustment, AdjustmentList, AsOf, Bar, TimeFrame};
 
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Debug, Serialize)]
@@ -33,9 +33,10 @@ pub struct StockBarsRequest<'a> {
     /// Filter bars equal to or before this time.
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<DateTime<Utc>>,
-    /// The adjustment to use (defaults to raw)
+    /// The adjustment(s) to use (defaults to raw). Multiple values are
+    /// comma-joined per Alpaca's docs (e.g. `split,dividend,spin-off`).
     #[serde(skip_serializing_if = "Option::is_none")]
-    adjustment: Option<Adjustment>,
+    adjustment: Option<AdjustmentList>,
     /// The data feed to use.
     ///
     /// Defaults to [`IEX`][RestFeed::IEX] for free users and
@@ -75,9 +76,17 @@ impl StockBarsRequest<'_> {
         self
     }
 
-    /// Set the `adjustment` for the bars request.
+    /// Set a single `adjustment` for the bars request.
     pub fn adjustment(mut self, adjustment: Adjustment) -> Self {
-        self.adjustment = Some(adjustment);
+        self.adjustment = Some(adjustment.into());
+        self
+    }
+
+    /// Set multiple `adjustment` values for the bars request. Alpaca
+    /// accepts any combination of `raw`, `split`, `dividend`, `spin-off`,
+    /// and `all` joined with commas.
+    pub fn adjustments<I: IntoIterator<Item = Adjustment>>(mut self, adjustments: I) -> Self {
+        self.adjustment = Some(AdjustmentList::new(adjustments));
         self
     }
 
