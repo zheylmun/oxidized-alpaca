@@ -1,5 +1,5 @@
 use serde::{Serialize, de::DeserializeOwned};
-use socketeer::{JsonCodec, Socketeer};
+use socketeer::Socketeer;
 use std::collections::VecDeque;
 
 use crate::{
@@ -39,6 +39,10 @@ pub trait StreamProtocol: 'static {
         + Send
         + std::fmt::Debug
         + 'static;
+    /// Wire codec for this feed. Stock/crypto/news use
+    /// [`socketeer::JsonCodec`]; options use [`socketeer::MsgPackCodec`].
+    type Codec: socketeer::Codec<Tx = Request<Self::Subscriptions>, Rx = Vec<Self::Message>>
+        + Default;
 
     /// Return the embedded [`ControlMessage`] when `message` is a
     /// `success` envelope (Connected / Authenticated). Used to drive
@@ -53,9 +57,7 @@ pub trait StreamProtocol: 'static {
     ) -> Result<Self::Subscriptions, Self::Message>;
 }
 
-type StreamSocket<P> = Socketeer<
-    JsonCodec<Vec<<P as StreamProtocol>::Message>, Request<<P as StreamProtocol>::Subscriptions>>,
->;
+type StreamSocket<P> = Socketeer<<P as StreamProtocol>::Codec>;
 
 /// Generic streaming-feed client shared by every Alpaca WebSocket data feed.
 ///

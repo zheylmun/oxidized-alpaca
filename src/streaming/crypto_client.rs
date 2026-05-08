@@ -1,9 +1,11 @@
+use socketeer::JsonCodec;
+
 use crate::{
     AccountType, Error,
     streaming::{
         client::{StreamProtocol, StreamingClient},
         messages::{CryptoStreamMessage, CryptoSubscriptionList},
-        wire::ControlMessage,
+        wire::{ControlMessage, Request},
     },
 };
 
@@ -18,6 +20,7 @@ pub struct CryptoProtocol;
 impl StreamProtocol for CryptoProtocol {
     type Message = CryptoStreamMessage;
     type Subscriptions = CryptoSubscriptionList;
+    type Codec = JsonCodec<Vec<CryptoStreamMessage>, Request<CryptoSubscriptionList>>;
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()

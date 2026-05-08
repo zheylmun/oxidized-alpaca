@@ -36,12 +36,18 @@ pub struct StreamError {
 }
 
 /// Outgoing wire-protocol message used by streaming clients to talk to
-/// Alpaca. Generic over the per-feed subscription list type. Crate-internal:
-/// callers use the client's `add_subscriptions` / `remove_subscriptions`
-/// methods instead of constructing these by hand.
+/// Alpaca. Generic over the per-feed subscription list type.
+///
+/// Public only so that it can appear in the [`StreamProtocol::Codec`]
+/// associated type. Callers should use the client's
+/// `add_subscriptions` / `remove_subscriptions` methods instead of
+/// constructing these by hand.
+///
+/// [`StreamProtocol::Codec`]: crate::streaming::StreamProtocol::Codec
+#[doc(hidden)]
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "action")]
-pub(crate) enum Request<T> {
+pub enum Request<T> {
     /// Authenticate with API key and secret.
     #[serde(rename = "auth")]
     AuthMessage {
