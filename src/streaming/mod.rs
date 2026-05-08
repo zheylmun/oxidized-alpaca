@@ -18,3 +18,6 @@ pub use news_client::{NewsProtocol, StreamingNewsClient};
 
 mod option_client;
 pub use option_client::{OptionProtocol, StreamingOptionClient};
+
+mod trading_updates_client;
+pub use trading_updates_client::TradingUpdatesClient;
