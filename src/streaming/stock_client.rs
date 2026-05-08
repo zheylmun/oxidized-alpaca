@@ -56,4 +56,14 @@ impl StreamingStockClient {
     pub async fn new_delayed_sip_client(account_type: AccountType) -> Result<Self, Error> {
         Self::connect(account_type, StreamingFeed::DelayedSip.url(account_type)).await
     }
+
+    /// Create a new streaming client connected to the Blue Ocean ATS overnight feed.
+    pub async fn new_boats_client(account_type: AccountType) -> Result<Self, Error> {
+        Self::connect(account_type, StreamingFeed::Boats.url(account_type)).await
+    }
+
+    /// Create a new streaming client connected to the Alpaca-derived overnight feed.
+    pub async fn new_overnight_client(account_type: AccountType) -> Result<Self, Error> {
+        Self::connect(account_type, StreamingFeed::Overnight.url(account_type)).await
+    }
 }

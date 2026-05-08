@@ -10,6 +10,11 @@ const STREAMING_DELAYED_SIP_URL: &str = "wss://stream.data.alpaca.markets/v2/del
 const STREAMING_DELAYED_SIP_SANDBOX_URL: &str =
     "wss://stream.data.sandbox.alpaca.markets/v2/delayed_sip";
 const STREAMING_TEST_URL: &str = "wss://stream.data.alpaca.markets/v2/test";
+const STREAMING_BOATS_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/boats";
+const STREAMING_BOATS_SANDBOX_URL: &str = "wss://stream.data.sandbox.alpaca.markets/v1beta1/boats";
+const STREAMING_OVERNIGHT_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/overnight";
+const STREAMING_OVERNIGHT_SANDBOX_URL: &str =
+    "wss://stream.data.sandbox.alpaca.markets/v1beta1/overnight";
 
 /// Stock market data feed selector for REST market-data endpoints.
 ///
@@ -46,6 +51,10 @@ pub enum StreamingFeed {
     DelayedSip,
     /// Test feed for simulated stock data — available outside market hours.
     Test,
+    /// Blue Ocean ATS overnight feed.
+    Boats,
+    /// Alpaca-derived overnight consolidated feed.
+    Overnight,
 }
 
 impl StreamingFeed {
@@ -64,6 +73,8 @@ impl StreamingFeed {
             Self::SIP => STREAMING_SIP_URL,
             Self::DelayedSip => STREAMING_DELAYED_SIP_URL,
             Self::Test => STREAMING_TEST_URL,
+            Self::Boats => STREAMING_BOATS_URL,
+            Self::Overnight => STREAMING_OVERNIGHT_URL,
         }
     }
 
@@ -73,6 +84,8 @@ impl StreamingFeed {
             Self::SIP => STREAMING_SIP_SANDBOX_URL,
             Self::DelayedSip => STREAMING_DELAYED_SIP_SANDBOX_URL,
             Self::Test => STREAMING_TEST_URL,
+            Self::Boats => STREAMING_BOATS_SANDBOX_URL,
+            Self::Overnight => STREAMING_OVERNIGHT_SANDBOX_URL,
         }
     }
 }
@@ -98,6 +111,18 @@ mod tests {
         assert_eq!(
             StreamingFeed::DelayedSip.url(AccountType::Live),
             "wss://stream.data.alpaca.markets/v2/delayed_sip"
+        );
+    }
+
+    #[test]
+    fn boats_and_overnight_have_dedicated_urls() {
+        assert_eq!(
+            StreamingFeed::Boats.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta1/boats"
+        );
+        assert_eq!(
+            StreamingFeed::Overnight.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta1/overnight"
         );
     }
 
