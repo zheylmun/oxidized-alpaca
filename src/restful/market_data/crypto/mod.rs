@@ -16,15 +16,31 @@ use serde::{Deserialize, Serialize};
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum CryptoLocation {
-    /// US exchanges
+    /// US exchanges (default Alpaca-aggregated feed).
     #[serde(rename = "us")]
     Us,
+    /// US-1 feed (Kraken-backed US data).
+    #[serde(rename = "us-1")]
+    Us1,
+    /// US-2 feed.
+    #[serde(rename = "us-2")]
+    Us2,
+    /// EU-1 feed.
+    #[serde(rename = "eu-1")]
+    Eu1,
+    /// BS-1 feed (Bahamas).
+    #[serde(rename = "bs-1")]
+    Bs1,
 }
 
 impl CryptoLocation {
     fn as_str(&self) -> &'static str {
         match self {
             Self::Us => "us",
+            Self::Us1 => "us-1",
+            Self::Us2 => "us-2",
+            Self::Eu1 => "eu-1",
+            Self::Bs1 => "bs-1",
         }
     }
 }
@@ -147,4 +163,31 @@ pub struct CryptoOrderbook {
     /// The ask entries.
     #[serde(rename = "a")]
     pub asks: Vec<OrderbookEntry>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::CryptoLocation;
+
+    #[test]
+    fn crypto_location_renders_path_segment() {
+        assert_eq!(CryptoLocation::Us.to_string(), "us");
+        assert_eq!(CryptoLocation::Us1.to_string(), "us-1");
+        assert_eq!(CryptoLocation::Us2.to_string(), "us-2");
+        assert_eq!(CryptoLocation::Eu1.to_string(), "eu-1");
+        assert_eq!(CryptoLocation::Bs1.to_string(), "bs-1");
+    }
+
+    #[test]
+    fn crypto_location_serializes_as_path_segment() {
+        for (loc, expected) in [
+            (CryptoLocation::Us, "\"us\""),
+            (CryptoLocation::Us1, "\"us-1\""),
+            (CryptoLocation::Us2, "\"us-2\""),
+            (CryptoLocation::Eu1, "\"eu-1\""),
+            (CryptoLocation::Bs1, "\"bs-1\""),
+        ] {
+            assert_eq!(serde_json::to_string(&loc).unwrap(), expected);
+        }
+    }
 }
