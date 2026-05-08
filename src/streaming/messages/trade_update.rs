@@ -2,10 +2,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::{
-    orders::Order,
-    serde_helpers::string_as_optional_decimal,
-};
+use crate::{orders::Order, serde_helpers::string_as_optional_decimal};
 
 /// Outgoing wire-protocol message used by the trade-updates stream.
 ///
@@ -207,7 +204,8 @@ mod tests {
 
     #[test]
     fn deserializes_authorization_authorized() {
-        let json = r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"#;
+        let json =
+            r#"{"stream":"authorization","data":{"status":"authorized","action":"authenticate"}}"#;
         match serde_json::from_str(json).unwrap() {
             TradingUpdatesMessage::Authorization(auth) => {
                 assert_eq!(auth.status, AuthorizationStatus::Authorized);
@@ -277,7 +275,10 @@ mod tests {
         match serde_json::from_str(json).unwrap() {
             TradingUpdatesMessage::TradeUpdate(update) => {
                 assert_eq!(update.event, TradeUpdateEvent::Fill);
-                assert_eq!(update.execution_id.as_deref(), Some("2f63ea93-423d-4169-b3f6-3fdafc10c418"));
+                assert_eq!(
+                    update.execution_id.as_deref(),
+                    Some("2f63ea93-423d-4169-b3f6-3fdafc10c418")
+                );
                 assert_eq!(update.qty, Some("1790.86".parse().unwrap()));
                 assert_eq!(update.order.symbol, "AAPL");
             }
@@ -337,10 +338,16 @@ mod tests {
             (TradeUpdateEvent::PartialFill, "\"partial_fill\""),
             (TradeUpdateEvent::Canceled, "\"canceled\""),
             (TradeUpdateEvent::PendingCancel, "\"pending_cancel\""),
-            (TradeUpdateEvent::OrderCancelRejected, "\"order_cancel_rejected\""),
+            (
+                TradeUpdateEvent::OrderCancelRejected,
+                "\"order_cancel_rejected\"",
+            ),
             (TradeUpdateEvent::Replaced, "\"replaced\""),
             (TradeUpdateEvent::PendingReplace, "\"pending_replace\""),
-            (TradeUpdateEvent::OrderReplaceRejected, "\"order_replace_rejected\""),
+            (
+                TradeUpdateEvent::OrderReplaceRejected,
+                "\"order_replace_rejected\"",
+            ),
             (TradeUpdateEvent::Expired, "\"expired\""),
             (TradeUpdateEvent::Rejected, "\"rejected\""),
             (TradeUpdateEvent::Stopped, "\"stopped\""),
