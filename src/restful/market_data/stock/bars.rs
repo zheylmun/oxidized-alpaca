@@ -1,5 +1,5 @@
 use crate::{
-    Feed,
+    RestFeed,
     error::Error,
     restful::{MarketDataClient, null_def_vec},
 };
@@ -38,10 +38,10 @@ pub struct StockBarsRequest<'a> {
     adjustment: Option<Adjustment>,
     /// The data feed to use.
     ///
-    /// Defaults to [`IEX`][Feed::IEX] for free users and
-    /// [`SIP`][Feed::SIP] for users with an unlimited subscription.
+    /// Defaults to [`IEX`][RestFeed::IEX] for free users and
+    /// [`SIP`][RestFeed::SIP] for users with an unlimited subscription.
     #[serde(skip_serializing_if = "Option::is_none")]
-    feed: Option<Feed>,
+    feed: Option<RestFeed>,
     /// If provided we will pass a page token to continue where we left off.
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
@@ -73,7 +73,7 @@ impl StockBarsRequest<'_> {
     }
 
     /// Set the `feed` for the bars request.
-    pub fn feed(mut self, feed: Feed) -> Self {
+    pub fn feed(mut self, feed: RestFeed) -> Self {
         self.feed = Some(feed);
         self
     }

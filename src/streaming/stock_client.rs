@@ -1,7 +1,7 @@
 use socketeer::JsonCodec;
 
 use crate::{
-    AccountType, Error, Feed,
+    AccountType, Error, StreamingFeed,
     streaming::{
         client::{StreamProtocol, StreamingClient},
         messages::{StockStreamMessage, StockSubscriptionList},
@@ -39,16 +39,21 @@ pub type StreamingStockClient = StreamingClient<StockProtocol>;
 impl StreamingStockClient {
     /// Create a new streaming client connected to the test feed.
     pub async fn new_test_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, Feed::Test.streaming_url(account_type)).await
+        Self::connect(account_type, StreamingFeed::Test.url(account_type)).await
     }
 
     /// Create a new streaming client connected to the IEX feed.
     pub async fn new_iex_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, Feed::IEX.streaming_url(account_type)).await
+        Self::connect(account_type, StreamingFeed::IEX.url(account_type)).await
     }
 
     /// Create a new streaming client connected to the SIP feed.
     pub async fn new_sip_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, Feed::SIP.streaming_url(account_type)).await
+        Self::connect(account_type, StreamingFeed::SIP.url(account_type)).await
+    }
+
+    /// Create a new streaming client connected to the 15-minute delayed SIP feed.
+    pub async fn new_delayed_sip_client(account_type: AccountType) -> Result<Self, Error> {
+        Self::connect(account_type, StreamingFeed::DelayedSip.url(account_type)).await
     }
 }

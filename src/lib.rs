@@ -6,7 +6,7 @@ pub mod error;
 pub use error::{Error, Result};
 /// Data feed types for streaming and market data sources.
 mod feed;
-pub use feed::Feed;
+pub use feed::{RestFeed, StreamingFeed};
 
 /// RESTful API client and endpoint types.
 #[cfg(feature = "restful")]

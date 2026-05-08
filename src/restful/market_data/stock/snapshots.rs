@@ -1,4 +1,4 @@
-use crate::{Feed, restful::MarketDataClient};
+use crate::{RestFeed, restful::MarketDataClient};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
@@ -29,14 +29,14 @@ impl MarketDataClient {
     pub async fn stock_snapshot(
         &self,
         symbol: &str,
-        feed: Option<Feed>,
+        feed: Option<RestFeed>,
     ) -> crate::Result<StockSnapshot> {
         let path = format!("v2/stocks/{symbol}/snapshot");
         let mut request = self.request(Method::GET, &path)?;
         if let Some(feed) = feed {
             #[derive(Serialize)]
             struct FeedQuery {
-                feed: Feed,
+                feed: RestFeed,
             }
             request = request.query(&FeedQuery { feed });
         }
@@ -47,7 +47,7 @@ impl MarketDataClient {
     pub async fn stock_snapshots(
         &self,
         symbols: &[&str],
-        feed: Option<Feed>,
+        feed: Option<RestFeed>,
     ) -> crate::Result<std::collections::HashMap<String, StockSnapshot>> {
         let mut request = self
             .request(Method::GET, "v2/stocks/snapshots")?
@@ -55,7 +55,7 @@ impl MarketDataClient {
         if let Some(feed) = feed {
             #[derive(Serialize)]
             struct FeedQuery {
-                feed: Feed,
+                feed: RestFeed,
             }
             request = request.query(&FeedQuery { feed });
         }

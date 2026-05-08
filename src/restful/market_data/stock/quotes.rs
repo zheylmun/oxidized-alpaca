@@ -1,5 +1,5 @@
 use crate::{
-    Feed,
+    RestFeed,
     restful::{MarketDataClient, null_def_vec},
 };
 use chrono::{DateTime, Utc};
@@ -72,7 +72,7 @@ pub struct QuotesRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    feed: Option<Feed>,
+    feed: Option<RestFeed>,
     #[serde(skip_serializing_if = "Option::is_none")]
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -91,7 +91,7 @@ impl QuotesRequest<'_> {
         self
     }
     /// Set the data feed to use.
-    pub fn feed(mut self, feed: Feed) -> Self {
+    pub fn feed(mut self, feed: RestFeed) -> Self {
         self.feed = Some(feed);
         self
     }
