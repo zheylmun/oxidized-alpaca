@@ -26,8 +26,7 @@ macro_rules! error {
 const TRADING_UPDATES_LIVE_URL: &str = "wss://api.alpaca.markets/stream";
 const TRADING_UPDATES_PAPER_URL: &str = "wss://paper-api.alpaca.markets/stream";
 
-type TradingUpdatesSocket =
-    Socketeer<JsonCodec<TradingUpdatesMessage, TradingUpdatesRequest>>;
+type TradingUpdatesSocket = Socketeer<JsonCodec<TradingUpdatesMessage, TradingUpdatesRequest>>;
 
 /// Client for streaming order / fill / cancellation events from the Alpaca
 /// trading API.
@@ -104,8 +103,7 @@ impl TradingUpdatesClient {
             }
             match Self::recv(&mut self.websocket).await? {
                 TradingUpdatesMessage::TradeUpdate(update) => self.queue.push_back(update),
-                TradingUpdatesMessage::Authorization(_)
-                | TradingUpdatesMessage::Listening(_) => {
+                TradingUpdatesMessage::Authorization(_) | TradingUpdatesMessage::Listening(_) => {
                     // re-emitted handshake envelopes; ignore.
                 }
             }

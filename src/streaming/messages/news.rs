@@ -109,7 +109,10 @@ mod tests {
         match serde_json::from_str(json).unwrap() {
             NewsStreamMessage::News(article) => {
                 assert_eq!(article.id, 24818772);
-                assert_eq!(article.symbols, vec!["AAPL".to_string(), "MSFT".to_string()]);
+                assert_eq!(
+                    article.symbols,
+                    vec!["AAPL".to_string(), "MSFT".to_string()]
+                );
                 assert_eq!(article.source, "benzinga");
             }
             other => panic!("expected News, got {other:?}"),
@@ -129,6 +132,9 @@ mod tests {
             .add_news("AAPL")
             .add_news("AAPL")
             .add_news("MSFT");
-        assert_eq!(list.news.unwrap(), vec!["AAPL".to_string(), "MSFT".to_string()]);
+        assert_eq!(
+            list.news.unwrap(),
+            vec!["AAPL".to_string(), "MSFT".to_string()]
+        );
     }
 }

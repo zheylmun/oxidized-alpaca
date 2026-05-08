@@ -145,6 +145,9 @@ mod tests {
             "\"delayed_sip\""
         );
         assert_eq!(serde_json::to_string(&RestFeed::Otc).unwrap(), "\"otc\"");
-        assert_eq!(serde_json::to_string(&RestFeed::Boats).unwrap(), "\"boats\"");
+        assert_eq!(
+            serde_json::to_string(&RestFeed::Boats).unwrap(),
+            "\"boats\""
+        );
     }
 }
