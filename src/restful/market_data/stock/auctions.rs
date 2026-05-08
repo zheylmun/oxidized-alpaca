@@ -27,10 +27,10 @@ pub struct DailyAuctions {
     #[serde(rename = "d")]
     pub date: String,
     /// Opening auction entries.
-    #[serde(rename = "o", default)]
+    #[serde(rename = "o", default, deserialize_with = "null_def_vec")]
     pub opening: Vec<AuctionEntry>,
     /// Closing auction entries.
-    #[serde(rename = "c", default)]
+    #[serde(rename = "c", default, deserialize_with = "null_def_vec")]
     pub closing: Vec<AuctionEntry>,
 }
 
@@ -144,5 +144,33 @@ impl MarketDataClient {
             limit: None,
             page_token: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::AuctionsResponse;
+
+    /// Pre-open sessions return null for the closing auctions field; ensure
+    /// that does not break deserialization.
+    #[test]
+    fn deserializes_daily_auction_with_null_closing() {
+        let json = r#"{
+            "auctions": [
+                {
+                    "c": null,
+                    "d": "2026-05-08",
+                    "o": [
+                        {"c":"Q","p":290.11,"s":1,"t":"2026-05-08T13:30:00.138698399Z","x":"P"}
+                    ]
+                }
+            ],
+            "next_page_token": null,
+            "symbol": "AAPL"
+        }"#;
+        let parsed: AuctionsResponse = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.auctions.len(), 1);
+        assert_eq!(parsed.auctions[0].opening.len(), 1);
+        assert!(parsed.auctions[0].closing.is_empty());
     }
 }
