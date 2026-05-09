@@ -66,7 +66,7 @@ pub struct NewsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    limit: Option<u32>,
+    limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     sort: Option<SortDirection>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -94,7 +94,7 @@ impl NewsRequest<'_> {
         self
     }
     /// Cap the total number of articles returned across all auto-paginated pages.
-    pub fn limit(mut self, limit: u32) -> Self {
+    pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
@@ -117,7 +117,7 @@ impl NewsRequest<'_> {
     /// Execute the request, auto-paginating until all matching articles are
     /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<NewsArticle>> {
-        let cap = self.limit.map(|n| n as usize);
+        let cap = self.limit;
         let mut all = Vec::new();
         loop {
             let request = self

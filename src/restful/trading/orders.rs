@@ -165,7 +165,7 @@ pub struct ListOrdersRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     status: Option<OrderStatusFilter>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    limit: Option<u32>,
+    limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     after: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -188,7 +188,7 @@ impl ListOrdersRequest<'_> {
     }
 
     /// Maximum number of orders to return (default 50, max 500).
-    pub fn limit(mut self, limit: u32) -> Self {
+    pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }

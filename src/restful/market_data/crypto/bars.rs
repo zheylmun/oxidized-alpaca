@@ -1,4 +1,4 @@
-use crate::restful::MarketDataClient;
+use crate::restful::{MarketDataClient, market_data::TimeFrame};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -25,7 +25,7 @@ pub struct CryptoBarsRequest<'a> {
     #[serde(skip)]
     loc: CryptoLocation,
     symbols: String,
-    timeframe: String,
+    timeframe: TimeFrame,
     #[serde(skip_serializing_if = "Option::is_none")]
     start: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -90,14 +90,14 @@ impl MarketDataClient {
     pub fn crypto_bars<'a>(
         &'a self,
         symbols: &[&str],
-        timeframe: &str,
+        timeframe: TimeFrame,
         loc: CryptoLocation,
     ) -> CryptoBarsRequest<'a> {
         CryptoBarsRequest {
             client: self,
             loc,
             symbols: symbols.join(","),
-            timeframe: timeframe.to_string(),
+            timeframe,
             start: None,
             end: None,
             limit: None,

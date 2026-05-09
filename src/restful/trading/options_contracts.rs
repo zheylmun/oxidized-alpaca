@@ -125,7 +125,7 @@ pub struct ListOptionContractsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     strike_price_lte: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    limit: Option<u32>,
+    limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
 }
@@ -192,7 +192,7 @@ impl ListOptionContractsRequest<'_> {
     }
 
     /// Cap the total number of contracts returned across all auto-paginated pages.
-    pub fn limit(mut self, limit: u32) -> Self {
+    pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
@@ -200,7 +200,7 @@ impl ListOptionContractsRequest<'_> {
     /// Execute the request, auto-paginating until all matching contracts are
     /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<OptionContract>> {
-        let cap = self.limit.map(|n| n as usize);
+        let cap = self.limit;
         let mut all = Vec::new();
         loop {
             let request = self

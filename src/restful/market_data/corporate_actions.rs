@@ -118,7 +118,7 @@ pub struct CorporateActionsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    limit: Option<u32>,
+    limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     sort: Option<SortDirection>,
 }
@@ -170,7 +170,7 @@ impl CorporateActionsRequest<'_> {
     }
 
     /// Cap the number of events returned.
-    pub fn limit(mut self, limit: u32) -> Self {
+    pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
         self
     }
