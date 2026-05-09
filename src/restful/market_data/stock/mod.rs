@@ -82,8 +82,72 @@ pub enum Adjustment {
     Split,
     /// Adjustment for dividends.
     Dividend,
+    /// Adjustment for spin-offs.
+    #[serde(rename = "spin-off")]
+    SpinOff,
     /// All available corporate adjustments.
     All,
+}
+
+impl Adjustment {
+    fn as_str(self) -> &'static str {
+        match self {
+            Self::Raw => "raw",
+            Self::Split => "split",
+            Self::Dividend => "dividend",
+            Self::SpinOff => "spin-off",
+            Self::All => "all",
+        }
+    }
+}
+
+/// Ordered, deduplicated list of [`Adjustment`] values for the
+/// `adjustment` query parameter. Alpaca accepts multiple values
+/// combined with commas (e.g. `split,dividend,spin-off`).
+///
+/// An empty list serializes to an empty string, which is not a valid
+/// `adjustment` value. Prefer constructing through
+/// [`StockBarsRequest::adjustments`][bars::StockBarsRequest::adjustments],
+/// which omits the parameter when the iterator is empty so Alpaca's
+/// default of `raw` is used.
+#[derive(Clone, Debug)]
+pub struct AdjustmentList(Vec<Adjustment>);
+
+impl AdjustmentList {
+    /// Construct from any iterator of [`Adjustment`] values. Duplicate
+    /// values are dropped while preserving the order of first occurrence.
+    pub fn new<I: IntoIterator<Item = Adjustment>>(items: I) -> Self {
+        let mut out = Vec::new();
+        for item in items {
+            if !out.contains(&item) {
+                out.push(item);
+            }
+        }
+        Self(out)
+    }
+
+    /// Returns `true` if no adjustments are set.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+}
+
+impl From<Adjustment> for AdjustmentList {
+    fn from(a: Adjustment) -> Self {
+        Self(vec![a])
+    }
+}
+
+impl Serialize for AdjustmentList {
+    fn serialize<S: Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        let joined = self
+            .0
+            .iter()
+            .map(|a| a.as_str())
+            .collect::<Vec<_>>()
+            .join(",");
+        serializer.serialize_str(&joined)
+    }
 }
 /// A market data bar as returned by one of the bars endpoints.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -111,7 +175,7 @@ pub struct Bar {
 
 #[cfg(test)]
 mod tests {
-    use super::AsOf;
+    use super::{Adjustment, AdjustmentList, AsOf};
     use chrono::NaiveDate;
 
     #[test]
@@ -125,6 +189,71 @@ mod tests {
         assert_eq!(
             serde_json::to_string(&AsOf::SkipSymbolMapping).unwrap(),
             "\"-\""
+        );
+    }
+
+    #[test]
+    fn adjustment_serializes_with_documented_wire_strings() {
+        for (value, expected) in [
+            (Adjustment::Raw, "\"raw\""),
+            (Adjustment::Split, "\"split\""),
+            (Adjustment::Dividend, "\"dividend\""),
+            (Adjustment::SpinOff, "\"spin-off\""),
+            (Adjustment::All, "\"all\""),
+        ] {
+            assert_eq!(serde_json::to_string(&value).unwrap(), expected);
+        }
+    }
+
+    #[test]
+    fn adjustment_list_joins_values_with_commas() {
+        let list =
+            AdjustmentList::new([Adjustment::Split, Adjustment::Dividend, Adjustment::SpinOff]);
+        assert_eq!(
+            serde_json::to_string(&list).unwrap(),
+            "\"split,dividend,spin-off\""
+        );
+    }
+
+    #[test]
+    fn adjustment_list_serializes_every_variant() {
+        let list = AdjustmentList::new([
+            Adjustment::Raw,
+            Adjustment::Split,
+            Adjustment::Dividend,
+            Adjustment::SpinOff,
+            Adjustment::All,
+        ]);
+        assert_eq!(
+            serde_json::to_string(&list).unwrap(),
+            "\"raw,split,dividend,spin-off,all\""
+        );
+    }
+
+    #[test]
+    fn adjustment_list_from_single_value() {
+        let list: AdjustmentList = Adjustment::Split.into();
+        assert_eq!(serde_json::to_string(&list).unwrap(), "\"split\"");
+    }
+
+    #[test]
+    fn adjustment_list_reports_empty() {
+        assert!(AdjustmentList::new(std::iter::empty()).is_empty());
+        assert!(!AdjustmentList::new([Adjustment::Split]).is_empty());
+    }
+
+    #[test]
+    fn adjustment_list_dedupes_preserving_first_occurrence() {
+        let list = AdjustmentList::new([
+            Adjustment::Split,
+            Adjustment::Dividend,
+            Adjustment::Split,
+            Adjustment::SpinOff,
+            Adjustment::Dividend,
+        ]);
+        assert_eq!(
+            serde_json::to_string(&list).unwrap(),
+            "\"split,dividend,spin-off\""
         );
     }
 }
