@@ -12,8 +12,12 @@ pub enum ControlMessage {
 }
 
 /// Error codes returned by the streaming API.
-#[derive(Clone, Debug, Deserialize_repr, Serialize_repr)]
+///
+/// Marked `#[non_exhaustive]` because Alpaca occasionally introduces new
+/// codes; rebuild against a newer crate version when a new one appears.
+#[derive(Clone, Copy, Debug, Deserialize_repr, Eq, PartialEq, Serialize_repr)]
 #[repr(u16)]
+#[non_exhaustive]
 pub enum StreamErrorCode {
     /// The request had invalid syntax.
     InvalidSyntax = 400,
@@ -23,6 +27,22 @@ pub enum StreamErrorCode {
     AuthFailed = 402,
     /// The client is already authorized.
     AlreadyAuthorized = 403,
+    /// The client did not authenticate within the server's window.
+    AuthTimeout = 404,
+    /// Subscription would exceed the account's symbol limit.
+    SymbolLimitExceeded = 405,
+    /// The account already holds the maximum number of concurrent connections.
+    ConnectionLimitExceeded = 406,
+    /// The client is consuming messages too slowly and is being disconnected.
+    SlowClient = 407,
+    /// The account's data plan does not include v2 streaming.
+    V2NotEnabled = 408,
+    /// The account's subscription level does not include this data.
+    InsufficientSubscription = 409,
+    /// The requested subscribe action is not valid for this feed.
+    InvalidSubscribeAction = 410,
+    /// The API key does not have the scope required for this subscription.
+    InsufficientScope = 411,
 }
 
 /// Error message from the streaming API.
