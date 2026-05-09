@@ -21,9 +21,8 @@ use serde::Serialize;
 
 /// Supported time frames for the historical bars endpoints.
 ///
-/// Accepted by [`stock_bars`][stock::bars], [`crypto_bars`][crypto::bars], and
-/// [`option_bars`][options::bars] — every Alpaca historical-bars endpoint uses
-/// the same wire format.
+/// Accepted by [`stock::bars`], [`crypto::bars`], and [`options::bars`] —
+/// every Alpaca historical-bars endpoint uses the same wire format.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 pub enum TimeFrame {
     /// A time frame of one minute.
