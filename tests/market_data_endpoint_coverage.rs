@@ -195,7 +195,10 @@ async fn market_data_endpoints_live_smoke() {
 
     let _ = expect_ok_or_status(
         client
-            .corporate_actions(&["AAPL"], &[CorporateActionType::CashDividend])
+            .corporate_actions()
+            .symbols(&["AAPL"])
+            .types(&[CorporateActionType::CashDividend])
+            .execute()
             .await,
         &[403, 404, 422],
         "corporate_actions",
