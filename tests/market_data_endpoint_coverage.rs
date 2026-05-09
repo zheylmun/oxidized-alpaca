@@ -2,13 +2,11 @@ use chrono::{Duration, Utc};
 use oxidized_alpaca::{
     AccountType, Error, MarketDataClient,
     restful::market_data::{
+        TimeFrame,
         corporate_actions::CorporateActionType,
         crypto::CryptoLocation,
         screener::MoverMarket,
-        stock::{
-            TimeFrame,
-            meta::{Tape, TickType},
-        },
+        stock::meta::{Tape, TickType},
     },
 };
 

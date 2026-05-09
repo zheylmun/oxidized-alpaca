@@ -1,6 +1,6 @@
 use chrono::DateTime;
 use oxidized_alpaca::{
-    AccountType, Error, MarketDataClient, restful::market_data::stock::TimeFrame,
+    AccountType, Error, MarketDataClient, restful::market_data::TimeFrame,
 };
 use std::str::FromStr;
 

@@ -1,13 +1,13 @@
 use crate::{
     RestFeed,
     error::Error,
-    restful::{MarketDataClient, SortDirection, null_def_vec},
+    restful::{MarketDataClient, SortDirection, market_data::TimeFrame, null_def_vec},
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::{Adjustment, AdjustmentList, AsOf, Bar, TimeFrame, pagination};
+use super::{Adjustment, AdjustmentList, AsOf, Bar, pagination};
 
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Debug, Serialize)]
