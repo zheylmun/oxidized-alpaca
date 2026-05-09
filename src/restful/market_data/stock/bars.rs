@@ -238,7 +238,7 @@ pub struct MultiSymbolBarsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    adjustment: Option<Adjustment>,
+    adjustment: Option<AdjustmentList>,
     #[serde(skip_serializing_if = "Option::is_none")]
     feed: Option<RestFeed>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -268,9 +268,18 @@ impl MultiSymbolBarsRequest<'_> {
         self.end = Some(end);
         self
     }
-    /// Set the adjustment to use.
+    /// Set a single `adjustment` for the bars request.
     pub fn adjustment(mut self, adjustment: Adjustment) -> Self {
-        self.adjustment = Some(adjustment);
+        self.adjustment = Some(adjustment.into());
+        self
+    }
+    /// Set multiple `adjustment` values for the bars request. Alpaca
+    /// accepts any combination of `raw`, `split`, `dividend`, `spin-off`,
+    /// and `all` joined with commas. An empty iterator leaves the
+    /// parameter unset, falling back to Alpaca's default of `raw`.
+    pub fn adjustments<I: IntoIterator<Item = Adjustment>>(mut self, adjustments: I) -> Self {
+        let list = AdjustmentList::new(adjustments);
+        self.adjustment = if list.is_empty() { None } else { Some(list) };
         self
     }
     /// Set the data feed to use.
@@ -501,6 +510,38 @@ mod tests {
         assert!(
             !query.contains("limit"),
             "expected `limit` not to be serialized; got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn multi_adjustments_join_with_commas_in_query() {
+        let client = paper_client();
+        let request = client
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .adjustments([
+                Adjustment::Split,
+                Adjustment::Dividend,
+                Adjustment::SpinOff,
+            ]);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("adjustment=split%2Cdividend%2Cspin-off"),
+            "expected joined adjustments in {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn multi_empty_adjustments_omits_parameter() {
+        let client = paper_client();
+        let request = client
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .adjustments(std::iter::empty::<Adjustment>());
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            !query.contains("adjustment"),
+            "expected `adjustment` to be absent from {query}"
         );
     }
 

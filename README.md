@@ -124,7 +124,7 @@ such as `.qty`, `.notional`, `.time_in_force`, `.limit_price`, `.stop_price`,
 
 | Endpoint | Methods |
 | -------- | ------- |
-| Historical bars        | `stock_bars` / `stock_bars_multi` (builders: `.start`, `.end`, `.limit`, `.adjustment`, `.feed`, `.asof`, `.currency`, `.sort`) |
+| Historical bars        | `stock_bars` / `stock_bars_multi` (builders: `.start`, `.end`, `.limit`, `.adjustment` / `.adjustments`, `.feed`, `.asof`, `.currency`, `.sort`) |
 | Trades                 | `stock_trades` / `stock_trades_multi` (builders: `.start`, `.end`, `.limit`, `.feed`, `.asof`, `.currency`, `.sort`), `stock_latest_trade`, `stock_latest_trades` |
 | Quotes                 | `stock_quotes` / `stock_quotes_multi` (builders: `.start`, `.end`, `.limit`, `.feed`, `.asof`, `.currency`, `.sort`), `stock_latest_quote`, `stock_latest_quotes` |
 | Auctions               | `stock_auctions` |
