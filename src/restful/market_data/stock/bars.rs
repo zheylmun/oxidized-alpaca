@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::{Adjustment, AdjustmentList, AsOf, Bar, TimeFrame};
+use super::{Adjustment, AdjustmentList, AsOf, Bar, TimeFrame, pagination};
 
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Debug, Serialize)]
@@ -313,17 +313,9 @@ impl MultiSymbolBarsRequest<'_> {
                 .request(Method::GET, "v2/stocks/bars")?
                 .query(&self);
             let response: MultiBarsResponse = self.client.send_and_deserialize(request).await?;
-            for (symbol, bars) in response.bars {
-                let entry = combined.entry(symbol).or_default();
-                entry.extend(bars);
-                if let Some(cap) = cap {
-                    entry.truncate(cap);
-                }
-            }
+            pagination::extend_capped(&mut combined, response.bars, cap);
             if let Some(cap) = cap
-                && requested
-                    .iter()
-                    .all(|s| combined.get(s).map_or(0, Vec::len) >= cap)
+                && pagination::all_symbols_filled(&combined, &requested, cap)
             {
                 break;
             }

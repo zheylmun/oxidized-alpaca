@@ -6,7 +6,7 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::AsOf;
+use super::{AsOf, pagination};
 
 /// A stock quote (NBBO).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -294,17 +294,9 @@ impl MultiSymbolQuotesRequest<'_> {
                 .request(Method::GET, "v2/stocks/quotes")?
                 .query(&self);
             let response: MultiQuotesResponse = self.client.send_and_deserialize(request).await?;
-            for (symbol, quotes) in response.quotes {
-                let entry = combined.entry(symbol).or_default();
-                entry.extend(quotes);
-                if let Some(cap) = cap {
-                    entry.truncate(cap);
-                }
-            }
+            pagination::extend_capped(&mut combined, response.quotes, cap);
             if let Some(cap) = cap
-                && requested
-                    .iter()
-                    .all(|s| combined.get(s).map_or(0, Vec::len) >= cap)
+                && pagination::all_symbols_filled(&combined, &requested, cap)
             {
                 break;
             }
