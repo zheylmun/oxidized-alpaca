@@ -9,14 +9,14 @@ use crate::{
     },
 };
 
-const CRYPTO_US_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us";
-const CRYPTO_US_SANDBOX_URL: &str = "wss://stream.data.sandbox.alpaca.markets/v1beta3/crypto/us";
-const CRYPTO_US_KRAKEN_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1";
-const CRYPTO_US_KRAKEN_SANDBOX_URL: &str =
-    "wss://stream.data.sandbox.alpaca.markets/v1beta3/crypto/us-1";
-const CRYPTO_EU_KRAKEN_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1";
-const CRYPTO_EU_KRAKEN_SANDBOX_URL: &str =
-    "wss://stream.data.sandbox.alpaca.markets/v1beta3/crypto/eu-1";
+// Alpaca does not run a working crypto sandbox: the wss handshake and auth
+// succeed against `stream.data.sandbox.alpaca.markets`, but every subscribe
+// is rejected. Both Paper and Live accounts must use the production hosts;
+// per-account credentials are still selected by `Env::new` from
+// `AccountType`.
+const CRYPTO_US_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us";
+const CRYPTO_US_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1";
+const CRYPTO_EU_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1";
 
 /// Marker type wiring [`CryptoStreamMessage`] / [`CryptoSubscriptionList`] into
 /// the shared [`StreamingClient`].
@@ -47,29 +47,65 @@ pub type StreamingCryptoClient = StreamingClient<CryptoProtocol>;
 
 impl StreamingCryptoClient {
     /// Connect to Alpaca's US crypto streaming feed.
+    ///
+    /// Both `AccountType::Paper` and `AccountType::Live` route to the same
+    /// production wss host because Alpaca does not run a crypto sandbox;
+    /// the account type still selects the credential pair used to authenticate.
     pub async fn new_us(account_type: AccountType) -> Result<Self, Error> {
-        let url = match account_type {
-            AccountType::Live => CRYPTO_US_LIVE_URL,
-            AccountType::Paper => CRYPTO_US_SANDBOX_URL,
-        };
-        Self::connect(account_type, url).await
+        Self::connect(account_type, CRYPTO_US_URL).await
     }
 
     /// Connect to Alpaca's Kraken-backed US crypto streaming feed.
+    ///
+    /// Both `AccountType::Paper` and `AccountType::Live` route to the same
+    /// production wss host; see [`new_us`][Self::new_us].
     pub async fn new_us_kraken(account_type: AccountType) -> Result<Self, Error> {
-        let url = match account_type {
-            AccountType::Live => CRYPTO_US_KRAKEN_LIVE_URL,
-            AccountType::Paper => CRYPTO_US_KRAKEN_SANDBOX_URL,
-        };
-        Self::connect(account_type, url).await
+        Self::connect(account_type, CRYPTO_US_KRAKEN_URL).await
     }
 
     /// Connect to Alpaca's Kraken-backed EU crypto streaming feed.
+    ///
+    /// Both `AccountType::Paper` and `AccountType::Live` route to the same
+    /// production wss host; see [`new_us`][Self::new_us].
     pub async fn new_eu_kraken(account_type: AccountType) -> Result<Self, Error> {
-        let url = match account_type {
-            AccountType::Live => CRYPTO_EU_KRAKEN_LIVE_URL,
-            AccountType::Paper => CRYPTO_EU_KRAKEN_SANDBOX_URL,
-        };
-        Self::connect(account_type, url).await
+        Self::connect(account_type, CRYPTO_EU_KRAKEN_URL).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{CRYPTO_EU_KRAKEN_URL, CRYPTO_US_KRAKEN_URL, CRYPTO_US_URL};
+
+    /// Pins the regression fix: every crypto feed routes to the production
+    /// wss host. The sandbox host accepts auth but rejects every subscribe,
+    /// so even Paper accounts must connect to production.
+    #[test]
+    fn crypto_urls_target_production_host() {
+        for url in [CRYPTO_US_URL, CRYPTO_US_KRAKEN_URL, CRYPTO_EU_KRAKEN_URL] {
+            assert!(
+                url.starts_with("wss://stream.data.alpaca.markets/"),
+                "{url} should target the production wss host",
+            );
+            assert!(
+                !url.contains("sandbox"),
+                "{url} must not point at the (broken) sandbox host",
+            );
+        }
+    }
+
+    #[test]
+    fn crypto_urls_use_distinct_v1beta3_paths() {
+        assert_eq!(
+            CRYPTO_US_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
+        );
+        assert_eq!(
+            CRYPTO_US_KRAKEN_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1",
+        );
+        assert_eq!(
+            CRYPTO_EU_KRAKEN_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1",
+        );
     }
 }

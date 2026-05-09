@@ -39,7 +39,7 @@ impl TradingClient {
     }
 
     /// Build a request for the given path, which should include the
-    /// version prefix (e.g. `"v2/orders"` or `"v2beta1/account/activities/{id}"`).
+    /// version prefix (e.g. `"v2/orders"` or `"v2/account/activities"`).
     pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = Url::parse(self.base_url())
             .expect("base URL constants are valid")
