@@ -107,7 +107,7 @@ impl Adjustment {
 ///
 /// An empty list serializes to an empty string, which is not a valid
 /// `adjustment` value. Prefer constructing through
-/// [`StockBarsRequest::adjustments`][super::bars::StockBarsRequest::adjustments],
+/// [`StockBarsRequest::adjustments`][bars::StockBarsRequest::adjustments],
 /// which omits the parameter when the iterator is empty so Alpaca's
 /// default of `raw` is used.
 #[derive(Clone, Debug)]
