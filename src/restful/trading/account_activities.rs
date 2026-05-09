@@ -253,8 +253,8 @@ impl ListActivitiesRequest<'_> {
     pub async fn execute(mut self) -> crate::Result<Vec<Activity>> {
         let cap = self.limit;
         let path = match &self.activity_type {
-            Some(at) => format!("account/activities/{at}"),
-            None => "account/activities".to_string(),
+            Some(at) => format!("v2/account/activities/{at}"),
+            None => "v2/account/activities".to_string(),
         };
         self.page_size = Some(ACTIVITIES_PAGE_SIZE);
         let mut all: Vec<Activity> = Vec::new();
@@ -310,12 +310,9 @@ impl TradingClient {
 
     /// Look up a single account activity by its `id`.
     ///
-    /// Wraps `GET /v2beta1/account/activities/{id}`. The leading slash on
-    /// the path is intentional: it bypasses the client's default `/v2/`
-    /// base via standard URL resolution so this beta endpoint resolves
-    /// against the same host without a separate client.
+    /// Wraps `GET /v2beta1/account/activities/{id}`.
     pub async fn get_activity(&self, id: &str) -> crate::Result<Activity> {
-        let path = format!("/v2beta1/account/activities/{id}");
+        let path = format!("v2beta1/account/activities/{id}");
         let request = self.request(Method::GET, &path)?;
         self.send_and_deserialize(request).await
     }
@@ -372,22 +369,6 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::FILL);
         assert!(activity.activity_sub_type.is_none());
         assert_eq!(activity.qty, Some(Decimal::from(10)));
-    }
-
-    #[test]
-    fn v2beta1_path_overrides_default_v2_base() {
-        // get_activity passes a leading-slash path to bypass the client's
-        // /v2/ base. Url::join's RFC 3986 semantics replace the base path
-        // when given an absolute one — pin that behavior so a future
-        // refactor of the base URL doesn't silently double up the version.
-        let base = reqwest::Url::parse("https://paper-api.alpaca.markets/v2/").unwrap();
-        let resolved = base
-            .join("/v2beta1/account/activities/20250507000000000::abc")
-            .unwrap();
-        assert_eq!(
-            resolved.as_str(),
-            "https://paper-api.alpaca.markets/v2beta1/account/activities/20250507000000000::abc"
-        );
     }
 
     #[test]

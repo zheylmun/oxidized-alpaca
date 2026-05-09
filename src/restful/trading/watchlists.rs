@@ -43,7 +43,10 @@ impl CreateWatchlistRequest<'_> {
 
     /// Submit the create request.
     pub async fn execute(self) -> crate::Result<Watchlist> {
-        let request = self.client.request(Method::POST, "watchlists")?.json(&self);
+        let request = self
+            .client
+            .request(Method::POST, "v2/watchlists")?
+            .json(&self);
         self.client.send_and_deserialize(request).await
     }
 }
@@ -78,7 +81,7 @@ impl UpdateWatchlistRequest<'_> {
     /// Submit the update.
     pub async fn execute(self) -> crate::Result<Watchlist> {
         let watchlist_id = &self.watchlist_id;
-        let path = format!("watchlists/{watchlist_id}");
+        let path = format!("v2/watchlists/{watchlist_id}");
         let request = self.client.request(Method::PUT, &path)?.json(&self);
         self.client.send_and_deserialize(request).await
     }
@@ -87,13 +90,13 @@ impl UpdateWatchlistRequest<'_> {
 impl TradingClient {
     /// List all watchlists.
     pub async fn list_watchlists(&self) -> crate::Result<Vec<Watchlist>> {
-        let request = self.request(Method::GET, "watchlists")?;
+        let request = self.request(Method::GET, "v2/watchlists")?;
         self.send_and_deserialize(request).await
     }
 
     /// Get a watchlist by ID.
     pub async fn get_watchlist(&self, watchlist_id: &str) -> crate::Result<Watchlist> {
-        let request = self.request(Method::GET, &format!("watchlists/{watchlist_id}"))?;
+        let request = self.request(Method::GET, &format!("v2/watchlists/{watchlist_id}"))?;
         self.send_and_deserialize(request).await
     }
 
@@ -133,7 +136,7 @@ impl TradingClient {
             symbol: String,
         }
         let request = self
-            .request(Method::POST, &format!("watchlists/{watchlist_id}"))?
+            .request(Method::POST, &format!("v2/watchlists/{watchlist_id}"))?
             .json(&Body {
                 symbol: symbol.to_string(),
             });
@@ -148,14 +151,14 @@ impl TradingClient {
     ) -> crate::Result<Watchlist> {
         let request = self.request(
             Method::DELETE,
-            &format!("watchlists/{watchlist_id}/{symbol}"),
+            &format!("v2/watchlists/{watchlist_id}/{symbol}"),
         )?;
         self.send_and_deserialize(request).await
     }
 
     /// Delete a watchlist.
     pub async fn delete_watchlist(&self, watchlist_id: &str) -> crate::Result<()> {
-        let request = self.request(Method::DELETE, &format!("watchlists/{watchlist_id}"))?;
+        let request = self.request(Method::DELETE, &format!("v2/watchlists/{watchlist_id}"))?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
         if !status.is_success() {

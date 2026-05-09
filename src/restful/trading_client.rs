@@ -5,8 +5,8 @@ use crate::{AccountType, env::Env, error::Error, error::Result};
 
 const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";
-const PAPER_TRADING_URL: &str = "https://paper-api.alpaca.markets/v2/";
-const LIVE_TRADING_URL: &str = "https://api.alpaca.markets/v2/";
+const PAPER_TRADING_URL: &str = "https://paper-api.alpaca.markets/";
+const LIVE_TRADING_URL: &str = "https://api.alpaca.markets/";
 
 /// Client for the Alpaca Trading API.
 ///
@@ -38,6 +38,8 @@ impl TradingClient {
         })
     }
 
+    /// Build a request for the given path, which should include the
+    /// version prefix (e.g. `"v2/orders"` or `"v2beta1/account/activities/{id}"`).
     pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = Url::parse(self.base_url())
             .expect("base URL constants are valid")
