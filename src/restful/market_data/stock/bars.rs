@@ -226,14 +226,16 @@ pub struct MultiSymbolBarsRequest<'a> {
     timeframe: TimeFrame,
     /// Per-symbol cap applied client-side during pagination. The user's
     /// `limit` is *not* sent to Alpaca verbatim: the server-side `limit`
-    /// parameter caps items per *page* across all symbols combined, which
-    /// makes it unsuitable as a per-symbol cap for active stocks. Instead
-    /// we send an internal page-size hint of `limit * symbols` (clamped
-    /// to the API's per-page maximum) so each page is sized to fit the
-    /// cap, then page until every requested symbol has at least `limit`
-    /// items *or the API has no further pages* (illiquid or out-of-range
-    /// symbols may legitimately return fewer than `limit`), truncating
-    /// each symbol's series to the cap as we go.
+    /// parameter caps items per *page* across all symbols combined, so
+    /// using it as a per-symbol cap would starve less active symbols
+    /// (e.g. a 7-day AAPL+MSFT trades query is dominated by AAPL volume
+    /// and may never include an MSFT trade in the first page). Instead
+    /// we page each symbol to its cap, drop filled symbols from the
+    /// `?symbols=` query as they fill, and stop once every requested
+    /// symbol has at least `limit` items *or the API has no further
+    /// pages* (illiquid or out-of-range symbols may legitimately return
+    /// fewer than `limit`), truncating each symbol's series to the cap
+    /// as we go.
     #[serde(skip)]
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -317,24 +319,26 @@ impl MultiSymbolBarsRequest<'_> {
             return Ok(std::collections::HashMap::new());
         }
         let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();
-        let page_size = pagination::page_size_hint(cap, requested.len());
         let mut combined: std::collections::HashMap<String, Vec<Bar>> =
             std::collections::HashMap::new();
         loop {
-            let mut request = self
+            if let Some(cap) = cap {
+                let pending = pagination::pending_symbols(&combined, &requested, cap);
+                if pending.is_empty() {
+                    break;
+                }
+                let next_symbols = pending.join(",");
+                if next_symbols != self.symbols {
+                    self.symbols = next_symbols;
+                    self.page_token = None;
+                }
+            }
+            let request = self
                 .client
                 .request(Method::GET, "v2/stocks/bars")?
                 .query(&self);
-            if let Some(page_size) = page_size {
-                request = request.query(&[("limit", page_size)]);
-            }
             let response: MultiBarsResponse = self.client.send_and_deserialize(request).await?;
             pagination::extend_capped(&mut combined, response.bars, cap);
-            if let Some(cap) = cap
-                && pagination::all_symbols_filled(&combined, &requested, cap)
-            {
-                break;
-            }
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,

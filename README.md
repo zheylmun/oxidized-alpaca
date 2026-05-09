@@ -92,12 +92,16 @@ on a paginated builder caps the total number of items returned across all
 pages — there are no `page_token` or `page_size` knobs on the public API.
 
 The multi-symbol stock builders (`stock_bars_multi`, `stock_trades_multi`,
-`stock_quotes_multi`) treat `.limit(n)` as a **per-symbol** client-side cap
-applied during pagination. Alpaca's server-side `limit` parameter caps items
-per *page* across all symbols combined, so the builders set it internally to
-`n * symbols.len()` (clamped to the API's per-page maximum) to keep payloads
-proportional to the requested cap, while still truncating each symbol's
-series to `n` client-side as pages arrive. Symbols with no data in the
+`stock_quotes_multi`) treat `.limit(n)` as a **per-symbol** client-side cap.
+Alpaca's server-side `limit` caps items per *page* across all symbols
+combined, which would starve less active symbols (e.g. AAPL volume swamps
+MSFT in any given trades window), so the builders don't forward `.limit(n)`
+to the API. Instead they truncate each symbol's series to `n` as pages
+arrive and drop symbols from the `?symbols=` query once they reach the cap,
+so the slowest symbol doesn't have to wait through the busiest symbol's
+full backlog. Pagination stops once every requested symbol reaches the cap
+or the API runs out of pages; a tight `.start`/`.end` window is still the
+right way to bound overall data transferred. Symbols with no data in the
 requested range are omitted from the returned map.
 
 ## REST API coverage

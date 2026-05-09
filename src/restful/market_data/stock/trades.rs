@@ -281,24 +281,26 @@ impl MultiSymbolTradesRequest<'_> {
             return Ok(std::collections::HashMap::new());
         }
         let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();
-        let page_size = pagination::page_size_hint(cap, requested.len());
         let mut combined: std::collections::HashMap<String, Vec<StockTrade>> =
             std::collections::HashMap::new();
         loop {
-            let mut request = self
+            if let Some(cap) = cap {
+                let pending = pagination::pending_symbols(&combined, &requested, cap);
+                if pending.is_empty() {
+                    break;
+                }
+                let next_symbols = pending.join(",");
+                if next_symbols != self.symbols {
+                    self.symbols = next_symbols;
+                    self.page_token = None;
+                }
+            }
+            let request = self
                 .client
                 .request(Method::GET, "v2/stocks/trades")?
                 .query(&self);
-            if let Some(page_size) = page_size {
-                request = request.query(&[("limit", page_size)]);
-            }
             let response: MultiTradesResponse = self.client.send_and_deserialize(request).await?;
             pagination::extend_capped(&mut combined, response.trades, cap);
-            if let Some(cap) = cap
-                && pagination::all_symbols_filled(&combined, &requested, cap)
-            {
-                break;
-            }
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,

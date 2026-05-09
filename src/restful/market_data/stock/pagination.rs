@@ -9,24 +9,6 @@
 
 use std::collections::HashMap;
 
-/// Alpaca's documented per-page maximum for the multi-symbol bars,
-/// trades, and quotes endpoints. Used to clamp the internal page-size
-/// hint so a large per-symbol cap times a large symbol list never asks
-/// for more than the API will serve in a single page.
-pub(super) const MAX_PAGE_SIZE: usize = 10_000;
-
-/// Compute the server-side `limit` query parameter to send when the
-/// caller has set a client-side per-symbol cap. We aim to fit the cap
-/// for every requested symbol in a single page (`cap * symbols`), but
-/// clamp to the API's per-page maximum.
-pub(super) fn page_size_hint(cap: Option<usize>, symbol_count: usize) -> Option<usize> {
-    let cap = cap?;
-    if cap == 0 || symbol_count == 0 {
-        return None;
-    }
-    Some(cap.saturating_mul(symbol_count).min(MAX_PAGE_SIZE))
-}
-
 /// Append the items from one paginated response page to the running
 /// per-symbol map, truncating each symbol's series to `cap` when one is
 /// set.
@@ -44,18 +26,21 @@ pub(super) fn extend_capped<T>(
     }
 }
 
-/// Return `true` once every requested symbol has at least `cap` items in
-/// the running map. Symbols absent from the map count as zero, so a
-/// genuinely empty/illiquid symbol will keep pagination going until the
-/// API itself stops returning a `next_page_token`.
-pub(super) fn all_symbols_filled<T>(
+/// Return the subset of `requested` that has not yet reached `cap` items
+/// in `combined`. Symbols absent from the map count as zero, so a
+/// genuinely empty/illiquid symbol stays pending until the API itself
+/// stops returning a `next_page_token`. The order of `requested` is
+/// preserved so the resulting `?symbols=` query is stable.
+pub(super) fn pending_symbols<T>(
     combined: &HashMap<String, Vec<T>>,
     requested: &[String],
     cap: usize,
-) -> bool {
+) -> Vec<String> {
     requested
         .iter()
-        .all(|s| combined.get(s).map_or(0, Vec::len) >= cap)
+        .filter(|s| combined.get(s.as_str()).map_or(0, Vec::len) < cap)
+        .cloned()
+        .collect()
 }
 
 #[cfg(test)]
@@ -106,45 +91,41 @@ mod tests {
     }
 
     #[test]
-    fn all_symbols_filled_true_when_every_symbol_meets_cap() {
+    fn pending_symbols_empty_when_every_symbol_meets_cap() {
         let mut combined: HashMap<String, Vec<i32>> = HashMap::new();
         combined.insert("AAPL".into(), vec![1, 2, 3]);
         combined.insert("MSFT".into(), vec![4, 5, 6]);
         let requested = vec!["AAPL".to_string(), "MSFT".to_string()];
-        assert!(all_symbols_filled(&combined, &requested, 3));
+        assert!(pending_symbols(&combined, &requested, 3).is_empty());
     }
 
     #[test]
-    fn all_symbols_filled_false_when_a_symbol_short() {
+    fn pending_symbols_returns_short_symbols() {
         let mut combined: HashMap<String, Vec<i32>> = HashMap::new();
         combined.insert("AAPL".into(), vec![1, 2, 3]);
         combined.insert("MSFT".into(), vec![4]);
         let requested = vec!["AAPL".to_string(), "MSFT".to_string()];
-        assert!(!all_symbols_filled(&combined, &requested, 3));
+        assert_eq!(
+            pending_symbols(&combined, &requested, 3),
+            vec!["MSFT".to_string()]
+        );
     }
 
     #[test]
-    fn all_symbols_filled_false_when_symbol_missing() {
+    fn pending_symbols_returns_missing_symbols() {
         let mut combined: HashMap<String, Vec<i32>> = HashMap::new();
         combined.insert("AAPL".into(), vec![1, 2, 3]);
         let requested = vec!["AAPL".to_string(), "MSFT".to_string()];
-        assert!(!all_symbols_filled(&combined, &requested, 1));
+        assert_eq!(
+            pending_symbols(&combined, &requested, 1),
+            vec!["MSFT".to_string()]
+        );
     }
 
     #[test]
-    fn page_size_hint_scales_with_symbol_count() {
-        assert_eq!(page_size_hint(Some(100), 3), Some(300));
-    }
-
-    #[test]
-    fn page_size_hint_clamps_to_api_max() {
-        assert_eq!(page_size_hint(Some(5_000), 4), Some(MAX_PAGE_SIZE));
-    }
-
-    #[test]
-    fn page_size_hint_none_without_cap_or_symbols() {
-        assert_eq!(page_size_hint(None, 3), None);
-        assert_eq!(page_size_hint(Some(0), 3), None);
-        assert_eq!(page_size_hint(Some(50), 0), None);
+    fn pending_symbols_preserves_request_order() {
+        let combined: HashMap<String, Vec<i32>> = HashMap::new();
+        let requested = vec!["AAPL".to_string(), "MSFT".to_string(), "GOOG".to_string()];
+        assert_eq!(pending_symbols(&combined, &requested, 1), requested);
     }
 }
