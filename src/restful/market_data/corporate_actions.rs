@@ -65,7 +65,8 @@ impl CorporateActionType {
 ///
 /// Each event still ships as a [`serde_json::Value`] because Alpaca's per-type
 /// payloads diverge significantly; pull individual fields from the value as
-/// needed.
+/// needed (e.g. `event["id"]` for the action's stable identifier, used as
+/// input to the [`CorporateActionsRequest::ids`] filter).
 #[derive(Clone, Debug, Deserialize)]
 pub struct CorporateActions {
     /// Forward stock splits.
@@ -111,6 +112,8 @@ pub struct CorporateActionsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     types: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    ids: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     start: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<NaiveDate>,
@@ -138,6 +141,18 @@ impl CorporateActionsRequest<'_> {
         } else {
             let joined: Vec<&str> = types.iter().map(CorporateActionType::as_str).collect();
             Some(joined.join(","))
+        };
+        self
+    }
+
+    /// Filter to events with one of the given Alpaca-issued action IDs.
+    /// IDs come from the `id` field on each event payload returned by a
+    /// previous call.
+    pub fn ids(mut self, ids: &[&str]) -> Self {
+        self.ids = if ids.is_empty() {
+            None
+        } else {
+            Some(ids.join(","))
         };
         self
     }
@@ -193,6 +208,7 @@ impl MarketDataClient {
             client: self,
             symbols: None,
             types: None,
+            ids: None,
             start: None,
             end: None,
             limit: None,
@@ -244,6 +260,7 @@ mod tests {
                 CorporateActionType::CashDividend,
                 CorporateActionType::SpinOff,
             ])
+            .ids(&["abc-1", "def-2"])
             .start(NaiveDate::from_ymd_opt(2025, 1, 1).unwrap())
             .end(NaiveDate::from_ymd_opt(2025, 12, 31).unwrap())
             .limit(50)
@@ -251,6 +268,7 @@ mod tests {
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(query.contains("symbols=AAPL%2CMSFT"), "{query}");
         assert!(query.contains("types=cash_dividend%2Cspin_off"), "{query}");
+        assert!(query.contains("ids=abc-1%2Cdef-2"), "{query}");
         assert!(query.contains("start=2025-01-01"), "{query}");
         assert!(query.contains("end=2025-12-31"), "{query}");
         assert!(query.contains("limit=50"), "{query}");
@@ -261,10 +279,10 @@ mod tests {
     #[serial]
     fn empty_filter_slices_omit_their_params() {
         let client = paper_client();
-        let request = client.corporate_actions().symbols(&[]).types(&[]);
+        let request = client.corporate_actions().symbols(&[]).types(&[]).ids(&[]);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
-            !query.contains("symbols") && !query.contains("types"),
+            !query.contains("symbols") && !query.contains("types") && !query.contains("ids"),
             "expected empty filters to be omitted; got {query}"
         );
     }
@@ -278,5 +296,23 @@ mod tests {
             "stock_and_cash_merger"
         );
         assert_eq!(CorporateActionType::PartialCall.as_str(), "partial_call");
+    }
+
+    #[test]
+    fn deserializes_response_with_id_field_on_events() {
+        let json = r#"{
+            "cash_dividends": [
+                {"id":"abc-123","symbol":"AAPL","ex_date":"2025-02-10","rate":"0.24"}
+            ],
+            "spin_offs": [
+                {"id":"def-456","source_symbol":"AAPL","new_symbol":"NEWCO","ex_date":"2025-03-15"}
+            ]
+        }"#;
+        let parsed: CorporateActions = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.cash_dividends.len(), 1);
+        assert_eq!(parsed.cash_dividends[0]["id"], "abc-123");
+        assert_eq!(parsed.spin_offs.len(), 1);
+        assert_eq!(parsed.spin_offs[0]["id"], "def-456");
+        assert!(parsed.forward_splits.is_empty());
     }
 }

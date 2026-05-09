@@ -159,7 +159,7 @@ such as `.qty`, `.notional`, `.time_in_force`, `.limit_price`, `.stop_price`,
 | News                | `news` (builder: `.symbols`, `.start`, `.end`, `.limit`, `.sort`, `.include_content`, `.exclude_contentless`) |
 | Screener            | `most_actives`, `market_movers` |
 | Logos               | `logo` (returns raw image bytes) |
-| Corporate actions   | `corporate_actions` (builder: `.symbols`, `.types`, `.start`, `.end`, `.limit`, `.sort`) |
+| Corporate actions   | `corporate_actions` (builder: `.symbols`, `.types`, `.ids`, `.start`, `.end`, `.limit`, `.sort`) |
 | Forex               | `forex_latest_rates` |
 | Fixed income        | `fixed_income_latest_prices` |
 
