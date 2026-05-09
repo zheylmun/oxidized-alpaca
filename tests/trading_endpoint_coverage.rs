@@ -47,7 +47,14 @@ async fn trading_endpoints_live_smoke() {
         .await
         .unwrap();
 
-    let _ = client.list_activities().limit(1).execute().await.unwrap();
+    let recent_activities = client.list_activities().limit(1).execute().await.unwrap();
+    if let Some(activity) = recent_activities.first() {
+        let _ = expect_ok_or_status(
+            client.get_activity(&activity.id).await,
+            &[404, 422],
+            "get_activity",
+        );
+    }
 
     let assets = client.list_assets().execute().await.unwrap();
     assert!(!assets.is_empty());

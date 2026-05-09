@@ -307,6 +307,18 @@ impl TradingClient {
             category: None,
         }
     }
+
+    /// Look up a single account activity by its `id`.
+    ///
+    /// Wraps `GET /v2beta1/account/activities/{id}`. The leading slash on
+    /// the path is intentional: it bypasses the client's default `/v2/`
+    /// base via standard URL resolution so this beta endpoint resolves
+    /// against the same host without a separate client.
+    pub async fn get_activity(&self, id: &str) -> crate::Result<Activity> {
+        let path = format!("/v2beta1/account/activities/{id}");
+        let request = self.request(Method::GET, &path)?;
+        self.send_and_deserialize(request).await
+    }
 }
 
 #[cfg(test)]
@@ -360,5 +372,39 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::FILL);
         assert!(activity.activity_sub_type.is_none());
         assert_eq!(activity.qty, Some(Decimal::from(10)));
+    }
+
+    #[test]
+    fn v2beta1_path_overrides_default_v2_base() {
+        // get_activity passes a leading-slash path to bypass the client's
+        // /v2/ base. Url::join's RFC 3986 semantics replace the base path
+        // when given an absolute one — pin that behavior so a future
+        // refactor of the base URL doesn't silently double up the version.
+        let base = reqwest::Url::parse("https://paper-api.alpaca.markets/v2/").unwrap();
+        let resolved = base
+            .join("/v2beta1/account/activities/20250507000000000::abc")
+            .unwrap();
+        assert_eq!(
+            resolved.as_str(),
+            "https://paper-api.alpaca.markets/v2beta1/account/activities/20250507000000000::abc"
+        );
+    }
+
+    #[test]
+    fn single_activity_lookup_response_deserializes() {
+        let json = r#"{
+            "id": "20250507000000000::abc",
+            "activity_type": "DIV",
+            "symbol": "AAPL",
+            "date": "2025-05-07",
+            "net_amount": "12.34",
+            "per_share_amount": "0.24",
+            "description": "Cash dividend"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.id, "20250507000000000::abc");
+        assert_eq!(activity.activity_type, ActivityType::DIV);
+        assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
+        assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
     }
 }
