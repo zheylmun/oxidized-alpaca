@@ -526,11 +526,7 @@ mod tests {
         let client = paper_client();
         let request = client
             .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
-            .adjustments([
-                Adjustment::Split,
-                Adjustment::Dividend,
-                Adjustment::SpinOff,
-            ]);
+            .adjustments([Adjustment::Split, Adjustment::Dividend, Adjustment::SpinOff]);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
             query.contains("adjustment=split%2Cdividend%2Cspin-off"),
