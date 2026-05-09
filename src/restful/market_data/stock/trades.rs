@@ -214,7 +214,8 @@ pub struct MultiSymbolTradesRequest<'a> {
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     feed: Option<RestFeed>,
-    /// Per-symbol cap applied client-side after pagination (see
+    /// Per-symbol cap applied client-side during pagination, with each
+    /// symbol's series truncated to the cap as pages arrive (see
     /// [`MultiSymbolBarsRequest`][super::bars::MultiSymbolBarsRequest]
     /// for rationale).
     #[serde(skip)]
