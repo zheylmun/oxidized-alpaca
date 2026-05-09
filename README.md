@@ -102,7 +102,7 @@ listed below are the public entry points on the relevant client.
 | ----------------------- | ------- |
 | Account                 | `get_account` |
 | Account configuration   | `get_account_config`, `update_account_config` |
-| Account activities      | `list_activities` |
+| Account activities      | `list_activities`, `get_activity` |
 | Assets                  | `list_assets`, `get_asset` |
 | Calendar                | `get_calendar` |
 | Clock                   | `get_clock` |

@@ -253,8 +253,8 @@ impl ListActivitiesRequest<'_> {
     pub async fn execute(mut self) -> crate::Result<Vec<Activity>> {
         let cap = self.limit;
         let path = match &self.activity_type {
-            Some(at) => format!("account/activities/{at}"),
-            None => "account/activities".to_string(),
+            Some(at) => format!("v2/account/activities/{at}"),
+            None => "v2/account/activities".to_string(),
         };
         self.page_size = Some(ACTIVITIES_PAGE_SIZE);
         let mut all: Vec<Activity> = Vec::new();
@@ -306,6 +306,15 @@ impl TradingClient {
             page_token: None,
             category: None,
         }
+    }
+
+    /// Look up a single account activity by its `id`.
+    ///
+    /// Wraps `GET /v2beta1/account/activities/{id}`.
+    pub async fn get_activity(&self, id: &str) -> crate::Result<Activity> {
+        let path = format!("v2beta1/account/activities/{id}");
+        let request = self.request(Method::GET, &path)?;
+        self.send_and_deserialize(request).await
     }
 }
 
@@ -360,5 +369,23 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::FILL);
         assert!(activity.activity_sub_type.is_none());
         assert_eq!(activity.qty, Some(Decimal::from(10)));
+    }
+
+    #[test]
+    fn single_activity_lookup_response_deserializes() {
+        let json = r#"{
+            "id": "20250507000000000::abc",
+            "activity_type": "DIV",
+            "symbol": "AAPL",
+            "date": "2025-05-07",
+            "net_amount": "12.34",
+            "per_share_amount": "0.24",
+            "description": "Cash dividend"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.id, "20250507000000000::abc");
+        assert_eq!(activity.activity_type, ActivityType::DIV);
+        assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
+        assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
     }
 }

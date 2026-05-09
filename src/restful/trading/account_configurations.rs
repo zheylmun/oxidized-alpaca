@@ -154,7 +154,7 @@ impl UpdateAccountConfigRequest<'_> {
     pub async fn execute(self) -> crate::Result<AccountConfig> {
         let request = self
             .client
-            .request(Method::PATCH, "account/configurations")?
+            .request(Method::PATCH, "v2/account/configurations")?
             .json(&self);
         self.client.send_and_deserialize(request).await
     }
@@ -163,7 +163,7 @@ impl UpdateAccountConfigRequest<'_> {
 impl TradingClient {
     /// Get current account configuration.
     pub async fn get_account_config(&self) -> crate::Result<AccountConfig> {
-        let request = self.request(Method::GET, "account/configurations")?;
+        let request = self.request(Method::GET, "v2/account/configurations")?;
         self.send_and_deserialize(request).await
     }
 

@@ -133,7 +133,7 @@ impl TradingClient {
     ///
     /// Returns an error if the request fails or the response cannot be parsed.
     pub async fn get_account(&self) -> crate::Result<AccountDetails> {
-        let request = self.request(Method::GET, "account")?;
+        let request = self.request(Method::GET, "v2/account")?;
         self.send_and_deserialize(request).await
     }
 }
