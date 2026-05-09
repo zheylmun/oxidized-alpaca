@@ -277,7 +277,7 @@ impl MultiSymbolTradesRequest<'_> {
         mut self,
     ) -> crate::Result<std::collections::HashMap<String, Vec<StockTrade>>> {
         let cap = self.limit;
-        if cap == Some(0) {
+        if cap == Some(0) || self.symbols.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
         let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();

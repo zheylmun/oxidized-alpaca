@@ -313,7 +313,7 @@ impl MultiSymbolBarsRequest<'_> {
     /// requested symbol has reached the cap (or the API runs out of pages).
     pub async fn execute(mut self) -> crate::Result<std::collections::HashMap<String, Vec<Bar>>> {
         let cap = self.limit;
-        if cap == Some(0) {
+        if cap == Some(0) || self.symbols.is_empty() {
             return Ok(std::collections::HashMap::new());
         }
         let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();
