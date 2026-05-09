@@ -51,6 +51,8 @@ pub enum ActivityType {
     FEE,
     /// Option assignment
     OPASN,
+    /// Option corporate action
+    OPCA,
     /// Option exercise
     OPEXP,
     /// Option expiration
@@ -77,6 +79,7 @@ impl ActivityType {
             Self::INT => "INT",
             Self::FEE => "FEE",
             Self::OPASN => "OPASN",
+            Self::OPCA => "OPCA",
             Self::OPEXP => "OPEXP",
             Self::OPXRC => "OPXRC",
             Self::SPLIT => "SPLIT",
@@ -114,6 +117,7 @@ impl<'de> Deserialize<'de> for ActivityType {
             "INT" => Self::INT,
             "FEE" => Self::FEE,
             "OPASN" => Self::OPASN,
+            "OPCA" => Self::OPCA,
             "OPEXP" => Self::OPEXP,
             "OPXRC" => Self::OPXRC,
             "SPLIT" => Self::SPLIT,
@@ -129,6 +133,12 @@ pub struct Activity {
     pub id: String,
     /// Type of activity.
     pub activity_type: ActivityType,
+    /// Sub-classification of the activity, when the API provides one.
+    /// Free-form descriptor (e.g. `"FILL"`, `"PARTIAL_FILL"` on trade
+    /// activities, or corporate-action sub-types on `OPCA`); preserved
+    /// verbatim because Alpaca expands the vocabulary over time.
+    #[serde(default)]
+    pub activity_sub_type: Option<String>,
     /// Ticker symbol (for trade activities).
     #[serde(default)]
     pub symbol: Option<String>,
@@ -296,5 +306,59 @@ impl TradingClient {
             page_token: None,
             category: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn opca_round_trips() {
+        let json = "\"OPCA\"";
+        let parsed: ActivityType = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed, ActivityType::OPCA);
+        assert_eq!(parsed.to_string(), "OPCA");
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), json);
+    }
+
+    #[test]
+    fn unknown_activity_type_falls_back_to_other() {
+        let parsed: ActivityType = serde_json::from_str("\"NEWCODE\"").unwrap();
+        assert_eq!(parsed, ActivityType::Other("NEWCODE".to_string()));
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"NEWCODE\"");
+    }
+
+    #[test]
+    fn opca_activity_with_sub_type_deserializes() {
+        let json = r#"{
+            "id": "20250507000000000::abc",
+            "activity_type": "OPCA",
+            "activity_sub_type": "SPINOFF",
+            "symbol": "AAPL",
+            "date": "2025-05-07",
+            "net_amount": "0.00",
+            "description": "Option corporate action: spin-off"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.activity_type, ActivityType::OPCA);
+        assert_eq!(activity.activity_sub_type.as_deref(), Some("SPINOFF"));
+        assert_eq!(activity.symbol.as_deref(), Some("AAPL"));
+    }
+
+    #[test]
+    fn fill_activity_without_sub_type_deserializes() {
+        let json = r#"{
+            "id": "20250101000000000::xyz",
+            "activity_type": "FILL",
+            "symbol": "MSFT",
+            "qty": "10",
+            "price": "412.5",
+            "side": "buy"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.activity_type, ActivityType::FILL);
+        assert!(activity.activity_sub_type.is_none());
+        assert_eq!(activity.qty, Some(Decimal::from(10)));
     }
 }
