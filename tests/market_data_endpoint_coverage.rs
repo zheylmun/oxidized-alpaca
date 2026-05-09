@@ -143,7 +143,7 @@ async fn market_data_endpoints_live_smoke() {
 
     // Crypto
     let crypto_bars = client
-        .crypto_bars(&["BTC/USD"], "1Day", CryptoLocation::Us)
+        .crypto_bars(&["BTC/USD"], TimeFrame::OneDay, CryptoLocation::Us)
         .start(window_start)
         .end(window_end)
         .limit(1)
@@ -198,7 +198,7 @@ async fn market_data_endpoints_live_smoke() {
 
     let _ = expect_ok_or_status(
         client
-            .option_bars(&[&option_symbol], "1Day")
+            .option_bars(&[&option_symbol], TimeFrame::OneDay)
             .start(window_start)
             .end(window_end)
             .limit(1)
