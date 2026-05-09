@@ -1,7 +1,5 @@
 use chrono::DateTime;
-use oxidized_alpaca::{
-    AccountType, Error, MarketDataClient, restful::market_data::TimeFrame,
-};
+use oxidized_alpaca::{AccountType, Error, MarketDataClient, restful::market_data::TimeFrame};
 use std::str::FromStr;
 
 #[tokio::main]
