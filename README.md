@@ -206,7 +206,7 @@ Pull a month of daily bars for AAPL:
 use chrono::DateTime;
 use std::str::FromStr;
 use oxidized_alpaca::{
-    AccountType, Error, MarketDataClient, restful::market_data::stock::TimeFrame,
+    AccountType, Error, MarketDataClient, restful::market_data::TimeFrame,
 };
 
 #[tokio::main]
