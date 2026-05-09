@@ -49,6 +49,22 @@ async fn market_data_endpoints_live_smoke() {
     let latest_trades = client.stock_latest_trades(&["AAPL", "MSFT"]).await.unwrap();
     let _ = latest_trades;
 
+    let multi_trades = client
+        .stock_trades_multi(&["AAPL", "MSFT"])
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
+    let _ = multi_trades;
+
+    let multi_bars = client
+        .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
+    let _ = multi_bars;
+
     let quotes = client
         .stock_quotes("AAPL")
         .limit(1)
@@ -61,6 +77,14 @@ async fn market_data_endpoints_live_smoke() {
 
     let latest_quotes = client.stock_latest_quotes(&["AAPL", "MSFT"]).await.unwrap();
     let _ = latest_quotes;
+
+    let multi_quotes = client
+        .stock_quotes_multi(&["AAPL", "MSFT"])
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
+    let _ = multi_quotes;
 
     let _ = expect_ok_or_status(
         client.stock_auctions("AAPL").limit(1).execute().await,
