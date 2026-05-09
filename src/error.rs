@@ -24,11 +24,11 @@ pub enum Error {
     },
     /// Reqwest Send Error
     #[cfg(feature = "restful")]
-    #[error("Reqwest send error: {}", "source")]
+    #[error("Reqwest send error: {0}")]
     ReqwestSend(#[source] ReqwestError),
     /// Reqwest Deserialize Error
     #[cfg(feature = "restful")]
-    #[error("Reqwest decoding error: {}", 0)]
+    #[error("Reqwest decoding error: {0}")]
     ReqwestDeserialize(#[source] ReqwestError),
 
     /// API returned a non-2xx status code
@@ -42,11 +42,11 @@ pub enum Error {
 
     /// Socketeer connection error
     #[cfg(feature = "streaming")]
-    #[error("Socketeer websocket error: {}", 0)]
+    #[error("Socketeer websocket error: {0}")]
     WebsocketError(#[from] socketeer::Error),
 
     /// Url Parse Error
-    #[error("Url parse error: {}", 0)]
+    #[error("Url parse error: {0}")]
     UrlParse(#[source] url::ParseError),
     /// Unexpected connection message
     #[error("Unexpected connection message: {0}")]
@@ -58,3 +58,20 @@ pub enum Error {
 
 /// A `Result` type alias using [`Error`] as the default error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
+
+#[cfg(test)]
+mod tests {
+    use super::Error;
+
+    #[test]
+    fn url_parse_display_includes_inner_cause() {
+        let inner = url::Url::parse("not a url").unwrap_err();
+        let inner_text = inner.to_string();
+        let err = Error::UrlParse(inner);
+        let rendered = err.to_string();
+        assert!(
+            rendered.contains(&inner_text),
+            "expected `{rendered}` to include the inner cause `{inner_text}`",
+        );
+    }
+}
