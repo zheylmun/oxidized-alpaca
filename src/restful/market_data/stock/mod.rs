@@ -7,6 +7,7 @@ pub mod auctions;
 pub mod bars;
 /// Stock metadata endpoint types and methods.
 pub mod meta;
+mod pagination;
 /// Stock quotes endpoint types and methods.
 pub mod quotes;
 /// Stock snapshots endpoint types and methods.
