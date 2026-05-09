@@ -28,9 +28,20 @@ fn expect_ok_or_status<T>(
 async fn market_data_endpoints_live_smoke() {
     let client = MarketDataClient::new(AccountType::Paper).unwrap();
 
+    // `.limit(1)` caps items returned but does not bound how far back the
+    // server scans — without an explicit window the historical endpoints
+    // can wade through years of data per call. Constrain every paginated
+    // historical request to a narrow window so the smoke test stays fast
+    // on CI. A 7-day window handles weekends/holidays while keeping the
+    // payload tiny.
+    let window_end = Utc::now();
+    let window_start = window_end - Duration::days(7);
+
     // Stocks
     let bars = client
         .stock_bars("AAPL", TimeFrame::OneDay)
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -39,6 +50,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let trades = client
         .stock_trades("AAPL")
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -50,16 +63,10 @@ async fn market_data_endpoints_live_smoke() {
     let latest_trades = client.stock_latest_trades(&["AAPL", "MSFT"]).await.unwrap();
     let _ = latest_trades;
 
-    // Multi-symbol historical builders use `.limit` as a per-symbol
-    // client-side cap, so a narrow time window keeps the live smoke test
-    // payload bounded regardless of Alpaca's per-page defaults.
-    let multi_window_end = Utc::now();
-    let multi_window_start = multi_window_end - Duration::days(7);
-
     let multi_trades = client
         .stock_trades_multi(&["AAPL", "MSFT"])
-        .start(multi_window_start)
-        .end(multi_window_end)
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -68,8 +75,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let multi_bars = client
         .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
-        .start(multi_window_start)
-        .end(multi_window_end)
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -78,6 +85,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let quotes = client
         .stock_quotes("AAPL")
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -91,8 +100,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let multi_quotes = client
         .stock_quotes_multi(&["AAPL", "MSFT"])
-        .start(multi_window_start)
-        .end(multi_window_end)
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -100,7 +109,13 @@ async fn market_data_endpoints_live_smoke() {
     let _ = multi_quotes;
 
     let _ = expect_ok_or_status(
-        client.stock_auctions("AAPL").limit(1).execute().await,
+        client
+            .stock_auctions("AAPL")
+            .start(window_start)
+            .end(window_end)
+            .limit(1)
+            .execute()
+            .await,
         &[403],
         "stock_auctions",
     );
@@ -131,6 +146,8 @@ async fn market_data_endpoints_live_smoke() {
     // Crypto
     let crypto_bars = client
         .crypto_bars(&["BTC/USD"], "1Day", CryptoLocation::Us)
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
@@ -184,6 +201,8 @@ async fn market_data_endpoints_live_smoke() {
     let _ = expect_ok_or_status(
         client
             .option_bars(&[&option_symbol], "1Day")
+            .start(window_start)
+            .end(window_end)
             .limit(1)
             .execute()
             .await,
@@ -213,6 +232,8 @@ async fn market_data_endpoints_live_smoke() {
     let news = client
         .news()
         .symbols(&["AAPL"])
+        .start(window_start)
+        .end(window_end)
         .limit(1)
         .execute()
         .await
