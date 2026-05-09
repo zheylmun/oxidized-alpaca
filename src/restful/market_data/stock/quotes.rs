@@ -282,6 +282,9 @@ impl MultiSymbolQuotesRequest<'_> {
         mut self,
     ) -> crate::Result<std::collections::HashMap<String, Vec<StockQuote>>> {
         let cap = self.limit;
+        if cap == Some(0) {
+            return Ok(std::collections::HashMap::new());
+        }
         let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();
         let mut combined: std::collections::HashMap<String, Vec<StockQuote>> =
             std::collections::HashMap::new();
@@ -297,7 +300,7 @@ impl MultiSymbolQuotesRequest<'_> {
             if let Some(cap) = cap
                 && requested
                     .iter()
-                    .all(|s| combined.get(s).is_some_and(|v| v.len() >= cap))
+                    .all(|s| combined.get(s).map_or(0, Vec::len) >= cap)
             {
                 break;
             }
