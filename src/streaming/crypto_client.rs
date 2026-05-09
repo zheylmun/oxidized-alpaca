@@ -71,3 +71,41 @@ impl StreamingCryptoClient {
         Self::connect(account_type, CRYPTO_EU_KRAKEN_URL).await
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::{CRYPTO_EU_KRAKEN_URL, CRYPTO_US_KRAKEN_URL, CRYPTO_US_URL};
+
+    /// Pins the regression fix: every crypto feed routes to the production
+    /// wss host. The sandbox host accepts auth but rejects every subscribe,
+    /// so even Paper accounts must connect to production.
+    #[test]
+    fn crypto_urls_target_production_host() {
+        for url in [CRYPTO_US_URL, CRYPTO_US_KRAKEN_URL, CRYPTO_EU_KRAKEN_URL] {
+            assert!(
+                url.starts_with("wss://stream.data.alpaca.markets/"),
+                "{url} should target the production wss host",
+            );
+            assert!(
+                !url.contains("sandbox"),
+                "{url} must not point at the (broken) sandbox host",
+            );
+        }
+    }
+
+    #[test]
+    fn crypto_urls_use_distinct_v1beta3_paths() {
+        assert_eq!(
+            CRYPTO_US_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
+        );
+        assert_eq!(
+            CRYPTO_US_KRAKEN_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1",
+        );
+        assert_eq!(
+            CRYPTO_EU_KRAKEN_URL,
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1",
+        );
+    }
+}

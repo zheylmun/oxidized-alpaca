@@ -74,4 +74,50 @@ mod tests {
             "expected `{rendered}` to include the inner cause `{inner_text}`",
         );
     }
+
+    #[test]
+    fn missing_environment_variable_display_names_var() {
+        let source = std::env::var("__definitely_missing_for_test__").unwrap_err();
+        let err = Error::MissingEnvironmentVariable {
+            variable_name: "ALPACA_PAPER_API_KEY_ID".to_string(),
+            source,
+        };
+        let rendered = err.to_string();
+        assert!(
+            rendered.contains("ALPACA_PAPER_API_KEY_ID"),
+            "expected `{rendered}` to name the missing variable",
+        );
+    }
+
+    #[test]
+    fn api_error_display_includes_status_and_body() {
+        let err = Error::ApiError {
+            status: 422,
+            body: "symbol not found".to_string(),
+        };
+        let rendered = err.to_string();
+        assert!(
+            rendered.contains("422") && rendered.contains("symbol not found"),
+            "expected `{rendered}` to surface both status and body",
+        );
+    }
+
+    #[test]
+    fn unexpected_connection_message_display_passes_through_payload() {
+        let err = Error::UnexpectedConnectionMessage("Subscription { trades: [] }".to_string());
+        let rendered = err.to_string();
+        assert!(
+            rendered.contains("Subscription { trades: [] }"),
+            "expected `{rendered}` to include the wrapped payload",
+        );
+    }
+
+    #[test]
+    fn streaming_auth_display_is_human_readable() {
+        let rendered = Error::StreamingAuth.to_string();
+        assert!(
+            !rendered.is_empty() && rendered.to_lowercase().contains("auth"),
+            "expected `{rendered}` to mention auth",
+        );
+    }
 }

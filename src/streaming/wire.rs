@@ -55,6 +55,51 @@ pub struct StreamError {
     pub message: String,
 }
 
+#[cfg(test)]
+mod tests {
+    use super::{StreamError, StreamErrorCode};
+
+    /// Round-trip every documented Alpaca streaming error code so a typo in
+    /// the `repr(u16)` discriminants would be caught at test time. The list
+    /// is exhaustive against `StreamErrorCode` as of this commit; the enum
+    /// is `#[non_exhaustive]`, so adding a new variant requires extending
+    /// this test alongside it.
+    #[test]
+    fn stream_error_code_round_trip_all_variants() {
+        for (code, expected) in [
+            (400u16, StreamErrorCode::InvalidSyntax),
+            (401, StreamErrorCode::NotAuthenticated),
+            (402, StreamErrorCode::AuthFailed),
+            (403, StreamErrorCode::AlreadyAuthorized),
+            (404, StreamErrorCode::AuthTimeout),
+            (405, StreamErrorCode::SymbolLimitExceeded),
+            (406, StreamErrorCode::ConnectionLimitExceeded),
+            (407, StreamErrorCode::SlowClient),
+            (408, StreamErrorCode::V2NotEnabled),
+            (409, StreamErrorCode::InsufficientSubscription),
+            (410, StreamErrorCode::InvalidSubscribeAction),
+            (411, StreamErrorCode::InsufficientScope),
+        ] {
+            let json = code.to_string();
+            let decoded: StreamErrorCode = serde_json::from_str(&json)
+                .unwrap_or_else(|e| panic!("failed to decode {code}: {e}"));
+            assert_eq!(decoded, expected, "code {code} decoded to wrong variant");
+            let reencoded = serde_json::to_string(&decoded).unwrap();
+            assert_eq!(reencoded, json, "code {code} re-encoded to wrong number");
+        }
+    }
+
+    #[test]
+    fn stream_error_decodes_from_wire_payload() {
+        // Mirrors what the per-feed message envelopes deliver after the
+        // outer `{"T":"error", ...}` tag is consumed by serde.
+        let json = r#"{"code":410,"msg":"invalid subscribe action"}"#;
+        let err: StreamError = serde_json::from_str(json).unwrap();
+        assert_eq!(err.code, StreamErrorCode::InvalidSubscribeAction);
+        assert_eq!(err.message, "invalid subscribe action");
+    }
+}
+
 /// Outgoing wire-protocol message used by streaming clients to talk to
 /// Alpaca. Generic over the per-feed subscription list type.
 ///
