@@ -441,4 +441,79 @@ mod tests {
             "expected `adjustment` to be absent from {query}"
         );
     }
+
+    fn sample_start() -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339("2026-01-02T14:30:00Z")
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    fn sample_end() -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339("2026-01-03T20:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    #[test]
+    #[serial]
+    fn multi_constructor_joins_symbols() {
+        let client = paper_client();
+        let request = client.stock_bars_multi(&["AAPL", "MSFT", "TSLA"], TimeFrame::OneDay);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("symbols=AAPL%2CMSFT%2CTSLA"),
+            "expected joined symbols in {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn multi_builder_setters_serialize_to_query() {
+        let client = paper_client();
+        let request = client
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneHour)
+            .start(sample_start())
+            .end(sample_end())
+            .adjustment(Adjustment::All)
+            .feed(RestFeed::IEX)
+            .asof(AsOf::SkipSymbolMapping)
+            .currency("EUR")
+            .sort(SortDirection::Desc);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("timeframe=1Hour"), "{query}");
+        assert!(query.contains("start=2026-01-02T14%3A30%3A00Z"), "{query}");
+        assert!(query.contains("end=2026-01-03T20%3A00%3A00Z"), "{query}");
+        assert!(query.contains("adjustment=all"), "{query}");
+        assert!(query.contains("feed=iex"), "{query}");
+        assert!(query.contains("asof=-"), "{query}");
+        assert!(query.contains("currency=EUR"), "{query}");
+        assert!(query.contains("sort=desc"), "{query}");
+    }
+
+    #[test]
+    #[serial]
+    fn multi_limit_does_not_serialize() {
+        let client = paper_client();
+        let request = client
+            .stock_bars_multi(&["AAPL"], TimeFrame::OneDay)
+            .limit(50);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            !query.contains("limit"),
+            "expected `limit` not to be serialized; got {query}"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn multi_limit_zero_short_circuits_without_request() {
+        let client = paper_client();
+        let result = client
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .limit(0)
+            .execute()
+            .await
+            .unwrap();
+        assert!(result.is_empty());
+    }
 }

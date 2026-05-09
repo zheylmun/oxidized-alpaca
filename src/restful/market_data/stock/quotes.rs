@@ -318,7 +318,96 @@ struct MultiQuotesResponse {
 
 #[cfg(test)]
 mod tests {
-    use super::MultiQuotesResponse;
+    use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn ensure_paper_creds() {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+    }
+
+    fn paper_client() -> MarketDataClient {
+        ensure_paper_creds();
+        MarketDataClient::new(AccountType::Paper).unwrap()
+    }
+
+    fn sample_start() -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339("2026-01-02T14:30:00Z")
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    fn sample_end() -> DateTime<Utc> {
+        DateTime::parse_from_rfc3339("2026-01-03T20:00:00Z")
+            .unwrap()
+            .with_timezone(&Utc)
+    }
+
+    #[test]
+    #[serial]
+    fn multi_constructor_joins_symbols() {
+        let client = paper_client();
+        let request = client.stock_quotes_multi(&["AAPL", "MSFT", "TSLA"]);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("symbols=AAPL%2CMSFT%2CTSLA"),
+            "expected joined symbols in {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn multi_builder_setters_serialize_to_query() {
+        let client = paper_client();
+        let request = client
+            .stock_quotes_multi(&["AAPL", "MSFT"])
+            .start(sample_start())
+            .end(sample_end())
+            .feed(RestFeed::IEX)
+            .asof(AsOf::SkipSymbolMapping)
+            .currency("EUR")
+            .sort(SortDirection::Desc);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("start=2026-01-02T14%3A30%3A00Z"), "{query}");
+        assert!(query.contains("end=2026-01-03T20%3A00%3A00Z"), "{query}");
+        assert!(query.contains("feed=iex"), "{query}");
+        assert!(query.contains("asof=-"), "{query}");
+        assert!(query.contains("currency=EUR"), "{query}");
+        assert!(query.contains("sort=desc"), "{query}");
+    }
+
+    #[test]
+    #[serial]
+    fn multi_limit_does_not_serialize() {
+        let client = paper_client();
+        let request = client.stock_quotes_multi(&["AAPL"]).limit(50);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            !query.contains("limit"),
+            "expected `limit` not to be serialized; got {query}"
+        );
+    }
+
+    #[tokio::test]
+    #[serial]
+    async fn multi_limit_zero_short_circuits_without_request() {
+        let client = paper_client();
+        let result = client
+            .stock_quotes_multi(&["AAPL", "MSFT"])
+            .limit(0)
+            .execute()
+            .await
+            .unwrap();
+        assert!(result.is_empty());
+    }
 
     #[test]
     fn deserializes_multi_symbol_quotes_response_with_pagination() {
