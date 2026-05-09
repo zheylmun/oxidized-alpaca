@@ -64,7 +64,7 @@ struct MultiLatestQuotesResponse {
 /// Builder for requesting historical stock quotes.
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct QuotesRequest<'a> {
+pub struct StockQuotesRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     #[serde(skip)]
@@ -87,7 +87,7 @@ pub struct QuotesRequest<'a> {
     page_token: Option<String>,
 }
 
-impl QuotesRequest<'_> {
+impl StockQuotesRequest<'_> {
     /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
@@ -153,8 +153,8 @@ impl QuotesRequest<'_> {
 
 impl MarketDataClient {
     /// Request historical quotes for a single stock symbol.
-    pub fn stock_quotes<'a>(&'a self, symbol: &str) -> QuotesRequest<'a> {
-        QuotesRequest {
+    pub fn stock_quotes<'a>(&'a self, symbol: &str) -> StockQuotesRequest<'a> {
+        StockQuotesRequest {
             client: self,
             symbol: symbol.to_string(),
             start: None,
@@ -191,8 +191,8 @@ impl MarketDataClient {
     /// Request historical quotes for multiple stock symbols. Returns a
     /// map keyed by symbol; symbols with no quotes in the queried range
     /// are omitted from the response.
-    pub fn stock_quotes_multi<'a>(&'a self, symbols: &[&str]) -> MultiSymbolQuotesRequest<'a> {
-        MultiSymbolQuotesRequest {
+    pub fn stock_quotes_multi<'a>(&'a self, symbols: &[&str]) -> StockQuotesMultiRequest<'a> {
+        StockQuotesMultiRequest {
             client: self,
             symbols: symbols.join(","),
             start: None,
@@ -210,7 +210,7 @@ impl MarketDataClient {
 /// A request for `/v2/stocks/quotes` (multi-symbol historical quotes).
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct MultiSymbolQuotesRequest<'a> {
+pub struct StockQuotesMultiRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     symbols: String,
@@ -222,7 +222,7 @@ pub struct MultiSymbolQuotesRequest<'a> {
     feed: Option<RestFeed>,
     /// Per-symbol cap applied client-side during pagination, with each
     /// symbol's series truncated to the cap as pages arrive (see
-    /// [`MultiSymbolBarsRequest`][super::bars::MultiSymbolBarsRequest]
+    /// [`StockBarsMultiRequest`][super::bars::StockBarsMultiRequest]
     /// for rationale).
     #[serde(skip)]
     limit: Option<usize>,
@@ -236,7 +236,7 @@ pub struct MultiSymbolQuotesRequest<'a> {
     page_token: Option<String>,
 }
 
-impl MultiSymbolQuotesRequest<'_> {
+impl StockQuotesMultiRequest<'_> {
     /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
