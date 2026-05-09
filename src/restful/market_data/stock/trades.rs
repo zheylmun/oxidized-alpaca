@@ -408,6 +408,14 @@ mod tests {
         assert!(result.is_empty());
     }
 
+    #[tokio::test]
+    #[serial]
+    async fn multi_empty_symbols_short_circuits_without_request() {
+        let client = paper_client();
+        let result = client.stock_trades_multi(&[]).execute().await.unwrap();
+        assert!(result.is_empty());
+    }
+
     #[test]
     fn deserializes_multi_symbol_trades_response_with_pagination() {
         let json = r#"{
