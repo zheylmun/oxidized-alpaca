@@ -19,21 +19,48 @@ pub enum OrderStatusFilter {
     All,
 }
 
-/// Take profit configuration for bracket orders.
+/// Take-profit leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct TakeProfit {
-    /// Target limit price for taking profit.
+    /// Target limit price at which the take-profit child order fires.
     pub limit_price: Decimal,
 }
 
-/// Stop loss configuration for bracket orders.
+impl TakeProfit {
+    /// Build a take-profit leg with the given target limit price.
+    pub fn new(limit_price: Decimal) -> Self {
+        Self { limit_price }
+    }
+}
+
+/// Stop-loss leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct StopLoss {
-    /// Stop price that triggers the stop loss.
+    /// Stop price that triggers the stop-loss child order.
     pub stop_price: Decimal,
-    /// Optional limit price for a stop-limit loss order.
+    /// Optional limit price; when set, the child order is a stop-limit
+    /// instead of a plain stop.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_price: Option<Decimal>,
+}
+
+impl StopLoss {
+    /// Build a plain stop-loss leg that fires a market order at `stop_price`.
+    pub fn new(stop_price: Decimal) -> Self {
+        Self {
+            stop_price,
+            limit_price: None,
+        }
+    }
+
+    /// Build a stop-limit-loss leg: triggers at `stop_price` and submits a
+    /// limit order at `limit_price`.
+    pub fn with_limit(stop_price: Decimal, limit_price: Decimal) -> Self {
+        Self {
+            stop_price,
+            limit_price: Some(limit_price),
+        }
+    }
 }
 
 /// Builder for creating a new order.
@@ -134,18 +161,15 @@ impl CreateOrderRequest<'_> {
         self
     }
 
-    /// Set take profit for bracket orders.
-    pub fn take_profit(mut self, limit_price: Decimal) -> Self {
-        self.take_profit = Some(TakeProfit { limit_price });
+    /// Attach a take-profit leg for bracket / OTO orders.
+    pub fn take_profit(mut self, take_profit: TakeProfit) -> Self {
+        self.take_profit = Some(take_profit);
         self
     }
 
-    /// Set stop loss for bracket orders.
-    pub fn stop_loss(mut self, stop_price: Decimal, limit_price: Option<Decimal>) -> Self {
-        self.stop_loss = Some(StopLoss {
-            stop_price,
-            limit_price,
-        });
+    /// Attach a stop-loss leg for bracket / OTO orders.
+    pub fn stop_loss(mut self, stop_loss: StopLoss) -> Self {
+        self.stop_loss = Some(stop_loss);
         self
     }
 
