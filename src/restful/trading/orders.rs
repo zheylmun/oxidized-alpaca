@@ -511,7 +511,10 @@ mod tests {
             !obj.contains_key("limit_price"),
             "expected no limit_price key for plain StopLoss, got {value}"
         );
-        assert_eq!(obj.get("stop_price").and_then(|v| v.as_str()), Some("140.50"));
+        assert_eq!(
+            obj.get("stop_price").and_then(|v| v.as_str()),
+            Some("140.50")
+        );
     }
 
     #[test]
