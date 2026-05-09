@@ -9,6 +9,24 @@
 
 use std::collections::HashMap;
 
+/// Alpaca's documented per-page maximum for the multi-symbol bars,
+/// trades, and quotes endpoints. Used to clamp the internal page-size
+/// hint so a large per-symbol cap times a large symbol list never asks
+/// for more than the API will serve in a single page.
+pub(super) const MAX_PAGE_SIZE: usize = 10_000;
+
+/// Compute the server-side `limit` query parameter to send when the
+/// caller has set a client-side per-symbol cap. We aim to fit the cap
+/// for every requested symbol in a single page (`cap * symbols`), but
+/// clamp to the API's per-page maximum.
+pub(super) fn page_size_hint(cap: Option<usize>, symbol_count: usize) -> Option<usize> {
+    let cap = cap?;
+    if cap == 0 || symbol_count == 0 {
+        return None;
+    }
+    Some(cap.saturating_mul(symbol_count).min(MAX_PAGE_SIZE))
+}
+
 /// Append the items from one paginated response page to the running
 /// per-symbol map, truncating each symbol's series to `cap` when one is
 /// set.
@@ -111,5 +129,22 @@ mod tests {
         combined.insert("AAPL".into(), vec![1, 2, 3]);
         let requested = vec!["AAPL".to_string(), "MSFT".to_string()];
         assert!(!all_symbols_filled(&combined, &requested, 1));
+    }
+
+    #[test]
+    fn page_size_hint_scales_with_symbol_count() {
+        assert_eq!(page_size_hint(Some(100), 3), Some(300));
+    }
+
+    #[test]
+    fn page_size_hint_clamps_to_api_max() {
+        assert_eq!(page_size_hint(Some(5_000), 4), Some(MAX_PAGE_SIZE));
+    }
+
+    #[test]
+    fn page_size_hint_none_without_cap_or_symbols() {
+        assert_eq!(page_size_hint(None, 3), None);
+        assert_eq!(page_size_hint(Some(0), 3), None);
+        assert_eq!(page_size_hint(Some(50), 0), None);
     }
 }

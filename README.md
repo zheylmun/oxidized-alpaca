@@ -91,6 +91,15 @@ Endpoints that paginate auto-fetch the entire result set. Setting `.limit(n)`
 on a paginated builder caps the total number of items returned across all
 pages — there are no `page_token` or `page_size` knobs on the public API.
 
+The multi-symbol stock builders (`stock_bars_multi`, `stock_trades_multi`,
+`stock_quotes_multi`) treat `.limit(n)` as a **per-symbol** client-side cap
+applied during pagination. Alpaca's server-side `limit` parameter caps items
+per *page* across all symbols combined, so the builders set it internally to
+`n * symbols.len()` (clamped to the API's per-page maximum) to keep payloads
+proportional to the requested cap, while still truncating each symbol's
+series to `n` client-side as pages arrive. Symbols with no data in the
+requested range are omitted from the returned map.
+
 ## REST API coverage
 
 The REST surface currently covers the following Alpaca endpoints. Method names
