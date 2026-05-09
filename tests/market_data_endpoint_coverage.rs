@@ -1,3 +1,4 @@
+use chrono::{Duration, Utc};
 use oxidized_alpaca::{
     AccountType, Error, MarketDataClient,
     restful::market_data::{
@@ -49,8 +50,16 @@ async fn market_data_endpoints_live_smoke() {
     let latest_trades = client.stock_latest_trades(&["AAPL", "MSFT"]).await.unwrap();
     let _ = latest_trades;
 
+    // Multi-symbol historical builders use `.limit` as a per-symbol
+    // client-side cap, so a narrow time window keeps the live smoke test
+    // payload bounded regardless of Alpaca's per-page defaults.
+    let multi_window_end = Utc::now();
+    let multi_window_start = multi_window_end - Duration::days(7);
+
     let multi_trades = client
         .stock_trades_multi(&["AAPL", "MSFT"])
+        .start(multi_window_start)
+        .end(multi_window_end)
         .limit(1)
         .execute()
         .await
@@ -59,6 +68,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let multi_bars = client
         .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+        .start(multi_window_start)
+        .end(multi_window_end)
         .limit(1)
         .execute()
         .await
@@ -80,6 +91,8 @@ async fn market_data_endpoints_live_smoke() {
 
     let multi_quotes = client
         .stock_quotes_multi(&["AAPL", "MSFT"])
+        .start(multi_window_start)
+        .end(multi_window_end)
         .limit(1)
         .execute()
         .await

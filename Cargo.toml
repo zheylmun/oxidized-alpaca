@@ -29,6 +29,7 @@ url = "2"
 serde_path_to_error = "0.1.16"
 
 [dev-dependencies]
+chrono = { version = "0.4", features = ["serde"] }
 serial_test = "3"
 tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
 tracing-subscriber = "0.3"
