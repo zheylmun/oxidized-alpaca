@@ -224,11 +224,13 @@ pub struct MultiSymbolBarsRequest<'a> {
     client: &'a MarketDataClient,
     symbols: String,
     timeframe: TimeFrame,
-    /// Per-symbol cap applied client-side after pagination. Not sent to
+    /// Per-symbol cap applied client-side during pagination. Not sent to
     /// the API: Alpaca's `limit` parameter caps items per *page* across
     /// all symbols combined, which makes it useless as a per-symbol cap
     /// for active stocks. We page until every requested symbol has at
-    /// least `limit` items, then truncate.
+    /// least `limit` items *or the API has no further pages* (illiquid or
+    /// out-of-range symbols may legitimately return fewer than `limit`),
+    /// truncating each symbol's series to the cap as we go.
     #[serde(skip)]
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
