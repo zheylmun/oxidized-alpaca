@@ -197,8 +197,8 @@ impl MarketDataClient {
         &'a self,
         symbols: &[&str],
         timeframe: TimeFrame,
-    ) -> MultiSymbolBarsRequest<'a> {
-        MultiSymbolBarsRequest {
+    ) -> StockBarsMultiRequest<'a> {
+        StockBarsMultiRequest {
             client: self,
             symbols: symbols.join(","),
             timeframe,
@@ -219,7 +219,7 @@ impl MarketDataClient {
 #[derive(Debug, Serialize)]
 #[must_use]
 #[serde(rename_all = "snake_case")]
-pub struct MultiSymbolBarsRequest<'a> {
+pub struct StockBarsMultiRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     symbols: String,
@@ -256,7 +256,7 @@ pub struct MultiSymbolBarsRequest<'a> {
     page_token: Option<String>,
 }
 
-impl MultiSymbolBarsRequest<'_> {
+impl StockBarsMultiRequest<'_> {
     /// Cap the total number of bars returned per symbol across all
     /// auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {

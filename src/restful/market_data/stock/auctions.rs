@@ -66,7 +66,7 @@ struct AuctionsResponse {
 /// Builder for requesting stock auction data.
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct AuctionsRequest<'a> {
+pub struct StockAuctionsRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     #[serde(skip)]
@@ -83,7 +83,7 @@ pub struct AuctionsRequest<'a> {
     page_token: Option<String>,
 }
 
-impl AuctionsRequest<'_> {
+impl StockAuctionsRequest<'_> {
     /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
@@ -134,8 +134,8 @@ impl AuctionsRequest<'_> {
 
 impl MarketDataClient {
     /// Request historical auction data for a single stock symbol.
-    pub fn stock_auctions<'a>(&'a self, symbol: &str) -> AuctionsRequest<'a> {
-        AuctionsRequest {
+    pub fn stock_auctions<'a>(&'a self, symbol: &str) -> StockAuctionsRequest<'a> {
+        StockAuctionsRequest {
             client: self,
             symbol: symbol.to_string(),
             start: None,

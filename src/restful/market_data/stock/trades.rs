@@ -58,7 +58,7 @@ struct MultiLatestTradesResponse {
 /// Builder for requesting historical stock trades.
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct TradesRequest<'a> {
+pub struct StockTradesRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     #[serde(skip)]
@@ -81,7 +81,7 @@ pub struct TradesRequest<'a> {
     page_token: Option<String>,
 }
 
-impl TradesRequest<'_> {
+impl StockTradesRequest<'_> {
     /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);
@@ -147,8 +147,8 @@ impl TradesRequest<'_> {
 
 impl MarketDataClient {
     /// Request historical trades for a single stock symbol.
-    pub fn stock_trades<'a>(&'a self, symbol: &str) -> TradesRequest<'a> {
-        TradesRequest {
+    pub fn stock_trades<'a>(&'a self, symbol: &str) -> StockTradesRequest<'a> {
+        StockTradesRequest {
             client: self,
             symbol: symbol.to_string(),
             start: None,
@@ -185,8 +185,8 @@ impl MarketDataClient {
     /// Request historical trades for multiple stock symbols. Returns a
     /// map keyed by symbol; symbols with no trades in the queried range
     /// are omitted from the response.
-    pub fn stock_trades_multi<'a>(&'a self, symbols: &[&str]) -> MultiSymbolTradesRequest<'a> {
-        MultiSymbolTradesRequest {
+    pub fn stock_trades_multi<'a>(&'a self, symbols: &[&str]) -> StockTradesMultiRequest<'a> {
+        StockTradesMultiRequest {
             client: self,
             symbols: symbols.join(","),
             start: None,
@@ -204,7 +204,7 @@ impl MarketDataClient {
 /// A request for `/v2/stocks/trades` (multi-symbol historical trades).
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct MultiSymbolTradesRequest<'a> {
+pub struct StockTradesMultiRequest<'a> {
     #[serde(skip)]
     client: &'a MarketDataClient,
     symbols: String,
@@ -216,7 +216,7 @@ pub struct MultiSymbolTradesRequest<'a> {
     feed: Option<RestFeed>,
     /// Per-symbol cap applied client-side during pagination, with each
     /// symbol's series truncated to the cap as pages arrive (see
-    /// [`MultiSymbolBarsRequest`][super::bars::MultiSymbolBarsRequest]
+    /// [`StockBarsMultiRequest`][super::bars::StockBarsMultiRequest]
     /// for rationale).
     #[serde(skip)]
     limit: Option<usize>,
@@ -230,7 +230,7 @@ pub struct MultiSymbolTradesRequest<'a> {
     page_token: Option<String>,
 }
 
-impl MultiSymbolTradesRequest<'_> {
+impl StockTradesMultiRequest<'_> {
     /// Set the start time filter.
     pub fn start(mut self, start: DateTime<Utc>) -> Self {
         self.start = Some(start);

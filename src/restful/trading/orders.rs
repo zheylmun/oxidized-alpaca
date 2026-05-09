@@ -19,21 +19,48 @@ pub enum OrderStatusFilter {
     All,
 }
 
-/// Take profit configuration for bracket orders.
+/// Take-profit leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct TakeProfit {
-    /// Target limit price for taking profit.
+    /// Target limit price at which the take-profit child order fires.
     pub limit_price: Decimal,
 }
 
-/// Stop loss configuration for bracket orders.
+impl TakeProfit {
+    /// Build a take-profit leg with the given target limit price.
+    pub fn new(limit_price: Decimal) -> Self {
+        Self { limit_price }
+    }
+}
+
+/// Stop-loss leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
 pub struct StopLoss {
-    /// Stop price that triggers the stop loss.
+    /// Stop price that triggers the stop-loss child order.
     pub stop_price: Decimal,
-    /// Optional limit price for a stop-limit loss order.
+    /// Optional limit price; when set, the child order is a stop-limit
+    /// instead of a plain stop.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub limit_price: Option<Decimal>,
+}
+
+impl StopLoss {
+    /// Build a plain stop-loss leg that fires a market order at `stop_price`.
+    pub fn new(stop_price: Decimal) -> Self {
+        Self {
+            stop_price,
+            limit_price: None,
+        }
+    }
+
+    /// Build a stop-limit-loss leg: triggers at `stop_price` and submits a
+    /// limit order at `limit_price`.
+    pub fn with_limit(stop_price: Decimal, limit_price: Decimal) -> Self {
+        Self {
+            stop_price,
+            limit_price: Some(limit_price),
+        }
+    }
 }
 
 /// Builder for creating a new order.
@@ -134,18 +161,15 @@ impl CreateOrderRequest<'_> {
         self
     }
 
-    /// Set take profit for bracket orders.
-    pub fn take_profit(mut self, limit_price: Decimal) -> Self {
-        self.take_profit = Some(TakeProfit { limit_price });
+    /// Attach a take-profit leg for bracket / OTO orders.
+    pub fn take_profit(mut self, take_profit: TakeProfit) -> Self {
+        self.take_profit = Some(take_profit);
         self
     }
 
-    /// Set stop loss for bracket orders.
-    pub fn stop_loss(mut self, stop_price: Decimal, limit_price: Option<Decimal>) -> Self {
-        self.stop_loss = Some(StopLoss {
-            stop_price,
-            limit_price,
-        });
+    /// Attach a stop-loss leg for bracket / OTO orders.
+    pub fn stop_loss(mut self, stop_loss: StopLoss) -> Self {
+        self.stop_loss = Some(stop_loss);
         self
     }
 
@@ -434,6 +458,139 @@ impl TradingClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn ensure_paper_creds() {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+    }
+
+    fn paper_client() -> TradingClient {
+        ensure_paper_creds();
+        TradingClient::new(AccountType::Paper).unwrap()
+    }
+
+    fn dec(s: &str) -> Decimal {
+        Decimal::from_str_exact(s).unwrap()
+    }
+
+    #[test]
+    fn take_profit_new_sets_limit_price() {
+        let tp = TakeProfit::new(dec("150.00"));
+        assert_eq!(tp.limit_price, dec("150.00"));
+    }
+
+    #[test]
+    fn stop_loss_new_sets_stop_price_only() {
+        let sl = StopLoss::new(dec("140.50"));
+        assert_eq!(sl.stop_price, dec("140.50"));
+        assert!(sl.limit_price.is_none());
+    }
+
+    #[test]
+    fn stop_loss_with_limit_sets_both_fields() {
+        let sl = StopLoss::with_limit(dec("140.50"), dec("139.00"));
+        assert_eq!(sl.stop_price, dec("140.50"));
+        assert_eq!(sl.limit_price, Some(dec("139.00")));
+    }
+
+    #[test]
+    fn stop_loss_new_skips_limit_price_in_serialization() {
+        let sl = StopLoss::new(dec("140.50"));
+        let value = serde_json::to_value(&sl).unwrap();
+        let obj = value.as_object().expect("StopLoss serializes to object");
+        assert!(
+            !obj.contains_key("limit_price"),
+            "expected no limit_price key for plain StopLoss, got {value}"
+        );
+        assert_eq!(
+            obj.get("stop_price").and_then(|v| v.as_str()),
+            Some("140.50")
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn create_order_take_profit_setter_serializes() {
+        let client = paper_client();
+        let request = client
+            .create_order("AAPL", Side::Buy, OrderType::Market)
+            .qty(dec("10"))
+            .take_profit(TakeProfit::new(dec("150.00")));
+        let value = serde_json::to_value(&request).unwrap();
+        let tp = value
+            .get("take_profit")
+            .expect("take_profit field present in JSON");
+        assert_eq!(
+            tp.get("limit_price").and_then(|v| v.as_str()),
+            Some("150.00")
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn create_order_stop_loss_setter_serializes_without_limit() {
+        let client = paper_client();
+        let request = client
+            .create_order("AAPL", Side::Sell, OrderType::Market)
+            .qty(dec("10"))
+            .stop_loss(StopLoss::new(dec("140.50")));
+        let value = serde_json::to_value(&request).unwrap();
+        let sl = value
+            .get("stop_loss")
+            .expect("stop_loss field present in JSON");
+        let sl_obj = sl.as_object().expect("stop_loss serializes to object");
+        assert_eq!(
+            sl_obj.get("stop_price").and_then(|v| v.as_str()),
+            Some("140.50")
+        );
+        assert!(
+            !sl_obj.contains_key("limit_price"),
+            "expected no limit_price key on plain stop loss, got {sl}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn create_order_stop_loss_with_limit_serializes_both_fields() {
+        let client = paper_client();
+        let request = client
+            .create_order("AAPL", Side::Sell, OrderType::Market)
+            .qty(dec("10"))
+            .stop_loss(StopLoss::with_limit(dec("140.50"), dec("139.00")));
+        let value = serde_json::to_value(&request).unwrap();
+        let sl = value
+            .get("stop_loss")
+            .expect("stop_loss field present in JSON");
+        assert_eq!(
+            sl.get("stop_price").and_then(|v| v.as_str()),
+            Some("140.50")
+        );
+        assert_eq!(
+            sl.get("limit_price").and_then(|v| v.as_str()),
+            Some("139.00")
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_limit_setter_serializes_to_query() {
+        let client = paper_client();
+        let request = client.list_orders().limit(10);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("limit=10"),
+            "expected limit=10 in query string, got {query}"
+        );
+    }
 
     #[test]
     fn test_order_deserialization() {
