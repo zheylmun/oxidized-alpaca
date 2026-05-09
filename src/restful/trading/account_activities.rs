@@ -307,15 +307,6 @@ impl TradingClient {
             category: None,
         }
     }
-
-    /// Look up a single account activity by its `id`.
-    ///
-    /// Wraps `GET /v2beta1/account/activities/{id}`.
-    pub async fn get_activity(&self, id: &str) -> crate::Result<Activity> {
-        let path = format!("v2beta1/account/activities/{id}");
-        let request = self.request(Method::GET, &path)?;
-        self.send_and_deserialize(request).await
-    }
 }
 
 #[cfg(test)]
