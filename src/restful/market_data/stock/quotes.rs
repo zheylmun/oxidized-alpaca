@@ -275,9 +275,9 @@ impl MultiSymbolQuotesRequest<'_> {
     }
 
     /// Execute the request, auto-paginating until all matching quotes are
-    /// retrieved. When `limit` is set, pagination stops as soon as every
-    /// requested symbol has reached the cap, and each symbol's series is
-    /// truncated to at most that many quotes afterward.
+    /// retrieved. When `limit` is set, each symbol's series is truncated
+    /// to the cap as pages arrive, and pagination stops as soon as every
+    /// requested symbol has reached the cap (or the API runs out of pages).
     pub async fn execute(
         mut self,
     ) -> crate::Result<std::collections::HashMap<String, Vec<StockQuote>>> {
@@ -295,7 +295,11 @@ impl MultiSymbolQuotesRequest<'_> {
                 .query(&self);
             let response: MultiQuotesResponse = self.client.send_and_deserialize(request).await?;
             for (symbol, quotes) in response.quotes {
-                combined.entry(symbol).or_default().extend(quotes);
+                let entry = combined.entry(symbol).or_default();
+                entry.extend(quotes);
+                if let Some(cap) = cap {
+                    entry.truncate(cap);
+                }
             }
             if let Some(cap) = cap
                 && requested
@@ -307,11 +311,6 @@ impl MultiSymbolQuotesRequest<'_> {
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,
-            }
-        }
-        if let Some(cap) = cap {
-            for quotes in combined.values_mut() {
-                quotes.truncate(cap);
             }
         }
         Ok(combined)

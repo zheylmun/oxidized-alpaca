@@ -269,9 +269,9 @@ impl MultiSymbolTradesRequest<'_> {
     }
 
     /// Execute the request, auto-paginating until all matching trades are
-    /// retrieved. When `limit` is set, pagination stops as soon as every
-    /// requested symbol has reached the cap, and each symbol's series is
-    /// truncated to at most that many trades afterward.
+    /// retrieved. When `limit` is set, each symbol's series is truncated
+    /// to the cap as pages arrive, and pagination stops as soon as every
+    /// requested symbol has reached the cap (or the API runs out of pages).
     pub async fn execute(
         mut self,
     ) -> crate::Result<std::collections::HashMap<String, Vec<StockTrade>>> {
@@ -289,7 +289,11 @@ impl MultiSymbolTradesRequest<'_> {
                 .query(&self);
             let response: MultiTradesResponse = self.client.send_and_deserialize(request).await?;
             for (symbol, trades) in response.trades {
-                combined.entry(symbol).or_default().extend(trades);
+                let entry = combined.entry(symbol).or_default();
+                entry.extend(trades);
+                if let Some(cap) = cap {
+                    entry.truncate(cap);
+                }
             }
             if let Some(cap) = cap
                 && requested
@@ -301,11 +305,6 @@ impl MultiSymbolTradesRequest<'_> {
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,
-            }
-        }
-        if let Some(cap) = cap {
-            for trades in combined.values_mut() {
-                trades.truncate(cap);
             }
         }
         Ok(combined)

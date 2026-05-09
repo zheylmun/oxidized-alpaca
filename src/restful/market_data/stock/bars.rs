@@ -296,9 +296,9 @@ impl MultiSymbolBarsRequest<'_> {
     }
 
     /// Execute the request, auto-paginating until all matching bars are
-    /// retrieved. When `limit` is set, pagination stops as soon as every
-    /// requested symbol has reached the cap, and each symbol's series is
-    /// truncated to at most that many bars afterward.
+    /// retrieved. When `limit` is set, each symbol's series is truncated
+    /// to the cap as pages arrive, and pagination stops as soon as every
+    /// requested symbol has reached the cap (or the API runs out of pages).
     pub async fn execute(mut self) -> crate::Result<std::collections::HashMap<String, Vec<Bar>>> {
         let cap = self.limit;
         if cap == Some(0) {
@@ -314,7 +314,11 @@ impl MultiSymbolBarsRequest<'_> {
                 .query(&self);
             let response: MultiBarsResponse = self.client.send_and_deserialize(request).await?;
             for (symbol, bars) in response.bars {
-                combined.entry(symbol).or_default().extend(bars);
+                let entry = combined.entry(symbol).or_default();
+                entry.extend(bars);
+                if let Some(cap) = cap {
+                    entry.truncate(cap);
+                }
             }
             if let Some(cap) = cap
                 && requested
@@ -326,11 +330,6 @@ impl MultiSymbolBarsRequest<'_> {
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,
-            }
-        }
-        if let Some(cap) = cap {
-            for bars in combined.values_mut() {
-                bars.truncate(cap);
             }
         }
         Ok(combined)
