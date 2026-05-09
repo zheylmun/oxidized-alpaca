@@ -101,16 +101,29 @@ impl Adjustment {
     }
 }
 
-/// Comma-joined set of [`Adjustment`] values for the `adjustment` query
-/// parameter. Alpaca accepts multiple values combined with commas
-/// (e.g. `split,dividend,spin-off`).
+/// Ordered, deduplicated list of [`Adjustment`] values for the
+/// `adjustment` query parameter. Alpaca accepts multiple values
+/// combined with commas (e.g. `split,dividend,spin-off`).
+///
+/// An empty list serializes to an empty string, which is not a valid
+/// `adjustment` value. Prefer constructing through
+/// [`StockBarsRequest::adjustments`][super::bars::StockBarsRequest::adjustments],
+/// which omits the parameter when the iterator is empty so Alpaca's
+/// default of `raw` is used.
 #[derive(Clone, Debug)]
 pub struct AdjustmentList(Vec<Adjustment>);
 
 impl AdjustmentList {
-    /// Construct from any iterator of [`Adjustment`] values.
+    /// Construct from any iterator of [`Adjustment`] values. Duplicate
+    /// values are dropped while preserving the order of first occurrence.
     pub fn new<I: IntoIterator<Item = Adjustment>>(items: I) -> Self {
-        Self(items.into_iter().collect())
+        let mut out = Vec::new();
+        for item in items {
+            if !out.contains(&item) {
+                out.push(item);
+            }
+        }
+        Self(out)
     }
 
     /// Returns `true` if no adjustments are set.
@@ -212,5 +225,20 @@ mod tests {
     fn adjustment_list_reports_empty() {
         assert!(AdjustmentList::new(std::iter::empty()).is_empty());
         assert!(!AdjustmentList::new([Adjustment::Split]).is_empty());
+    }
+
+    #[test]
+    fn adjustment_list_dedupes_preserving_first_occurrence() {
+        let list = AdjustmentList::new([
+            Adjustment::Split,
+            Adjustment::Dividend,
+            Adjustment::Split,
+            Adjustment::SpinOff,
+            Adjustment::Dividend,
+        ]);
+        assert_eq!(
+            serde_json::to_string(&list).unwrap(),
+            "\"split,dividend,spin-off\""
+        );
     }
 }
