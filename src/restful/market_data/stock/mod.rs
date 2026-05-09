@@ -112,6 +112,11 @@ impl AdjustmentList {
     pub fn new<I: IntoIterator<Item = Adjustment>>(items: I) -> Self {
         Self(items.into_iter().collect())
     }
+
+    /// Returns `true` if no adjustments are set.
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
 }
 
 impl From<Adjustment> for AdjustmentList {
@@ -201,5 +206,11 @@ mod tests {
     fn adjustment_list_from_single_value() {
         let list: AdjustmentList = Adjustment::Split.into();
         assert_eq!(serde_json::to_string(&list).unwrap(), "\"split\"");
+    }
+
+    #[test]
+    fn adjustment_list_reports_empty() {
+        assert!(AdjustmentList::new(std::iter::empty()).is_empty());
+        assert!(!AdjustmentList::new([Adjustment::Split]).is_empty());
     }
 }

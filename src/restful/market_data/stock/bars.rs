@@ -84,9 +84,11 @@ impl StockBarsRequest<'_> {
 
     /// Set multiple `adjustment` values for the bars request. Alpaca
     /// accepts any combination of `raw`, `split`, `dividend`, `spin-off`,
-    /// and `all` joined with commas.
+    /// and `all` joined with commas. An empty iterator leaves the
+    /// parameter unset, falling back to Alpaca's default of `raw`.
     pub fn adjustments<I: IntoIterator<Item = Adjustment>>(mut self, adjustments: I) -> Self {
-        self.adjustment = Some(AdjustmentList::new(adjustments));
+        let list = AdjustmentList::new(adjustments);
+        self.adjustment = if list.is_empty() { None } else { Some(list) };
         self
     }
 
