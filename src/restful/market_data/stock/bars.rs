@@ -193,53 +193,69 @@ impl MarketDataClient {
 
 #[cfg(test)]
 mod tests {
-    /*
     use super::*;
-    use serial_test::parallel;
-    use std::str::FromStr as _;
-
     use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
 
-    /// Check that we can decode a response containing no bars correctly.
-    #[tokio::test]
-    #[parallel]
-    async fn no_bars() {
-        let client = MarketDataClient::new(AccountType::Paper).unwrap();
-        let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
-        let end = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
-        let request = client.stock_bars("META", TimeFrame::OneDay)
-            .start(start)
-            .end(end);
-
-        let res = request.execute().await;
-        println!("{res:#?}");
-        assert_eq!(res.unwrap(), vec![]);
+    fn ensure_paper_creds() {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
     }
 
-    /// Check that we can decode a response containing one bar correctly.
-    #[tokio::test]
-    #[parallel]
-    async fn one_bar() {
-        let client = MarketDataClient::new(AccountType::Paper).unwrap();
-        let start = DateTime::from_str("2022-12-05T00:00:00Z").unwrap();
-        let end = DateTime::from_str("2022-12-06T00:00:00Z").unwrap();
-        let request = client.stock_bars("AAPL", TimeFrame::OneDay)
-            .start(start)
-            .end(end);
-
-        let res = request.execute().await;
-        let expected = Bar {
-            time: DateTime::from_str("2022-12-05T05:00:00Z").unwrap(),
-            open: 147.77,
-            close: 146.63,
-            high: 150.9199,
-            low: 145.77,
-            volume: 74981324,
-        };
-        assert!(res.is_ok());
-        let res = res.unwrap();
-        assert_eq!(res.len(), 1);
-        assert_eq!(res[0], expected);
+    fn paper_client() -> MarketDataClient {
+        ensure_paper_creds();
+        MarketDataClient::new(AccountType::Paper).unwrap()
     }
-    */
+
+    #[test]
+    #[serial]
+    fn single_adjustment_serializes_in_query() {
+        let client = paper_client();
+        let request = client
+            .stock_bars("AAPL", TimeFrame::OneDay)
+            .adjustment(Adjustment::Split);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("adjustment=split"),
+            "expected `adjustment=split` in {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn multiple_adjustments_join_with_commas_in_query() {
+        let client = paper_client();
+        let request = client.stock_bars("AAPL", TimeFrame::OneDay).adjustments([
+            Adjustment::Split,
+            Adjustment::Dividend,
+            Adjustment::SpinOff,
+        ]);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        // `,` is percent-encoded as %2C in query strings.
+        assert!(
+            query.contains("adjustment=split%2Cdividend%2Cspin-off"),
+            "expected joined adjustments in {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn empty_adjustments_omits_parameter() {
+        let client = paper_client();
+        let request = client
+            .stock_bars("AAPL", TimeFrame::OneDay)
+            .adjustments(std::iter::empty::<Adjustment>());
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            !query.contains("adjustment"),
+            "expected `adjustment` to be absent from {query}"
+        );
+    }
 }

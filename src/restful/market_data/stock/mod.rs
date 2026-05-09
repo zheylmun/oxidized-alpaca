@@ -216,6 +216,21 @@ mod tests {
     }
 
     #[test]
+    fn adjustment_list_serializes_every_variant() {
+        let list = AdjustmentList::new([
+            Adjustment::Raw,
+            Adjustment::Split,
+            Adjustment::Dividend,
+            Adjustment::SpinOff,
+            Adjustment::All,
+        ]);
+        assert_eq!(
+            serde_json::to_string(&list).unwrap(),
+            "\"raw,split,dividend,spin-off,all\""
+        );
+    }
+
+    #[test]
     fn adjustment_list_from_single_value() {
         let list: AdjustmentList = Adjustment::Split.into();
         assert_eq!(serde_json::to_string(&list).unwrap(), "\"split\"");
