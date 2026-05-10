@@ -70,6 +70,21 @@ impl TradingClient {
         response.json().await.map_err(Error::ReqwestDeserialize)
     }
 
+    /// Send a request and discard the body, returning an
+    /// [`Error::ApiError`] for non-2xx status codes.
+    pub(crate) async fn send_no_body(&self, request: RequestBuilder) -> Result<()> {
+        let response = request.send().await.map_err(Error::ReqwestSend)?;
+        let status = response.status();
+        if !status.is_success() {
+            let body = response.text().await.unwrap_or_default();
+            return Err(Error::ApiError {
+                status: status.as_u16(),
+                body,
+            });
+        }
+        Ok(())
+    }
+
     const fn base_url(&self) -> &'static str {
         match self.account_type {
             AccountType::Paper => PAPER_TRADING_URL,

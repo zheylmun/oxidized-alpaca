@@ -410,16 +410,7 @@ impl TradingClient {
     /// Cancel a specific order.
     pub async fn cancel_order(&self, order_id: &OrderId) -> crate::Result<()> {
         let request = self.request(Method::DELETE, &format!("v2/orders/{order_id}"))?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_no_body(request).await
     }
 
     /// Cancel all open orders.

@@ -154,16 +154,7 @@ impl TradingClient {
             Method::POST,
             &format!("v2/positions/{symbol_or_contract_id}/exercise"),
         )?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_no_body(request).await
     }
 
     /// Submit a do-not-exercise instruction for an options position.
@@ -172,16 +163,7 @@ impl TradingClient {
             Method::POST,
             &format!("v2/positions/{symbol_or_contract_id}/do-not-exercise"),
         )?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_no_body(request).await
     }
 }
 
