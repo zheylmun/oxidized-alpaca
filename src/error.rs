@@ -103,6 +103,38 @@ impl From<url::ParseError> for Error {
     }
 }
 
+/// JSON deserialization failure surfaced from typed accessors on opaque
+/// payloads (currently only [`crate::restful::market_data::corporate_actions::CorporateActionPayload::deserialize_into`]).
+///
+/// The crate uses [`serde_json`] internally, but its concrete error type is
+/// not exposed so the underlying dependency can change without a breaking
+/// release. Use [`std::error::Error::source`] to inspect the chain when
+/// diagnosing failures.
+#[cfg(feature = "restful")]
+#[derive(Debug)]
+pub struct JsonError(serde_json::Error);
+
+#[cfg(feature = "restful")]
+impl JsonError {
+    pub(crate) fn new(err: serde_json::Error) -> Self {
+        Self(err)
+    }
+}
+
+#[cfg(feature = "restful")]
+impl std::fmt::Display for JsonError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "restful")]
+impl std::error::Error for JsonError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 #[non_exhaustive]

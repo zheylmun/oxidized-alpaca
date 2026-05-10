@@ -1,7 +1,8 @@
+use crate::error::JsonError;
 use crate::restful::{MarketDataClient, SortDirection};
 use chrono::NaiveDate;
 use reqwest::Method;
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 /// Categories of corporate action accepted by the `types` filter.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -61,44 +62,76 @@ impl CorporateActionType {
     }
 }
 
-/// Corporate action types returned by the API.
+/// Opaque payload for a single corporate-action event.
 ///
-/// Each event still ships as a [`serde_json::Value`] because Alpaca's per-type
-/// payloads diverge significantly; pull individual fields from the value as
-/// needed (e.g. `event["id"]` for the action's stable identifier, used as
-/// input to the [`CorporateActionsRequest::ids`] filter).
+/// Alpaca's per-subtype field shapes diverge significantly and are not
+/// formally documented; the crate keeps the wire blob intact rather than
+/// committing to typed structs that could drift from the API. Use
+/// [`CorporateActionPayload::id`] to obtain the stable event identifier
+/// (the value the [`CorporateActionsRequest::ids`] filter accepts), or
+/// [`CorporateActionPayload::deserialize_into`] to project the payload into
+/// a user-defined struct mirroring the fields you care about.
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(transparent)]
+pub struct CorporateActionPayload(serde_json::Value);
+
+impl CorporateActionPayload {
+    /// Stable Alpaca-issued identifier for this event, if present.
+    ///
+    /// This is the same value accepted by
+    /// [`CorporateActionsRequest::ids`] when narrowing a follow-up query
+    /// to specific events.
+    #[must_use]
+    pub fn id(&self) -> Option<&str> {
+        self.0.get("id").and_then(serde_json::Value::as_str)
+    }
+
+    /// Project the payload into a user-defined struct.
+    ///
+    /// Define a struct mirroring the fields you care about for the
+    /// subtype in question; this clones and deserializes the underlying
+    /// value into your type.
+    pub fn deserialize_into<T>(&self) -> Result<T, JsonError>
+    where
+        T: DeserializeOwned,
+    {
+        serde_json::from_value(self.0.clone()).map_err(JsonError::new)
+    }
+}
+
+/// Corporate action types returned by the API.
 #[derive(Clone, Debug, Deserialize)]
 pub struct CorporateActions {
     /// Forward stock splits.
     #[serde(default)]
-    pub forward_splits: Vec<serde_json::Value>,
+    pub forward_splits: Vec<CorporateActionPayload>,
     /// Reverse stock splits.
     #[serde(default)]
-    pub reverse_splits: Vec<serde_json::Value>,
+    pub reverse_splits: Vec<CorporateActionPayload>,
     /// Cash dividend events.
     #[serde(default)]
-    pub cash_dividends: Vec<serde_json::Value>,
+    pub cash_dividends: Vec<CorporateActionPayload>,
     /// Stock dividend events.
     #[serde(default)]
-    pub stock_dividends: Vec<serde_json::Value>,
+    pub stock_dividends: Vec<CorporateActionPayload>,
     /// Cash merger events.
     #[serde(default)]
-    pub cash_mergers: Vec<serde_json::Value>,
+    pub cash_mergers: Vec<CorporateActionPayload>,
     /// Stock merger events.
     #[serde(default)]
-    pub stock_mergers: Vec<serde_json::Value>,
+    pub stock_mergers: Vec<CorporateActionPayload>,
     /// Stock-and-cash merger events.
     #[serde(default)]
-    pub stock_and_cash_mergers: Vec<serde_json::Value>,
+    pub stock_and_cash_mergers: Vec<CorporateActionPayload>,
     /// Name change events.
     #[serde(default)]
-    pub name_changes: Vec<serde_json::Value>,
+    pub name_changes: Vec<CorporateActionPayload>,
     /// Spin-off events.
     #[serde(default)]
-    pub spin_offs: Vec<serde_json::Value>,
+    pub spin_offs: Vec<CorporateActionPayload>,
     /// Redemption events.
     #[serde(default)]
-    pub redemptions: Vec<serde_json::Value>,
+    pub redemptions: Vec<CorporateActionPayload>,
 }
 
 /// Builder for `/v1/corporate-actions`.
@@ -310,9 +343,49 @@ mod tests {
         }"#;
         let parsed: CorporateActions = serde_json::from_str(json).unwrap();
         assert_eq!(parsed.cash_dividends.len(), 1);
-        assert_eq!(parsed.cash_dividends[0]["id"], "abc-123");
+        assert_eq!(parsed.cash_dividends[0].id(), Some("abc-123"));
         assert_eq!(parsed.spin_offs.len(), 1);
-        assert_eq!(parsed.spin_offs[0]["id"], "def-456");
+        assert_eq!(parsed.spin_offs[0].id(), Some("def-456"));
         assert!(parsed.forward_splits.is_empty());
+    }
+
+    #[test]
+    fn payload_deserializes_into_user_struct() {
+        #[derive(serde::Deserialize)]
+        struct CashDividend {
+            id: String,
+            symbol: String,
+            rate: String,
+        }
+        let json = r#"{"id":"abc-123","symbol":"AAPL","ex_date":"2025-02-10","rate":"0.24"}"#;
+        let payload: CorporateActionPayload = serde_json::from_str(json).unwrap();
+        let dividend: CashDividend = payload.deserialize_into().unwrap();
+        assert_eq!(dividend.id, "abc-123");
+        assert_eq!(dividend.symbol, "AAPL");
+        assert_eq!(dividend.rate, "0.24");
+    }
+
+    #[test]
+    fn payload_deserialize_into_surfaces_json_error_with_message() {
+        #[derive(Debug, serde::Deserialize)]
+        #[allow(dead_code)]
+        struct CashDividend {
+            rate: f64,
+        }
+        // `rate` is a string in the wire blob but f64 in the user struct.
+        let json = r#"{"id":"abc","rate":"not-a-number"}"#;
+        let payload: CorporateActionPayload = serde_json::from_str(json).unwrap();
+        let err = payload
+            .deserialize_into::<CashDividend>()
+            .expect_err("expected type-mismatch failure");
+        let rendered = err.to_string();
+        assert!(!rendered.is_empty(), "expected non-empty Display output");
+        assert!(
+            !format!("{err:?}").is_empty(),
+            "expected non-empty Debug output",
+        );
+        // `source()` forwards to the wrapped serde_json error, which is a
+        // leaf in this crate's chain — exercise it to assert it doesn't panic.
+        let _ = std::error::Error::source(&err);
     }
 }
