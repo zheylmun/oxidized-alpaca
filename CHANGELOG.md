@@ -20,6 +20,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `TradingUpdatesMessage`) `#[non_exhaustive]` so newly documented message types
   from Alpaca can be added without a major bump.
 - Mark `AdjustmentList` `#[non_exhaustive]`.
+- **Breaking:** the streaming event payloads that share a name with their REST
+  counterparts gained an `Event` suffix to disambiguate the two:
+  `NewsArticle` → `NewsArticleEvent`, `StockQuote` → `StockQuoteEvent`,
+  `StockTrade` → `StockTradeEvent`, `CryptoBar` → `CryptoBarEvent`,
+  `CryptoQuote` → `CryptoQuoteEvent`, `CryptoTrade` → `CryptoTradeEvent`,
+  `CryptoOrderbook` → `CryptoOrderbookEvent`, `OptionTrade` → `OptionTradeEvent`,
+  `OptionQuote` → `OptionQuoteEvent`. The wire format is unchanged.
+- **Breaking:** `streaming::messages` is now a curated module — only each
+  per-feed `…StreamMessage` enum and `…SubscriptionList` builder are
+  re-exported at `streaming::*`. The individual event payload structs are
+  reachable at `streaming::messages::{stock,crypto,news,option,trade_update}::…`.
+- **Breaking:** `CorporateActions` event lists changed from
+  `Vec<serde_json::Value>` to `Vec<CorporateActionPayload>`, a newtype that
+  exposes `id()` and `deserialize_into::<T>()` so callers no longer need a
+  `serde_json` dependency to inspect payloads.
+
+### Added
+
+- `AdjustmentList` now exposes `iter()`, `as_slice()`, and `IntoIterator`
+  impls so callers can read back the values they constructed.
+- `CorporateActionType` and `MoverMarket` now derive `Serialize` /
+  `Deserialize` (matching their existing wire vocabularies) so callers can
+  round-trip them through configuration files or other wire formats.
+- `JsonError` (under `crate::error`) wraps `serde_json::Error` for typed
+  payload deserializers, so the underlying JSON dependency stays out of the
+  public type graph.
 
 ### Fixed
 

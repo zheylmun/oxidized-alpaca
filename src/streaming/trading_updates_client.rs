@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 use crate::{
     AccountType, Error,
     env::Env,
-    streaming::messages::{
+    streaming::messages::trade_update::{
         AuthorizationStatus, ListenStreams, TradeUpdate, TradingUpdatesMessage,
         TradingUpdatesRequest,
     },

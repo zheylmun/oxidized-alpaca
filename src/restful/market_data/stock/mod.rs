@@ -21,6 +21,10 @@ pub mod trades;
 /// [`Date`][AsOf::Date] to anchor the mapping at a specific calendar day,
 /// or [`SkipSymbolMapping`][AsOf::SkipSymbolMapping] to disable mapping
 /// (sent as the literal `"-"`).
+///
+/// `asof` is a request-only parameter; Alpaca does not echo it back on
+/// any response shape, so this enum implements [`Serialize`] (for
+/// query-string emission) but intentionally not `Deserialize`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum AsOf {
@@ -78,6 +82,17 @@ impl Adjustment {
 /// [`StockBarsRequest::adjustments`][bars::StockBarsRequest::adjustments],
 /// which omits the parameter when the iterator is empty so Alpaca's
 /// default of `raw` is used.
+///
+/// ```
+/// use oxidized_alpaca::restful::market_data::stock::{Adjustment, AdjustmentList};
+///
+/// let list = AdjustmentList::new([Adjustment::Split, Adjustment::Dividend]);
+/// assert_eq!(list.iter().count(), 2);
+/// assert_eq!(list.as_slice().len(), 2);
+/// for adjustment in &list {
+///     let _: &Adjustment = adjustment;
+/// }
+/// ```
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub struct AdjustmentList(Vec<Adjustment>);
@@ -98,6 +113,35 @@ impl AdjustmentList {
     /// Returns `true` if no adjustments are set.
     pub fn is_empty(&self) -> bool {
         self.0.is_empty()
+    }
+
+    /// Borrow the contained adjustments as a slice.
+    #[must_use]
+    pub fn as_slice(&self) -> &[Adjustment] {
+        &self.0
+    }
+
+    /// Iterate the contained adjustments by reference.
+    pub fn iter(&self) -> std::slice::Iter<'_, Adjustment> {
+        self.0.iter()
+    }
+}
+
+impl<'a> IntoIterator for &'a AdjustmentList {
+    type Item = &'a Adjustment;
+    type IntoIter = std::slice::Iter<'a, Adjustment>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.iter()
+    }
+}
+
+impl IntoIterator for AdjustmentList {
+    type Item = Adjustment;
+    type IntoIter = std::vec::IntoIter<Adjustment>;
+
+    fn into_iter(self) -> Self::IntoIter {
+        self.0.into_iter()
     }
 }
 
@@ -209,6 +253,23 @@ mod tests {
     fn adjustment_list_reports_empty() {
         assert!(AdjustmentList::new(std::iter::empty()).is_empty());
         assert!(!AdjustmentList::new([Adjustment::Split]).is_empty());
+    }
+
+    #[test]
+    fn adjustment_list_iter_and_as_slice_expose_contents() {
+        let list = AdjustmentList::new([Adjustment::Split, Adjustment::Dividend]);
+        assert_eq!(list.as_slice(), &[Adjustment::Split, Adjustment::Dividend]);
+        let collected: Vec<Adjustment> = list.iter().copied().collect();
+        assert_eq!(collected, vec![Adjustment::Split, Adjustment::Dividend]);
+    }
+
+    #[test]
+    fn adjustment_list_into_iter_yields_borrowed_and_owned_values() {
+        let list = AdjustmentList::new([Adjustment::Split, Adjustment::Dividend]);
+        let by_ref: Vec<&Adjustment> = (&list).into_iter().collect();
+        assert_eq!(by_ref, vec![&Adjustment::Split, &Adjustment::Dividend]);
+        let owned: Vec<Adjustment> = list.into_iter().collect();
+        assert_eq!(owned, vec![Adjustment::Split, Adjustment::Dividend]);
     }
 
     #[test]

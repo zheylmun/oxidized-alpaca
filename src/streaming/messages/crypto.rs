@@ -116,7 +116,7 @@ pub enum CryptoTakerSide {
 /// bars omit them.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct CryptoBar {
+pub struct CryptoBarEvent {
     /// Trading pair symbol (e.g. `BTC/USD`).
     #[serde(rename = "S")]
     pub symbol: String,
@@ -149,7 +149,7 @@ pub struct CryptoBar {
 /// Real-time crypto quote with bid and ask.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct CryptoQuote {
+pub struct CryptoQuoteEvent {
     /// Trading pair symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -173,7 +173,7 @@ pub struct CryptoQuote {
 /// Real-time crypto trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct CryptoTrade {
+pub struct CryptoTradeEvent {
     /// Trading pair symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -210,7 +210,7 @@ pub struct CryptoBookLevel {
 /// full book; otherwise they are an incremental update.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct CryptoOrderbook {
+pub struct CryptoOrderbookEvent {
     /// Trading pair symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -247,22 +247,22 @@ pub enum CryptoStreamMessage {
     Subscription(CryptoSubscriptionList),
     /// Minute bar update.
     #[serde(rename = "b")]
-    Bar(CryptoBar),
+    Bar(CryptoBarEvent),
     /// Daily bar update.
     #[serde(rename = "d")]
-    DailyBar(CryptoBar),
+    DailyBar(CryptoBarEvent),
     /// Updated bar.
     #[serde(rename = "u")]
-    UpdatedBar(CryptoBar),
+    UpdatedBar(CryptoBarEvent),
     /// Trade event.
     #[serde(rename = "t")]
-    Trade(CryptoTrade),
+    Trade(CryptoTradeEvent),
     /// Quote update.
     #[serde(rename = "q")]
-    Quote(CryptoQuote),
+    Quote(CryptoQuoteEvent),
     /// Orderbook update.
     #[serde(rename = "o")]
-    Orderbook(CryptoOrderbook),
+    Orderbook(CryptoOrderbookEvent),
 }
 
 impl CryptoStreamMessage {

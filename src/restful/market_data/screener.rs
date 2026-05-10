@@ -1,6 +1,6 @@
 use crate::restful::MarketDataClient;
 use reqwest::Method;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 /// A most-active stock.
 #[derive(Clone, Debug, Deserialize)]
@@ -54,7 +54,8 @@ pub struct MarketMovers {
 }
 
 /// Market category supported by the movers screener.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum MoverMarket {
     /// Equity market.

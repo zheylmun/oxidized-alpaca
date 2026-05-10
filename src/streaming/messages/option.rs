@@ -58,7 +58,7 @@ fn append_unique(list: Option<Vec<String>>, symbol: &str) -> Vec<String> {
 /// Real-time options trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct OptionTrade {
+pub struct OptionTradeEvent {
     /// OCC option symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -82,7 +82,7 @@ pub struct OptionTrade {
 /// Real-time options quote with bid and ask.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct OptionQuote {
+pub struct OptionQuoteEvent {
     /// OCC option symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -131,10 +131,10 @@ pub enum OptionStreamMessage {
     Subscription(OptionSubscriptionList),
     /// Trade event.
     #[serde(rename = "t")]
-    Trade(OptionTrade),
+    Trade(OptionTradeEvent),
     /// Quote update.
     #[serde(rename = "q")]
-    Quote(OptionQuote),
+    Quote(OptionQuoteEvent),
 }
 
 impl OptionStreamMessage {
@@ -152,7 +152,7 @@ mod tests {
 
     #[test]
     fn round_trips_trade_via_msgpack() {
-        let original = OptionTrade {
+        let original = OptionTradeEvent {
             symbol: "AAPL240119C00150000".to_string(),
             timestamp: "2024-01-02T15:30:00Z".parse().unwrap(),
             price: 12.50,
@@ -161,7 +161,7 @@ mod tests {
             condition: Some("@".to_string()),
         };
         let bytes = rmp_serde::to_vec_named(&original).unwrap();
-        let decoded: OptionTrade = rmp_serde::from_slice(&bytes).unwrap();
+        let decoded: OptionTradeEvent = rmp_serde::from_slice(&bytes).unwrap();
         assert_eq!(decoded.symbol, original.symbol);
         assert_eq!(decoded.size, 5);
         assert_eq!(decoded.condition.as_deref(), Some("@"));
@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn round_trips_quote_via_msgpack() {
-        let original = OptionQuote {
+        let original = OptionQuoteEvent {
             symbol: "AAPL240119C00150000".to_string(),
             timestamp: "2024-01-02T15:30:00Z".parse().unwrap(),
             bid_exchange: Some("X".to_string()),
@@ -181,7 +181,7 @@ mod tests {
             condition: Some("R".to_string()),
         };
         let bytes = rmp_serde::to_vec_named(&original).unwrap();
-        let decoded: OptionQuote = rmp_serde::from_slice(&bytes).unwrap();
+        let decoded: OptionQuoteEvent = rmp_serde::from_slice(&bytes).unwrap();
         assert_eq!(decoded.bid_size, 10);
         assert_eq!(decoded.ask_size, 8);
         assert_eq!(decoded.condition.as_deref(), Some("R"));
@@ -189,7 +189,7 @@ mod tests {
 
     #[test]
     fn round_trips_stream_message_via_msgpack() {
-        let trade = OptionStreamMessage::Trade(OptionTrade {
+        let trade = OptionStreamMessage::Trade(OptionTradeEvent {
             symbol: "AAPL240119C00150000".to_string(),
             timestamp: "2024-01-02T15:30:00Z".parse().unwrap(),
             price: 12.50,
