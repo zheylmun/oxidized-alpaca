@@ -3,9 +3,30 @@ use crate::{ClientOrderId, OrderId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 pub use crate::orders::{Order, OrderClass, OrderStatus, OrderType, Side, TimeInForce};
+
+/// Marker for a [`CreateOrderRequest`] that has not had a size
+/// ([`qty`][CreateOrderRequest::qty] or
+/// [`notional`][CreateOrderRequest::notional]) chosen yet.
+/// `execute()` is unavailable in this state.
+#[derive(Debug)]
+pub enum Draft {}
+
+/// Marker for a [`CreateOrderRequest`] that has had a size chosen and
+/// is ready to submit. `execute()` is only available in this state.
+#[derive(Debug)]
+pub enum Ready {}
+
+fn infer_order_class(has_take_profit: bool, has_stop_loss: bool) -> Option<OrderClass> {
+    match (has_take_profit, has_stop_loss) {
+        (true, true) => Some(OrderClass::Bracket),
+        (true, false) | (false, true) => Some(OrderClass::Oto),
+        (false, false) => None,
+    }
+}
 
 /// Status filter accepted by the list-orders endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
@@ -18,6 +39,26 @@ pub enum OrderStatusFilter {
     Closed,
     /// Return both open and closed orders.
     All,
+}
+
+/// Per-order outcome from the bulk cancel endpoint.
+///
+/// Alpaca's `DELETE /v2/orders` returns HTTP 207 with one of these
+/// entries per order it tried to cancel. `status` is the per-order HTTP
+/// status code; entries with `status == 200` are cancellations that
+/// succeeded, anything else is a failure with details in `body`.
+#[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
+pub struct CancelOrderStatus {
+    /// The order id the cancel was attempted for.
+    pub id: OrderId,
+    /// HTTP status code reported for this individual cancel.
+    pub status: u16,
+    /// Per-order response payload. Contains the cancelled order on
+    /// success, an error object on failure. Held as a raw JSON value
+    /// so callers can decide how strictly to interpret it.
+    #[serde(default)]
+    pub body: Option<serde_json::Value>,
 }
 
 /// Take-profit leg configuration for bracket / OTO orders.
@@ -66,10 +107,26 @@ impl StopLoss {
     }
 }
 
-/// Builder for creating a new order.
+/// Builder for submitting a new order.
+///
+/// Construct one through a per-`OrderType` entry point on
+/// [`TradingClient`] (e.g. [`TradingClient::market_order`],
+/// [`TradingClient::limit_order`], [`TradingClient::stop_limit_order`]).
+/// Each entry point bakes in the parameters that order type requires.
+///
+/// Alpaca requires every order to specify either a share quantity
+/// ([`qty`][Self::qty]) or a dollar amount ([`notional`][Self::notional])
+/// — never both, never neither. That invariant is encoded in the type
+/// state: builders start in [`Draft`] and `execute()` is only available
+/// once `qty` or `notional` has been called, transitioning to [`Ready`].
+/// The remaining setters ([`time_in_force`][Self::time_in_force],
+/// [`extended_hours`][Self::extended_hours],
+/// [`client_order_id`][Self::client_order_id],
+/// [`take_profit`][Self::take_profit], [`stop_loss`][Self::stop_loss],
+/// [`order_class`][Self::order_class]) are genuinely optional.
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct CreateOrderRequest<'a> {
+pub struct CreateOrderRequest<'a, S = Draft> {
     #[serde(skip)]
     client: &'a TradingClient,
     symbol: String,
@@ -99,50 +156,55 @@ pub struct CreateOrderRequest<'a> {
     take_profit: Option<TakeProfit>,
     #[serde(skip_serializing_if = "Option::is_none")]
     stop_loss: Option<StopLoss>,
+    #[serde(skip)]
+    _marker: PhantomData<S>,
 }
 
-impl CreateOrderRequest<'_> {
-    /// Set the quantity of shares to trade.
-    pub fn qty(mut self, qty: Decimal) -> Self {
-        self.qty = Some(qty);
-        self.notional = None;
-        self
+impl<'a, S> CreateOrderRequest<'a, S> {
+    fn into_state<S2>(
+        self,
+        qty: Option<Decimal>,
+        notional: Option<Decimal>,
+    ) -> CreateOrderRequest<'a, S2> {
+        CreateOrderRequest {
+            client: self.client,
+            symbol: self.symbol,
+            side: self.side,
+            order_type: self.order_type,
+            time_in_force: self.time_in_force,
+            qty,
+            notional,
+            limit_price: self.limit_price,
+            stop_price: self.stop_price,
+            trail_price: self.trail_price,
+            trail_percent: self.trail_percent,
+            extended_hours: self.extended_hours,
+            client_order_id: self.client_order_id,
+            order_class: self.order_class,
+            take_profit: self.take_profit,
+            stop_loss: self.stop_loss,
+            _marker: PhantomData,
+        }
     }
 
-    /// Set the notional (dollar) amount to trade. Mutually exclusive with `qty`.
-    pub fn notional(mut self, notional: Decimal) -> Self {
-        self.notional = Some(notional);
-        self.qty = None;
-        self
+    /// Size the order by share quantity. Mutually exclusive with
+    /// [`notional`][Self::notional]; calling this transitions the
+    /// builder into the [`Ready`] state where `execute()` becomes
+    /// available.
+    pub fn qty(self, qty: Decimal) -> CreateOrderRequest<'a, Ready> {
+        self.into_state(Some(qty), None)
+    }
+
+    /// Size the order by dollar amount. Mutually exclusive with
+    /// [`qty`][Self::qty]; calling this transitions the builder into
+    /// the [`Ready`] state where `execute()` becomes available.
+    pub fn notional(self, notional: Decimal) -> CreateOrderRequest<'a, Ready> {
+        self.into_state(None, Some(notional))
     }
 
     /// Set the time in force.
     pub fn time_in_force(mut self, tif: TimeInForce) -> Self {
         self.time_in_force = tif;
-        self
-    }
-
-    /// Set the limit price (required for Limit and StopLimit orders).
-    pub fn limit_price(mut self, price: Decimal) -> Self {
-        self.limit_price = Some(price);
-        self
-    }
-
-    /// Set the stop price (required for Stop and StopLimit orders).
-    pub fn stop_price(mut self, price: Decimal) -> Self {
-        self.stop_price = Some(price);
-        self
-    }
-
-    /// Set the trail price (for trailing stop orders).
-    pub fn trail_price(mut self, price: Decimal) -> Self {
-        self.trail_price = Some(price);
-        self
-    }
-
-    /// Set the trail percent (for trailing stop orders).
-    pub fn trail_percent(mut self, percent: Decimal) -> Self {
-        self.trail_percent = Some(percent);
         self
     }
 
@@ -158,26 +220,40 @@ impl CreateOrderRequest<'_> {
         self
     }
 
-    /// Set the order class for advanced order types.
-    pub fn order_class(mut self, class: OrderClass) -> Self {
-        self.order_class = Some(class);
-        self
-    }
-
-    /// Attach a take-profit leg for bracket / OTO orders.
+    /// Attach a take-profit leg, promoting this order into the
+    /// appropriate advanced order class. With both `take_profit` and
+    /// [`stop_loss`][Self::stop_loss] set the order is submitted as a
+    /// bracket; with only one set it becomes an OTO. Use
+    /// [`order_class`][Self::order_class] to override the inference
+    /// (e.g. for OCO).
     pub fn take_profit(mut self, take_profit: TakeProfit) -> Self {
         self.take_profit = Some(take_profit);
         self
     }
 
-    /// Attach a stop-loss leg for bracket / OTO orders.
+    /// Attach a stop-loss leg. See [`take_profit`][Self::take_profit]
+    /// for how this interacts with the inferred order class.
     pub fn stop_loss(mut self, stop_loss: StopLoss) -> Self {
         self.stop_loss = Some(stop_loss);
         self
     }
 
+    /// Override the inferred order class. Most callers should not
+    /// touch this — it only matters for OCO exits, where neither
+    /// "bracket" nor "OTO" applies even though both legs are set.
+    pub fn order_class(mut self, class: OrderClass) -> Self {
+        self.order_class = Some(class);
+        self
+    }
+}
+
+impl CreateOrderRequest<'_, Ready> {
     /// Submit the order.
-    pub async fn execute(self) -> crate::Result<Order> {
+    pub async fn execute(mut self) -> crate::Result<Order> {
+        if self.order_class.is_none() {
+            self.order_class =
+                infer_order_class(self.take_profit.is_some(), self.stop_loss.is_some());
+        }
         let request = self.client.request(Method::POST, "v2/orders")?.json(&self);
         self.client.send_and_deserialize(request).await
     }
@@ -332,22 +408,16 @@ impl ReplaceOrderRequest<'_> {
 }
 
 impl TradingClient {
-    /// Create a new order.
-    ///
-    /// ```ignore
-    /// use rust_decimal_macros::dec;
-    ///
-    /// let order = client.create_order("AAPL", Side::Buy, OrderType::Market)
-    ///     .qty(dec!(10))
-    ///     .time_in_force(TimeInForce::Day)
-    ///     .execute().await?;
-    /// ```
-    pub fn create_order(
+    /// Internal helper that constructs a fresh [`CreateOrderRequest`]
+    /// in the [`Draft`] state with all type-specific price fields unset.
+    /// The public per-`OrderType` entry points layer the required fields
+    /// on top.
+    fn new_create_order_request(
         &self,
         symbol: &str,
         side: Side,
         order_type: OrderType,
-    ) -> CreateOrderRequest<'_> {
+    ) -> CreateOrderRequest<'_, Draft> {
         CreateOrderRequest {
             client: self,
             symbol: symbol.to_string(),
@@ -365,14 +435,108 @@ impl TradingClient {
             order_class: None,
             take_profit: None,
             stop_loss: None,
+            _marker: PhantomData,
         }
+    }
+
+    /// Submit a market order.
+    ///
+    /// ```ignore
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let order = client.market_order("AAPL", Side::Buy)
+    ///     .qty(dec!(10))
+    ///     .execute().await?;
+    /// ```
+    pub fn market_order(&self, symbol: &str, side: Side) -> CreateOrderRequest<'_> {
+        self.new_create_order_request(symbol, side, OrderType::Market)
+    }
+
+    /// Submit a limit order at `limit_price`.
+    ///
+    /// ```ignore
+    /// use rust_decimal_macros::dec;
+    ///
+    /// let order = client.limit_order("AAPL", Side::Buy, dec!(150))
+    ///     .qty(dec!(10))
+    ///     .time_in_force(TimeInForce::Gtc)
+    ///     .execute().await?;
+    /// ```
+    pub fn limit_order(
+        &self,
+        symbol: &str,
+        side: Side,
+        limit_price: Decimal,
+    ) -> CreateOrderRequest<'_> {
+        let mut req = self.new_create_order_request(symbol, side, OrderType::Limit);
+        req.limit_price = Some(limit_price);
+        req
+    }
+
+    /// Submit a stop order that triggers at `stop_price`.
+    pub fn stop_order(
+        &self,
+        symbol: &str,
+        side: Side,
+        stop_price: Decimal,
+    ) -> CreateOrderRequest<'_> {
+        let mut req = self.new_create_order_request(symbol, side, OrderType::Stop);
+        req.stop_price = Some(stop_price);
+        req
+    }
+
+    /// Submit a stop-limit order that triggers at `stop_price` and then
+    /// rests as a limit order at `limit_price`.
+    pub fn stop_limit_order(
+        &self,
+        symbol: &str,
+        side: Side,
+        stop_price: Decimal,
+        limit_price: Decimal,
+    ) -> CreateOrderRequest<'_> {
+        let mut req = self.new_create_order_request(symbol, side, OrderType::StopLimit);
+        req.stop_price = Some(stop_price);
+        req.limit_price = Some(limit_price);
+        req
+    }
+
+    /// Submit a trailing-stop order that trails the favorable price by
+    /// the given absolute amount.
+    ///
+    /// Mutually exclusive with
+    /// [`trailing_stop_order_by_percent`][Self::trailing_stop_order_by_percent].
+    pub fn trailing_stop_order_by_price(
+        &self,
+        symbol: &str,
+        side: Side,
+        trail_price: Decimal,
+    ) -> CreateOrderRequest<'_> {
+        let mut req = self.new_create_order_request(symbol, side, OrderType::TrailingStop);
+        req.trail_price = Some(trail_price);
+        req
+    }
+
+    /// Submit a trailing-stop order that trails the favorable price by
+    /// the given percentage.
+    ///
+    /// Mutually exclusive with
+    /// [`trailing_stop_order_by_price`][Self::trailing_stop_order_by_price].
+    pub fn trailing_stop_order_by_percent(
+        &self,
+        symbol: &str,
+        side: Side,
+        trail_percent: Decimal,
+    ) -> CreateOrderRequest<'_> {
+        let mut req = self.new_create_order_request(symbol, side, OrderType::TrailingStop);
+        req.trail_percent = Some(trail_percent);
+        req
     }
 
     /// List orders with optional filters.
     ///
     /// ```ignore
     /// let orders = client.list_orders()
-    ///     .status("open")
+    ///     .status(OrderStatusFilter::Open)
     ///     .limit(10)
     ///     .execute().await?;
     /// ```
@@ -410,31 +574,18 @@ impl TradingClient {
     /// Cancel a specific order.
     pub async fn cancel_order(&self, order_id: &OrderId) -> crate::Result<()> {
         let request = self.request(Method::DELETE, &format!("v2/orders/{order_id}"))?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_no_body(request).await
     }
 
-    /// Cancel all open orders.
-    pub async fn cancel_all_orders(&self) -> crate::Result<()> {
+    /// Attempt to cancel every open order.
+    ///
+    /// Alpaca processes each open order individually and returns a
+    /// per-order outcome; success is HTTP 207 with the array surfaced
+    /// here. Inspect each [`CancelOrderStatus::status`] to distinguish
+    /// successful cancels (`200`) from failures.
+    pub async fn cancel_all_orders(&self) -> crate::Result<Vec<CancelOrderStatus>> {
         let request = self.request(Method::DELETE, "v2/orders")?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_and_deserialize(request).await
     }
 
     /// Replace (modify) an existing order.
@@ -530,7 +681,7 @@ mod tests {
     fn create_order_take_profit_setter_serializes() {
         let client = paper_client();
         let request = client
-            .create_order("AAPL", Side::Buy, OrderType::Market)
+            .market_order("AAPL", Side::Buy)
             .qty(dec("10"))
             .take_profit(TakeProfit::new(dec("150.00")));
         let value = serde_json::to_value(&request).unwrap();
@@ -548,7 +699,7 @@ mod tests {
     fn create_order_stop_loss_setter_serializes_without_limit() {
         let client = paper_client();
         let request = client
-            .create_order("AAPL", Side::Sell, OrderType::Market)
+            .market_order("AAPL", Side::Sell)
             .qty(dec("10"))
             .stop_loss(StopLoss::new(dec("140.50")));
         let value = serde_json::to_value(&request).unwrap();
@@ -571,7 +722,7 @@ mod tests {
     fn create_order_stop_loss_with_limit_serializes_both_fields() {
         let client = paper_client();
         let request = client
-            .create_order("AAPL", Side::Sell, OrderType::Market)
+            .market_order("AAPL", Side::Sell)
             .qty(dec("10"))
             .stop_loss(StopLoss::with_limit(dec("140.50"), dec("139.00")));
         let value = serde_json::to_value(&request).unwrap();
@@ -597,6 +748,101 @@ mod tests {
         assert!(
             query.contains("limit=10"),
             "expected limit=10 in query string, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn limit_order_pre_populates_type_and_price() {
+        let client = paper_client();
+        let request = client.limit_order("AAPL", Side::Buy, dec("150"));
+        let value = serde_json::to_value(&request).unwrap();
+        assert_eq!(value.get("type").and_then(|v| v.as_str()), Some("limit"));
+        assert_eq!(
+            value.get("limit_price").and_then(|v| v.as_str()),
+            Some("150")
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn stop_limit_order_pre_populates_both_prices() {
+        let client = paper_client();
+        let request = client.stop_limit_order("AAPL", Side::Sell, dec("140"), dec("139"));
+        let value = serde_json::to_value(&request).unwrap();
+        assert_eq!(
+            value.get("type").and_then(|v| v.as_str()),
+            Some("stop_limit")
+        );
+        assert_eq!(
+            value.get("stop_price").and_then(|v| v.as_str()),
+            Some("140")
+        );
+        assert_eq!(
+            value.get("limit_price").and_then(|v| v.as_str()),
+            Some("139")
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn trailing_stop_by_price_and_percent_are_distinct() {
+        let client = paper_client();
+        let by_price = serde_json::to_value(client.trailing_stop_order_by_price(
+            "AAPL",
+            Side::Sell,
+            dec("0.50"),
+        ))
+        .unwrap();
+        assert_eq!(
+            by_price.get("trail_price").and_then(|v| v.as_str()),
+            Some("0.50")
+        );
+        assert!(by_price.get("trail_percent").is_none());
+
+        let by_pct = serde_json::to_value(client.trailing_stop_order_by_percent(
+            "AAPL",
+            Side::Sell,
+            dec("2.5"),
+        ))
+        .unwrap();
+        assert_eq!(
+            by_pct.get("trail_percent").and_then(|v| v.as_str()),
+            Some("2.5")
+        );
+        assert!(by_pct.get("trail_price").is_none());
+    }
+
+    #[test]
+    fn infer_order_class_returns_bracket_when_both_legs_set() {
+        assert_eq!(infer_order_class(true, true), Some(OrderClass::Bracket));
+    }
+
+    #[test]
+    fn infer_order_class_returns_oto_when_one_leg_set() {
+        assert_eq!(infer_order_class(true, false), Some(OrderClass::Oto));
+        assert_eq!(infer_order_class(false, true), Some(OrderClass::Oto));
+    }
+
+    #[test]
+    fn infer_order_class_returns_none_when_no_legs_set() {
+        assert_eq!(infer_order_class(false, false), None);
+    }
+
+    #[test]
+    #[serial]
+    fn explicit_order_class_overrides_inference() {
+        let client = paper_client();
+        let request = client
+            .limit_order("AAPL", Side::Sell, dec("150"))
+            .qty(dec("10"))
+            .take_profit(TakeProfit::new(dec("160")))
+            .stop_loss(StopLoss::new(dec("145")))
+            .order_class(OrderClass::Oco);
+        let value = serde_json::to_value(&request).unwrap();
+        assert_eq!(
+            value.get("order_class").and_then(|v| v.as_str()),
+            Some("oco")
         );
     }
 

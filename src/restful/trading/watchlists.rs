@@ -161,15 +161,6 @@ impl TradingClient {
     /// Delete a watchlist.
     pub async fn delete_watchlist(&self, watchlist_id: &WatchlistId) -> crate::Result<()> {
         let request = self.request(Method::DELETE, &format!("v2/watchlists/{watchlist_id}"))?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_no_body(request).await
     }
 }

@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use oxidized_alpaca::{
     AccountType, ClientOrderId, Error, OrderId, TradingClient, WatchlistId,
     restful::trading::{
-        orders::{OrderStatusFilter, OrderType, Side, TimeInForce},
+        orders::{OrderStatusFilter, Side, TimeInForce},
         portfolio_history::{HistoryPeriod, HistoryTimeFrame},
     },
 };
@@ -82,15 +82,14 @@ async fn trading_endpoints_live_smoke() {
     let order_client_id = format!("coverage-{}", unique_suffix());
     let order = expect_ok_or_status(
         client
-            .create_order("AAPL", Side::Buy, OrderType::Limit)
+            .limit_order("AAPL", Side::Buy, Decimal::from_str_exact("100").unwrap())
             .qty(Decimal::from_str_exact("1").unwrap())
-            .limit_price(Decimal::from_str_exact("100").unwrap())
             .time_in_force(TimeInForce::Gtc)
             .client_order_id(order_client_id.as_str())
             .execute()
             .await,
         &[400, 403, 404, 422, 500],
-        "create_order",
+        "limit_order",
     );
 
     let _ = client
