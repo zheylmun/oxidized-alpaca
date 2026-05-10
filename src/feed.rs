@@ -114,10 +114,13 @@ impl StreamingFeed {
 #[non_exhaustive]
 pub enum CryptoFeed {
     /// Alpaca-aggregated US crypto feed.
+    #[serde(rename = "us")]
     Us,
     /// Kraken-backed US crypto feed.
+    #[serde(rename = "us-1")]
     UsKraken,
     /// Kraken-backed EU crypto feed.
+    #[serde(rename = "eu-1")]
     EuKraken,
 }
 
@@ -139,6 +142,7 @@ impl CryptoFeed {
 /// Options streaming feed selector. Each variant maps to a distinct
 /// WebSocket endpoint Alpaca exposes.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "lowercase")]
 #[non_exhaustive]
 pub enum OptionFeed {
     /// Alpaca-derived NBBO and trade events for accounts without OPRA
@@ -218,5 +222,124 @@ mod tests {
             serde_json::to_string(&RestFeed::Boats).unwrap(),
             "\"boats\""
         );
+    }
+
+    #[test]
+    fn rest_feed_round_trips_through_serde() {
+        for variant in [
+            RestFeed::IEX,
+            RestFeed::SIP,
+            RestFeed::DelayedSip,
+            RestFeed::Otc,
+            RestFeed::Boats,
+        ] {
+            let encoded = serde_json::to_string(&variant).unwrap();
+            let decoded: RestFeed = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(decoded, variant, "{variant:?} did not round-trip");
+        }
+    }
+
+    #[test]
+    fn option_url_matrix_pins_all_four_endpoints() {
+        assert_eq!(
+            OptionFeed::Indicative.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta1/indicative",
+        );
+        assert_eq!(
+            OptionFeed::Indicative.url(AccountType::Paper),
+            "wss://stream.data.sandbox.alpaca.markets/v1beta1/indicative",
+        );
+        assert_eq!(
+            OptionFeed::Opra.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta1/opra",
+        );
+        assert_eq!(
+            OptionFeed::Opra.url(AccountType::Paper),
+            "wss://stream.data.sandbox.alpaca.markets/v1beta1/opra",
+        );
+    }
+
+    #[test]
+    fn option_urls_split_live_and_sandbox_hosts() {
+        for feed in [OptionFeed::Indicative, OptionFeed::Opra] {
+            let live = feed.url(AccountType::Live);
+            let paper = feed.url(AccountType::Paper);
+            assert_ne!(
+                live, paper,
+                "{feed:?} should route paper accounts to the sandbox host"
+            );
+            assert!(
+                live.starts_with("wss://stream.data.alpaca.markets/"),
+                "{live} should target the production host",
+            );
+            assert!(
+                paper.starts_with("wss://stream.data.sandbox.alpaca.markets/"),
+                "{paper} should target the sandbox host",
+            );
+        }
+    }
+
+    #[test]
+    fn option_indicative_and_opra_route_to_distinct_paths() {
+        for account in [AccountType::Live, AccountType::Paper] {
+            assert_ne!(
+                OptionFeed::Indicative.url(account),
+                OptionFeed::Opra.url(account),
+                "indicative and OPRA must not collide for {account:?}",
+            );
+        }
+    }
+
+    #[test]
+    fn crypto_feed_serializes_as_alpaca_path_segments() {
+        // Wire format mirrors the path segment Alpaca uses in the WSS URL
+        // (`/v1beta3/crypto/{us,us-1,eu-1}`), so the same identifier is
+        // valid in both contexts.
+        assert_eq!(serde_json::to_string(&CryptoFeed::Us).unwrap(), "\"us\"");
+        assert_eq!(
+            serde_json::to_string(&CryptoFeed::UsKraken).unwrap(),
+            "\"us-1\""
+        );
+        assert_eq!(
+            serde_json::to_string(&CryptoFeed::EuKraken).unwrap(),
+            "\"eu-1\""
+        );
+        for variant in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+            let encoded = serde_json::to_string(&variant).unwrap();
+            let decoded: CryptoFeed = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(decoded, variant, "{variant:?} did not round-trip");
+        }
+    }
+
+    #[test]
+    fn option_feed_serializes_as_alpaca_path_segments() {
+        assert_eq!(
+            serde_json::to_string(&OptionFeed::Indicative).unwrap(),
+            "\"indicative\""
+        );
+        assert_eq!(
+            serde_json::to_string(&OptionFeed::Opra).unwrap(),
+            "\"opra\""
+        );
+        for variant in [OptionFeed::Indicative, OptionFeed::Opra] {
+            let encoded = serde_json::to_string(&variant).unwrap();
+            let decoded: OptionFeed = serde_json::from_str(&encoded).unwrap();
+            assert_eq!(decoded, variant, "{variant:?} did not round-trip");
+        }
+    }
+
+    #[test]
+    fn crypto_url_ignores_account_type() {
+        // Documented invariant: every crypto feed routes to the production
+        // wss host regardless of `AccountType`. Pinning it here so a
+        // future refactor that wires the account type through can't
+        // quietly send paper accounts back to the (broken) sandbox host.
+        for feed in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+            assert_eq!(
+                feed.url(AccountType::Live),
+                feed.url(AccountType::Paper),
+                "{feed:?} must yield the same URL for live and paper accounts",
+            );
+        }
     }
 }
