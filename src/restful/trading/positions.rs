@@ -4,6 +4,26 @@ use reqwest::Method;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
+/// Per-symbol outcome from the bulk close-positions endpoint.
+///
+/// Alpaca's `DELETE /v2/positions` returns HTTP 207 with one of these
+/// entries per symbol it tried to close. `status == 200` indicates the
+/// close order was submitted; anything else is a failure with details
+/// in `body`.
+#[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
+pub struct ClosePositionStatus {
+    /// Symbol the close was attempted for.
+    pub symbol: String,
+    /// HTTP status code reported for this individual close.
+    pub status: u16,
+    /// Per-symbol response payload. Contains the submitted closing
+    /// order on success, an error object on failure. Held as a raw
+    /// JSON value so callers can decide how strictly to interpret it.
+    #[serde(default)]
+    pub body: Option<serde_json::Value>,
+}
+
 /// Side of a position.
 #[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
@@ -142,8 +162,13 @@ impl TradingClient {
         }
     }
 
-    /// Close all open positions.
-    pub async fn close_all_positions(&self) -> crate::Result<Vec<Order>> {
+    /// Attempt to close every open position.
+    ///
+    /// Alpaca processes each position individually and returns a
+    /// per-symbol outcome; success is HTTP 207 with the array surfaced
+    /// here. Inspect each [`ClosePositionStatus::status`] to
+    /// distinguish successful closes (`200`) from failures.
+    pub async fn close_all_positions(&self) -> crate::Result<Vec<ClosePositionStatus>> {
         let request = self.request(Method::DELETE, "v2/positions")?;
         self.send_and_deserialize(request).await
     }

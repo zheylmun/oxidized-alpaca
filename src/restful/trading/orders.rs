@@ -3,7 +3,7 @@ use crate::{ClientOrderId, OrderId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub use crate::orders::{Order, OrderClass, OrderStatus, OrderType, Side, TimeInForce};
 
@@ -18,6 +18,26 @@ pub enum OrderStatusFilter {
     Closed,
     /// Return both open and closed orders.
     All,
+}
+
+/// Per-order outcome from the bulk cancel endpoint.
+///
+/// Alpaca's `DELETE /v2/orders` returns HTTP 207 with one of these
+/// entries per order it tried to cancel. `status` is the per-order HTTP
+/// status code; entries with `status == 200` are cancellations that
+/// succeeded, anything else is a failure with details in `body`.
+#[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
+pub struct CancelOrderStatus {
+    /// The order id the cancel was attempted for.
+    pub id: OrderId,
+    /// HTTP status code reported for this individual cancel.
+    pub status: u16,
+    /// Per-order response payload. Contains the cancelled order on
+    /// success, an error object on failure. Held as a raw JSON value
+    /// so callers can decide how strictly to interpret it.
+    #[serde(default)]
+    pub body: Option<serde_json::Value>,
 }
 
 /// Take-profit leg configuration for bracket / OTO orders.
@@ -413,19 +433,15 @@ impl TradingClient {
         self.send_no_body(request).await
     }
 
-    /// Cancel all open orders.
-    pub async fn cancel_all_orders(&self) -> crate::Result<()> {
+    /// Attempt to cancel every open order.
+    ///
+    /// Alpaca processes each open order individually and returns a
+    /// per-order outcome; success is HTTP 207 with the array surfaced
+    /// here. Inspect each [`CancelOrderStatus::status`] to distinguish
+    /// successful cancels (`200`) from failures.
+    pub async fn cancel_all_orders(&self) -> crate::Result<Vec<CancelOrderStatus>> {
         let request = self.request(Method::DELETE, "v2/orders")?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(crate::Error::ApiError {
-                status: status.as_u16(),
-                body,
-            });
-        }
-        Ok(())
+        self.send_and_deserialize(request).await
     }
 
     /// Replace (modify) an existing order.
