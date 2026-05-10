@@ -1,4 +1,9 @@
-mod messages;
+/// Wire-shape types for each streaming feed (stocks, crypto, news, options,
+/// and trade updates). The most commonly used items — the per-feed
+/// `…StreamMessage` enum and `…SubscriptionList` builder — are also re-exported
+/// at [`crate::streaming`]; reach for the deeper path here when you need the
+/// individual event payload structs.
+pub mod messages;
 pub use messages::*;
 
 mod wire;
