@@ -25,7 +25,6 @@ where
     }
 }
 
-#[cfg(feature = "restful")]
 pub(crate) fn null_def_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,

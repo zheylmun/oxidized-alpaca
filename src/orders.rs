@@ -5,7 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::serde_helpers::{string_as_decimal, string_as_optional_decimal};
+use crate::serde_helpers::{null_def_vec, string_as_decimal, string_as_optional_decimal};
 
 pub(crate) fn empty_string_as_none_order_class<'de, D>(
     deserializer: D,
@@ -239,11 +239,12 @@ pub struct Order {
     )]
     pub hwm: Option<Decimal>,
     /// Whether extended hours trading is enabled.
-    pub extended_hours: Option<bool>,
+    #[serde(default)]
+    pub extended_hours: bool,
     /// Order class (simple, bracket, etc.).
     #[serde(default, deserialize_with = "empty_string_as_none_order_class")]
     pub order_class: Option<OrderClass>,
-    /// Legs of a multi-leg order.
-    #[serde(default)]
-    pub legs: Option<Vec<Order>>,
+    /// Legs of a multi-leg order. Empty for single-leg orders.
+    #[serde(default, deserialize_with = "null_def_vec")]
+    pub legs: Vec<Order>,
 }
