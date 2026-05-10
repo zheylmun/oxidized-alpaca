@@ -105,6 +105,7 @@ impl From<url::ParseError> for Error {
 
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
     ///
