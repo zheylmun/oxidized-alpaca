@@ -7,7 +7,7 @@ async fn main() -> Result<(), Error> {
     let client = MarketDataClient::new(AccountType::Paper)?;
     tracing_subscriber::fmt().init();
     let bars = client
-        .stock_bars("AAPL", TimeFrame::OneDay)
+        .stock_bars("AAPL", TimeFrame::ONE_DAY)
         .start(DateTime::from_str("2023-01-01T00:00:00Z").unwrap())
         .end(DateTime::from_str("2023-01-31T23:59:59Z").unwrap())
         .execute()

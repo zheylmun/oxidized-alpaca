@@ -83,6 +83,25 @@ pub enum OrderClass {
     Oco,
     /// One-triggers-other order.
     Oto,
+    /// Multi-leg options order (2–4 option legs).
+    Mleg,
+}
+
+/// Per-leg position-intent for multi-leg options orders. Also reported on
+/// individual `Order` responses so callers can tell whether each fill is
+/// opening or closing a position.
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum PositionIntent {
+    /// Open a long position by buying.
+    BuyToOpen,
+    /// Close a short position by buying.
+    BuyToClose,
+    /// Open a short position by selling.
+    SellToOpen,
+    /// Close a long position by selling.
+    SellToClose,
 }
 
 /// Status of an order.
@@ -245,6 +264,10 @@ pub struct Order {
     /// Order class (simple, bracket, etc.).
     #[serde(default, deserialize_with = "empty_string_as_none_order_class")]
     pub order_class: Option<OrderClass>,
+    /// Position intent reported per child order on multi-leg orders. Absent
+    /// on legacy orders that pre-date Alpaca exposing this field.
+    #[serde(default)]
+    pub position_intent: Option<PositionIntent>,
     /// Legs of a multi-leg order. Empty for single-leg orders.
     #[serde(default, deserialize_with = "null_def_vec")]
     pub legs: Vec<Order>,

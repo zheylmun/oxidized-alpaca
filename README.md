@@ -56,7 +56,7 @@ Endpoints come in two flavors:
 
    ```rust
    let bars = client
-       .stock_bars("AAPL", TimeFrame::OneDay)
+       .stock_bars("AAPL", TimeFrame::ONE_DAY)
        .start(start)
        .end(end)
        .feed(Feed::IEX)
@@ -146,7 +146,7 @@ listed below are the public entry points on the relevant client.
 | Calendar                | `get_calendar` |
 | Clock                   | `get_clock` |
 | Options contracts       | `list_option_contracts`, `get_option_contract` |
-| Orders                  | `market_order`, `limit_order`, `stop_order`, `stop_limit_order`, `trailing_stop_order_by_price`, `trailing_stop_order_by_percent`, `list_orders`, `get_order`, `get_order_by_client_id`, `replace_order`, `cancel_order`, `cancel_all_orders` |
+| Orders                  | `market_order`, `limit_order`, `stop_order`, `stop_limit_order`, `trailing_stop_order_by_price`, `trailing_stop_order_by_percent`, `mleg_limit_order`, `list_orders`, `get_order`, `get_order_by_client_id`, `replace_order`, `cancel_order`, `cancel_all_orders` |
 | Portfolio history       | `portfolio_history` |
 | Positions               | `list_positions`, `get_position`, `close_position`, `close_all_positions`, `exercise_option`, `do_not_exercise` |
 | Watchlists              | `list_watchlists`, `get_watchlist`, `create_watchlist`, `update_watchlist`, `add_to_watchlist`, `remove_from_watchlist`, `delete_watchlist` |
@@ -167,6 +167,12 @@ orders are reached by attaching `.take_profit(...)` and/or
 `.stop_loss(...)` to any of these builders — the order class is
 inferred at submit time (both legs → bracket, one leg → OTO). For OCO
 exits, override the inference with `.order_class(OrderClass::Oco)`.
+
+For multi-leg options orders, `mleg_limit_order(legs, net_price)` takes a
+2–4 element `Vec<OrderLeg>` (each leg specifying `symbol`, `side`,
+`ratio_qty`, and `position_intent`) plus the net debit/credit price for
+the spread. The builder's `.qty(...)` setter is required and is applied
+as a multiplier across every leg's `ratio_qty`.
 
 `cancel_all_orders` and `close_all_positions` return the per-item
 status arrays Alpaca delivers in the underlying HTTP 207 response
@@ -256,7 +262,7 @@ use oxidized_alpaca::{
 async fn main() -> Result<(), Error> {
     let client = MarketDataClient::new(AccountType::Paper)?;
     let bars = client
-        .stock_bars("AAPL", TimeFrame::OneDay)
+        .stock_bars("AAPL", TimeFrame::ONE_DAY)
         .start(DateTime::from_str("2023-01-01T00:00:00Z").unwrap())
         .end(DateTime::from_str("2023-01-31T23:59:59Z").unwrap())
         .execute()

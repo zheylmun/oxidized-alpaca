@@ -1,12 +1,14 @@
 use crate::restful::{SortDirection, TradingClient};
-use crate::{ClientOrderId, OrderId};
+use crate::{AssetClass, ClientOrderId, OrderId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 use std::marker::PhantomData;
 
-pub use crate::orders::{Order, OrderClass, OrderStatus, OrderType, Side, TimeInForce};
+pub use crate::orders::{
+    Order, OrderClass, OrderStatus, OrderType, PositionIntent, Side, TimeInForce,
+};
 
 /// Marker for a [`CreateOrderRequest`] that has not had a size
 /// ([`qty`][CreateOrderRequest::qty] or
@@ -104,6 +106,98 @@ impl StopLoss {
             stop_price,
             limit_price: Some(limit_price),
         }
+    }
+}
+
+/// One leg of a multi-leg options order. Pass a 2–4 element `Vec<OrderLeg>`
+/// to [`TradingClient::mleg_limit_order`].
+#[derive(Clone, Debug, Serialize)]
+#[non_exhaustive]
+pub struct OrderLeg {
+    /// Option contract symbol for this leg (OCC format).
+    pub symbol: String,
+    /// Ratio of contracts for this leg relative to the order's `qty`. The
+    /// total contracts submitted for the leg is `qty * ratio_qty`.
+    pub ratio_qty: Decimal,
+    /// Whether this leg is a buy or sell.
+    pub side: Side,
+    /// Whether this leg is opening or closing a position.
+    pub position_intent: PositionIntent,
+}
+
+impl OrderLeg {
+    /// Build a leg for a multi-leg options order.
+    pub fn new(
+        symbol: impl Into<String>,
+        side: Side,
+        ratio_qty: Decimal,
+        position_intent: PositionIntent,
+    ) -> Self {
+        Self {
+            symbol: symbol.into(),
+            ratio_qty,
+            side,
+            position_intent,
+        }
+    }
+}
+
+/// Builder for submitting a multi-leg (`mleg`) options order.
+///
+/// Construct one through [`TradingClient::mleg_limit_order`]. Alpaca
+/// requires 2–4 option legs per order, the same `qty` is applied as a
+/// multiplier across every leg's `ratio_qty`, and the order type is fixed
+/// at `limit` since the price represents the net debit/credit for the
+/// spread.
+#[derive(Debug, Serialize)]
+#[must_use]
+pub struct CreateMultiLegOrderRequest<'a> {
+    #[serde(skip)]
+    client: &'a TradingClient,
+    #[serde(rename = "type")]
+    order_type: OrderType,
+    order_class: OrderClass,
+    limit_price: Decimal,
+    legs: Vec<OrderLeg>,
+    time_in_force: TimeInForce,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    qty: Option<Decimal>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extended_hours: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    client_order_id: Option<ClientOrderId>,
+}
+
+impl CreateMultiLegOrderRequest<'_> {
+    /// Set the quantity multiplier applied to every leg's `ratio_qty`.
+    /// Required by Alpaca for `mleg` orders.
+    pub fn qty(mut self, qty: Decimal) -> Self {
+        self.qty = Some(qty);
+        self
+    }
+
+    /// Override the time in force (default `Day`).
+    pub fn time_in_force(mut self, tif: TimeInForce) -> Self {
+        self.time_in_force = tif;
+        self
+    }
+
+    /// Allow extended hours trading.
+    pub fn extended_hours(mut self, extended: bool) -> Self {
+        self.extended_hours = Some(extended);
+        self
+    }
+
+    /// Set a client-defined order ID (max 128 characters).
+    pub fn client_order_id(mut self, id: impl Into<ClientOrderId>) -> Self {
+        self.client_order_id = Some(id.into());
+        self
+    }
+
+    /// Submit the multi-leg order.
+    pub async fn execute(self) -> crate::Result<Order> {
+        let request = self.client.request(Method::POST, "v2/orders")?.json(&self);
+        self.client.send_and_deserialize(request).await
     }
 }
 
@@ -281,6 +375,12 @@ pub struct ListOrdersRequest<'a> {
     symbols: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     side: Option<Side>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    asset_class: Option<AssetClass>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    before_order_id: Option<OrderId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    after_order_id: Option<OrderId>,
 }
 
 impl ListOrdersRequest<'_> {
@@ -296,15 +396,25 @@ impl ListOrdersRequest<'_> {
         self
     }
 
-    /// Only return orders after this timestamp.
+    /// Only return orders submitted after this timestamp. Mutually
+    /// exclusive with [`before_order_id`](Self::before_order_id) and
+    /// [`after_order_id`](Self::after_order_id); setting this clears
+    /// either cursor.
     pub fn after(mut self, after: DateTime<Utc>) -> Self {
         self.after = Some(after);
+        self.before_order_id = None;
+        self.after_order_id = None;
         self
     }
 
-    /// Only return orders until this timestamp.
+    /// Only return orders submitted up to this timestamp. Mutually
+    /// exclusive with [`before_order_id`](Self::before_order_id) and
+    /// [`after_order_id`](Self::after_order_id); setting this clears
+    /// either cursor.
     pub fn until(mut self, until: DateTime<Utc>) -> Self {
         self.until = Some(until);
+        self.before_order_id = None;
+        self.after_order_id = None;
         self
     }
 
@@ -329,6 +439,34 @@ impl ListOrdersRequest<'_> {
     /// Filter by side.
     pub fn side(mut self, side: Side) -> Self {
         self.side = Some(side);
+        self
+    }
+
+    /// Filter by asset class (equities, options, crypto, …).
+    pub fn asset_class(mut self, asset_class: AssetClass) -> Self {
+        self.asset_class = Some(asset_class);
+        self
+    }
+
+    /// Cursor pagination: only return orders submitted before the order
+    /// with `id`. Mutually exclusive with [`after`](Self::after) and
+    /// [`until`](Self::until); setting this clears both timestamp
+    /// filters.
+    pub fn before_order_id(mut self, id: impl Into<OrderId>) -> Self {
+        self.before_order_id = Some(id.into());
+        self.after = None;
+        self.until = None;
+        self
+    }
+
+    /// Cursor pagination: only return orders submitted after the order
+    /// with `id`. Mutually exclusive with [`after`](Self::after) and
+    /// [`until`](Self::until); setting this clears both timestamp
+    /// filters.
+    pub fn after_order_id(mut self, id: impl Into<OrderId>) -> Self {
+        self.after_order_id = Some(id.into());
+        self.after = None;
+        self.until = None;
         self
     }
 
@@ -532,6 +670,32 @@ impl TradingClient {
         req
     }
 
+    /// Begin a multi-leg (`mleg`) options order. `legs` must contain 2–4
+    /// option legs; `limit_price` is the net debit/credit for the spread.
+    /// Use [`CreateMultiLegOrderRequest::qty`] to set the contract
+    /// multiplier — it is required by Alpaca.
+    ///
+    /// Alpaca rejects orders with the wrong number of legs server-side; the
+    /// constructor accepts any vec but Alpaca will return HTTP 422 if the
+    /// leg count is outside `2..=4`.
+    pub fn mleg_limit_order(
+        &self,
+        legs: Vec<OrderLeg>,
+        limit_price: Decimal,
+    ) -> CreateMultiLegOrderRequest<'_> {
+        CreateMultiLegOrderRequest {
+            client: self,
+            order_type: OrderType::Limit,
+            order_class: OrderClass::Mleg,
+            limit_price,
+            legs,
+            time_in_force: TimeInForce::Day,
+            qty: None,
+            extended_hours: None,
+            client_order_id: None,
+        }
+    }
+
     /// List orders with optional filters.
     ///
     /// ```ignore
@@ -551,6 +715,9 @@ impl TradingClient {
             nested: None,
             symbols: None,
             side: None,
+            asset_class: None,
+            before_order_id: None,
+            after_order_id: None,
         }
     }
 
@@ -753,6 +920,73 @@ mod tests {
 
     #[test]
     #[serial]
+    fn list_orders_asset_class_serializes_alpaca_wire_value() {
+        let client = paper_client();
+        let request = client.list_orders().asset_class(AssetClass::UsOption);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("asset_class=us_option"),
+            "expected asset_class=us_option in query string, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_cursor_clears_timestamp_filters() {
+        let client = paper_client();
+        let request = client
+            .list_orders()
+            .after(
+                DateTime::parse_from_rfc3339("2025-05-01T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )
+            .until(
+                DateTime::parse_from_rfc3339("2025-05-10T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )
+            .before_order_id("11111111-1111-1111-1111-111111111111");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("before_order_id=11111111-1111-1111-1111-111111111111"),
+            "expected before_order_id in query string, got {query}"
+        );
+        assert!(
+            !query.contains("after="),
+            "after should be cleared by before_order_id, got {query}"
+        );
+        assert!(
+            !query.contains("until="),
+            "until should be cleared by before_order_id, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_timestamp_filters_clear_cursor() {
+        let client = paper_client();
+        let request = client
+            .list_orders()
+            .after_order_id("22222222-2222-2222-2222-222222222222")
+            .after(
+                DateTime::parse_from_rfc3339("2025-05-01T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            );
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("after="),
+            "expected after timestamp in query string, got {query}"
+        );
+        assert!(
+            !query.contains("after_order_id="),
+            "after_order_id should be cleared by after(...), got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
     fn limit_order_pre_populates_type_and_price() {
         let client = paper_client();
         let request = client.limit_order("AAPL", Side::Buy, dec("150"));
@@ -885,5 +1119,84 @@ mod tests {
         );
         assert_eq!(order.order_type, OrderType::Market);
         assert_eq!(order.side, Side::Buy);
+    }
+
+    #[test]
+    #[serial]
+    fn mleg_limit_order_serializes_alpaca_wire_payload() {
+        let client = paper_client();
+        let legs = vec![
+            OrderLeg::new(
+                "AAPL250620C00150000",
+                Side::Buy,
+                dec("1"),
+                PositionIntent::BuyToOpen,
+            ),
+            OrderLeg::new(
+                "AAPL250620C00160000",
+                Side::Sell,
+                dec("1"),
+                PositionIntent::SellToOpen,
+            ),
+        ];
+        let request = client.mleg_limit_order(legs, dec("2.50")).qty(dec("10"));
+        let value = serde_json::to_value(&request).unwrap();
+
+        assert_eq!(value.get("type").and_then(|v| v.as_str()), Some("limit"));
+        assert_eq!(
+            value.get("order_class").and_then(|v| v.as_str()),
+            Some("mleg")
+        );
+        assert_eq!(
+            value.get("limit_price").and_then(|v| v.as_str()),
+            Some("2.50")
+        );
+        assert_eq!(value.get("qty").and_then(|v| v.as_str()), Some("10"));
+        assert_eq!(
+            value.get("time_in_force").and_then(|v| v.as_str()),
+            Some("day")
+        );
+        assert!(
+            value.get("symbol").is_none(),
+            "mleg orders must not include a top-level symbol"
+        );
+        assert!(
+            value.get("side").is_none(),
+            "mleg orders must not include a top-level side"
+        );
+
+        let legs = value
+            .get("legs")
+            .and_then(|v| v.as_array())
+            .expect("legs array");
+        assert_eq!(legs.len(), 2);
+        let first = &legs[0];
+        assert_eq!(
+            first.get("symbol").and_then(|v| v.as_str()),
+            Some("AAPL250620C00150000")
+        );
+        assert_eq!(first.get("side").and_then(|v| v.as_str()), Some("buy"));
+        assert_eq!(first.get("ratio_qty").and_then(|v| v.as_str()), Some("1"));
+        assert_eq!(
+            first.get("position_intent").and_then(|v| v.as_str()),
+            Some("buy_to_open")
+        );
+    }
+
+    #[test]
+    fn position_intent_round_trips_through_serde() {
+        for (variant, wire) in [
+            (PositionIntent::BuyToOpen, "buy_to_open"),
+            (PositionIntent::BuyToClose, "buy_to_close"),
+            (PositionIntent::SellToOpen, "sell_to_open"),
+            (PositionIntent::SellToClose, "sell_to_close"),
+        ] {
+            assert_eq!(
+                serde_json::to_string(&variant).unwrap(),
+                format!("\"{wire}\"")
+            );
+            let parsed: PositionIntent = serde_json::from_str(&format!("\"{wire}\"")).unwrap();
+            assert_eq!(parsed, variant);
+        }
     }
 }
