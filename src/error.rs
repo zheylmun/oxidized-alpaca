@@ -169,7 +169,7 @@ pub enum Error {
     },
 }
 
-/// A `Result` type alias using [`Error`] as the default error type.
+/// A `Result` type alias using [`enum@Error`] as the default error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[cfg(test)]
