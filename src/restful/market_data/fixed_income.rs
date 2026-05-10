@@ -1,4 +1,5 @@
 use crate::restful::MarketDataClient;
+use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::Deserialize;
 
@@ -12,7 +13,7 @@ pub struct FixedIncomePrice {
     pub price: f64,
     /// The price timestamp.
     #[serde(default)]
-    pub timestamp: Option<String>,
+    pub timestamp: Option<DateTime<Utc>>,
 }
 
 #[derive(Debug, Deserialize)]

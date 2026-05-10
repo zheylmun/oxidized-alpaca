@@ -16,7 +16,8 @@ pub enum AccountStatus {
     /// The account has been submitted for review.
     Submitted,
     /// The account information is being updated.
-    AccountUpdated,
+    #[serde(rename = "ACCOUNT_UPDATED")]
+    Updated,
     /// The final account approval is pending.
     ApprovalPending,
     /// The account is active and ready for trading.
@@ -25,8 +26,11 @@ pub enum AccountStatus {
     Rejected,
 }
 
-/// `Currency` represents the currency of an Alpaca account
-/// Currently, only USD is supported.
+/// Account base currency.
+///
+/// Alpaca currently denominates every account in USD; the enum is
+/// `#[non_exhaustive]` so additional currencies can be added without a
+/// breaking release if Alpaca starts offering them.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
 pub enum Currency {
