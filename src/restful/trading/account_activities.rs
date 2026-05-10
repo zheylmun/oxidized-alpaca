@@ -1,4 +1,5 @@
 use crate::restful::{SortDirection, TradingClient, string_as_optional_decimal};
+use crate::{ActivityId, OrderId};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -131,7 +132,7 @@ impl<'de> Deserialize<'de> for ActivityType {
 #[non_exhaustive]
 pub struct Activity {
     /// Activity ID.
-    pub id: String,
+    pub id: ActivityId,
     /// Type of activity.
     pub activity_type: ActivityType,
     /// Sub-classification of the activity, when the API provides one.
@@ -169,7 +170,7 @@ pub struct Activity {
     pub side: Option<Side>,
     /// Associated order ID.
     #[serde(default)]
-    pub order_id: Option<String>,
+    pub order_id: Option<OrderId>,
     /// Timestamp of the transaction.
     #[serde(default)]
     pub transaction_time: Option<DateTime<Utc>>,
@@ -263,7 +264,7 @@ impl ListActivitiesRequest<'_> {
             let request = self.client.request(Method::GET, &path)?.query(&self);
             let page: Vec<Activity> = self.client.send_and_deserialize(request).await?;
             let received = page.len();
-            let last_id = page.last().map(|a| a.id.clone());
+            let last_id = page.last().map(|a| a.id.as_str().to_string());
             all.extend(page);
             if let Some(cap) = cap
                 && all.len() >= cap
@@ -405,7 +406,7 @@ mod tests {
             "description": "Cash dividend"
         }"#;
         let activity: Activity = serde_json::from_str(json).unwrap();
-        assert_eq!(activity.id, "20250507000000000::abc");
+        assert_eq!(activity.id.as_str(), "20250507000000000::abc");
         assert_eq!(activity.activity_type, ActivityType::Dividend);
         assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
         assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));

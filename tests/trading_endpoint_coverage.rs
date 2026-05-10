@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use oxidized_alpaca::{
-    AccountType, Error, TradingClient,
+    AccountType, ClientOrderId, Error, OrderId, TradingClient, WatchlistId,
     restful::trading::{
         orders::{OrderStatusFilter, OrderType, Side, TimeInForce},
         portfolio_history::{HistoryPeriod, HistoryTimeFrame},
@@ -86,7 +86,7 @@ async fn trading_endpoints_live_smoke() {
             .qty(Decimal::from_str_exact("1").unwrap())
             .limit_price(Decimal::from_str_exact("100").unwrap())
             .time_in_force(TimeInForce::Gtc)
-            .client_order_id(&order_client_id)
+            .client_order_id(order_client_id.as_str())
             .execute()
             .await,
         &[400, 403, 404, 422, 500],
@@ -104,7 +104,8 @@ async fn trading_endpoints_live_smoke() {
     let order_id = order
         .as_ref()
         .map(|created| created.id.clone())
-        .unwrap_or_else(|| "00000000-0000-0000-0000-000000000000".to_string());
+        .unwrap_or_else(|| OrderId::new("00000000-0000-0000-0000-000000000000"));
+    let lookup_client_id = ClientOrderId::new(order_client_id.clone());
 
     let _ = expect_ok_or_status(
         client.get_order(&order_id).await,
@@ -112,7 +113,7 @@ async fn trading_endpoints_live_smoke() {
         "get_order",
     );
     let _ = expect_ok_or_status(
-        client.get_order_by_client_id(&order_client_id).await,
+        client.get_order_by_client_id(&lookup_client_id).await,
         &[404, 422, 500],
         "get_order_by_client_id",
     );
@@ -189,7 +190,7 @@ async fn trading_endpoints_live_smoke() {
     let watchlist_id = watchlist
         .as_ref()
         .map(|created| created.id.clone())
-        .unwrap_or_else(|| "00000000-0000-0000-0000-000000000000".to_string());
+        .unwrap_or_else(|| WatchlistId::new("00000000-0000-0000-0000-000000000000"));
 
     let _ = expect_ok_or_status(
         client.get_watchlist(&watchlist_id).await,

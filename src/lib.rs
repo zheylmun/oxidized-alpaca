@@ -10,6 +10,12 @@ pub use error::{Error, Result};
 /// Data feed types for streaming and market data sources.
 mod feed;
 pub use feed::{RestFeed, StreamingFeed};
+/// Strongly-typed identifier newtypes for Alpaca-issued IDs.
+pub mod ids;
+pub use ids::{
+    AccountId, ActivityId, AssetId, ClientOrderId, ExecutionId, OptionContractId, OrderId,
+    WatchlistId,
+};
 /// Order domain types shared between the REST trading API and the streaming
 /// trade-updates feed.
 pub mod orders;

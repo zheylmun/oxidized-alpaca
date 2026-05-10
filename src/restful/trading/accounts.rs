@@ -1,3 +1,4 @@
+use crate::AccountId;
 use crate::restful::{TradingClient, string_as_decimal};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
@@ -43,7 +44,7 @@ pub enum Currency {
 #[non_exhaustive]
 pub struct AccountDetails {
     /// Alpaca account ID
-    pub id: String,
+    pub id: AccountId,
     /// Alpaca account number
     pub account_number: String,
     /// Current status of the account

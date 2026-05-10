@@ -2,7 +2,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use crate::{orders::Order, serde_helpers::string_as_optional_decimal};
+use crate::{ExecutionId, OrderId, orders::Order, serde_helpers::string_as_optional_decimal};
 
 /// Outgoing wire-protocol message used by the trade-updates stream.
 ///
@@ -72,10 +72,10 @@ pub struct Listening {
 pub struct TradeUpdateLeg {
     /// Execution ID for this leg.
     #[serde(default)]
-    pub execution_id: Option<String>,
+    pub execution_id: Option<ExecutionId>,
     /// Order ID this leg belongs to.
     #[serde(default)]
-    pub order_id: Option<String>,
+    pub order_id: Option<OrderId>,
     /// Symbol for this leg.
     #[serde(default)]
     pub symbol: Option<String>,
@@ -147,7 +147,7 @@ pub struct TradeUpdate {
     pub event: TradeUpdateEvent,
     /// Unique execution identifier (present on fill / partial_fill).
     #[serde(default)]
-    pub execution_id: Option<String>,
+    pub execution_id: Option<ExecutionId>,
     /// When the event occurred.
     pub timestamp: DateTime<Utc>,
     /// Fill price per share (present on fill / partial_fill).
@@ -281,7 +281,7 @@ mod tests {
             TradingUpdatesMessage::TradeUpdate(update) => {
                 assert_eq!(update.event, TradeUpdateEvent::Fill);
                 assert_eq!(
-                    update.execution_id.as_deref(),
+                    update.execution_id.as_ref().map(ExecutionId::as_str),
                     Some("2f63ea93-423d-4169-b3f6-3fdafc10c418")
                 );
                 assert_eq!(update.qty, Some("1790.86".parse().unwrap()));

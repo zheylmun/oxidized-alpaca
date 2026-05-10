@@ -5,8 +5,8 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
 
-use crate::AssetClass;
 use crate::serde_helpers::{null_def_vec, string_as_decimal, string_as_optional_decimal};
+use crate::{AssetClass, AssetId, ClientOrderId, OrderId};
 
 pub(crate) fn empty_string_as_none_order_class<'de, D>(
     deserializer: D,
@@ -131,9 +131,9 @@ pub enum OrderStatus {
 #[non_exhaustive]
 pub struct Order {
     /// Order ID.
-    pub id: String,
+    pub id: OrderId,
     /// Client-specified order ID.
-    pub client_order_id: String,
+    pub client_order_id: ClientOrderId,
     /// Timestamp when the order was created.
     pub created_at: DateTime<Utc>,
     /// Timestamp when the order was last updated.
@@ -158,12 +158,12 @@ pub struct Order {
     pub replaced_at: Option<DateTime<Utc>>,
     /// ID of the order that replaced this one, if any.
     #[serde(default)]
-    pub replaced_by: Option<String>,
+    pub replaced_by: Option<OrderId>,
     /// ID of the order that this order replaces, if any.
     #[serde(default)]
-    pub replaces: Option<String>,
+    pub replaces: Option<OrderId>,
     /// Asset ID for the order.
-    pub asset_id: String,
+    pub asset_id: AssetId,
     /// Asset class. Populated on streaming trade-updates events; may be
     /// absent on REST responses.
     #[serde(default)]

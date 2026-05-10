@@ -1,4 +1,5 @@
 use crate::restful::TradingClient;
+use crate::{AccountId, WatchlistId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -10,9 +11,9 @@ use super::assets::Asset;
 #[non_exhaustive]
 pub struct Watchlist {
     /// Watchlist ID.
-    pub id: String,
+    pub id: WatchlistId,
     /// Account ID that owns this watchlist.
-    pub account_id: String,
+    pub account_id: AccountId,
     /// Timestamp when the watchlist was created.
     pub created_at: DateTime<Utc>,
     /// Timestamp when the watchlist was last updated.
@@ -59,7 +60,7 @@ pub struct UpdateWatchlistRequest<'a> {
     #[serde(skip)]
     client: &'a TradingClient,
     #[serde(skip)]
-    watchlist_id: String,
+    watchlist_id: WatchlistId,
     #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -96,7 +97,7 @@ impl TradingClient {
     }
 
     /// Get a watchlist by ID.
-    pub async fn get_watchlist(&self, watchlist_id: &str) -> crate::Result<Watchlist> {
+    pub async fn get_watchlist(&self, watchlist_id: &WatchlistId) -> crate::Result<Watchlist> {
         let request = self.request(Method::GET, &format!("v2/watchlists/{watchlist_id}"))?;
         self.send_and_deserialize(request).await
     }
@@ -117,10 +118,10 @@ impl TradingClient {
     }
 
     /// Update an existing watchlist.
-    pub fn update_watchlist(&self, watchlist_id: &str) -> UpdateWatchlistRequest<'_> {
+    pub fn update_watchlist(&self, watchlist_id: &WatchlistId) -> UpdateWatchlistRequest<'_> {
         UpdateWatchlistRequest {
             client: self,
-            watchlist_id: watchlist_id.to_string(),
+            watchlist_id: watchlist_id.clone(),
             name: None,
             symbols: None,
         }
@@ -129,7 +130,7 @@ impl TradingClient {
     /// Add a symbol to an existing watchlist.
     pub async fn add_to_watchlist(
         &self,
-        watchlist_id: &str,
+        watchlist_id: &WatchlistId,
         symbol: &str,
     ) -> crate::Result<Watchlist> {
         #[derive(Serialize)]
@@ -147,7 +148,7 @@ impl TradingClient {
     /// Remove a symbol from a watchlist.
     pub async fn remove_from_watchlist(
         &self,
-        watchlist_id: &str,
+        watchlist_id: &WatchlistId,
         symbol: &str,
     ) -> crate::Result<Watchlist> {
         let request = self.request(
@@ -158,7 +159,7 @@ impl TradingClient {
     }
 
     /// Delete a watchlist.
-    pub async fn delete_watchlist(&self, watchlist_id: &str) -> crate::Result<()> {
+    pub async fn delete_watchlist(&self, watchlist_id: &WatchlistId) -> crate::Result<()> {
         let request = self.request(Method::DELETE, &format!("v2/watchlists/{watchlist_id}"))?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();

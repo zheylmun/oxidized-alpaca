@@ -1,3 +1,4 @@
+use crate::OptionContractId;
 use crate::restful::{
     TradingClient, string_as_decimal, string_as_optional_decimal, string_as_optional_u64,
 };
@@ -44,7 +45,7 @@ pub enum ContractStatus {
 #[non_exhaustive]
 pub struct OptionContract {
     /// Contract ID.
-    pub id: String,
+    pub id: OptionContractId,
     /// OCC symbol.
     pub symbol: String,
     /// Human-readable contract name.

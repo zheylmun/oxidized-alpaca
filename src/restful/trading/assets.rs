@@ -1,3 +1,4 @@
+use crate::AssetId;
 use crate::restful::{TradingClient, null_def_vec, string_as_optional_decimal};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -110,7 +111,7 @@ impl std::fmt::Display for AssetAttribute {
 #[non_exhaustive]
 pub struct Asset {
     /// Asset ID.
-    pub id: String,
+    pub id: AssetId,
     /// Asset class.
     pub class: AssetClass,
     /// Exchange the asset is traded on.
