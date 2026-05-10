@@ -3,7 +3,7 @@ use socketeer::JsonCodec;
 use crate::{
     AccountType, Error, StreamingFeed,
     streaming::{
-        client::{StreamProtocol, StreamingClient},
+        client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{StockStreamMessage, StockSubscriptionList},
         wire::{ControlMessage, Request},
     },
@@ -14,10 +14,11 @@ use crate::{
 #[derive(Debug)]
 pub struct StockProtocol;
 
+impl sealed::Sealed for StockProtocol {}
+
 impl StreamProtocol for StockProtocol {
     type Message = StockStreamMessage;
     type Subscriptions = StockSubscriptionList;
-    type Codec = JsonCodec<Vec<StockStreamMessage>, Request<StockSubscriptionList>>;
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()
@@ -31,6 +32,10 @@ impl StreamProtocol for StockProtocol {
             other => Err(other),
         }
     }
+}
+
+impl StreamProtocolCodec for StockProtocol {
+    type Codec = JsonCodec<Vec<StockStreamMessage>, Request<StockSubscriptionList>>;
 }
 
 /// Client for streaming real-time stock market data over a WebSocket connection.

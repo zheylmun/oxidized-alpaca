@@ -3,7 +3,7 @@ use socketeer::JsonCodec;
 use crate::{
     AccountType, Error,
     streaming::{
-        client::{StreamProtocol, StreamingClient},
+        client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{NewsStreamMessage, NewsSubscriptionList},
         wire::{ControlMessage, Request},
     },
@@ -17,10 +17,11 @@ const NEWS_SANDBOX_URL: &str = "wss://stream.data.sandbox.alpaca.markets/v1beta1
 #[derive(Debug)]
 pub struct NewsProtocol;
 
+impl sealed::Sealed for NewsProtocol {}
+
 impl StreamProtocol for NewsProtocol {
     type Message = NewsStreamMessage;
     type Subscriptions = NewsSubscriptionList;
-    type Codec = JsonCodec<Vec<NewsStreamMessage>, Request<NewsSubscriptionList>>;
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()
@@ -34,6 +35,10 @@ impl StreamProtocol for NewsProtocol {
             other => Err(other),
         }
     }
+}
+
+impl StreamProtocolCodec for NewsProtocol {
+    type Codec = JsonCodec<Vec<NewsStreamMessage>, Request<NewsSubscriptionList>>;
 }
 
 /// Client for streaming real-time news articles over a WebSocket connection.

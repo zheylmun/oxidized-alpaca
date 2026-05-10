@@ -2,6 +2,44 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
+/// Opaque error returned by the streaming WebSocket transport.
+///
+/// The crate uses [`socketeer`] internally, but its concrete error type
+/// is not exposed so the underlying dependency can be swapped out
+/// without a breaking release. Use [`std::error::Error::source`] to
+/// inspect the chain when diagnosing failures.
+#[cfg(feature = "streaming")]
+#[derive(Debug)]
+pub struct WebsocketError(socketeer::Error);
+
+#[cfg(feature = "streaming")]
+impl std::fmt::Display for WebsocketError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl std::error::Error for WebsocketError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl From<socketeer::Error> for WebsocketError {
+    fn from(value: socketeer::Error) -> Self {
+        Self(value)
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl From<socketeer::Error> for Error {
+    fn from(value: socketeer::Error) -> Self {
+        Self::Websocket(WebsocketError(value))
+    }
+}
+
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -40,10 +78,10 @@ pub enum Error {
         body: String,
     },
 
-    /// Socketeer connection error
+    /// Streaming WebSocket transport error.
     #[cfg(feature = "streaming")]
-    #[error("Socketeer websocket error: {0}")]
-    WebsocketError(#[from] socketeer::Error),
+    #[error("websocket error: {0}")]
+    Websocket(#[from] WebsocketError),
 
     /// Url Parse Error
     #[error("Url parse error: {0}")]

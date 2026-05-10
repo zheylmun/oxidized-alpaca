@@ -3,7 +3,7 @@ use socketeer::MsgPackCodec;
 use crate::{
     AccountType, Error, OptionFeed,
     streaming::{
-        client::{StreamProtocol, StreamingClient},
+        client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{OptionStreamMessage, OptionSubscriptionList},
         wire::{ControlMessage, Request},
     },
@@ -17,10 +17,11 @@ use crate::{
 #[derive(Debug)]
 pub struct OptionProtocol;
 
+impl sealed::Sealed for OptionProtocol {}
+
 impl StreamProtocol for OptionProtocol {
     type Message = OptionStreamMessage;
     type Subscriptions = OptionSubscriptionList;
-    type Codec = MsgPackCodec<Vec<OptionStreamMessage>, Request<OptionSubscriptionList>>;
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()
@@ -34,6 +35,10 @@ impl StreamProtocol for OptionProtocol {
             other => Err(other),
         }
     }
+}
+
+impl StreamProtocolCodec for OptionProtocol {
+    type Codec = MsgPackCodec<Vec<OptionStreamMessage>, Request<OptionSubscriptionList>>;
 }
 
 /// Client for streaming real-time options market data over a WebSocket

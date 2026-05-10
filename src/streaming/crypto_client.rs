@@ -3,7 +3,7 @@ use socketeer::JsonCodec;
 use crate::{
     AccountType, CryptoFeed, Error,
     streaming::{
-        client::{StreamProtocol, StreamingClient},
+        client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{CryptoStreamMessage, CryptoSubscriptionList},
         wire::{ControlMessage, Request},
     },
@@ -14,10 +14,11 @@ use crate::{
 #[derive(Debug)]
 pub struct CryptoProtocol;
 
+impl sealed::Sealed for CryptoProtocol {}
+
 impl StreamProtocol for CryptoProtocol {
     type Message = CryptoStreamMessage;
     type Subscriptions = CryptoSubscriptionList;
-    type Codec = JsonCodec<Vec<CryptoStreamMessage>, Request<CryptoSubscriptionList>>;
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()
@@ -31,6 +32,10 @@ impl StreamProtocol for CryptoProtocol {
             other => Err(other),
         }
     }
+}
+
+impl StreamProtocolCodec for CryptoProtocol {
+    type Codec = JsonCodec<Vec<CryptoStreamMessage>, Request<CryptoSubscriptionList>>;
 }
 
 /// Client for streaming real-time crypto market data over a WebSocket connection.

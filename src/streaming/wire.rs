@@ -102,19 +102,13 @@ mod tests {
     }
 }
 
-/// Outgoing wire-protocol message used by streaming clients to talk to
-/// Alpaca. Generic over the per-feed subscription list type.
-///
-/// Public only so that it can appear in the [`StreamProtocol::Codec`]
-/// associated type. Callers should use the client's
-/// `add_subscriptions` / `remove_subscriptions` methods instead of
-/// constructing these by hand.
-///
-/// [`StreamProtocol::Codec`]: crate::streaming::StreamProtocol::Codec
-#[doc(hidden)]
+/// Outgoing wire-protocol message used internally by the streaming
+/// clients to talk to Alpaca. Crate-private; callers reach the same
+/// behaviour through the client's `add_subscriptions` /
+/// `remove_subscriptions` methods.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "action")]
-pub enum Request<T> {
+pub(crate) enum Request<T> {
     /// Authenticate with API key and secret.
     #[serde(rename = "auth")]
     AuthMessage {

@@ -4,15 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{ExecutionId, OrderId, orders::Order, serde_helpers::string_as_optional_decimal};
 
-/// Outgoing wire-protocol message used by the trade-updates stream.
-///
-/// Public only because it appears on the streaming codec's `Tx` type;
-/// callers use [`crate::streaming::TradingUpdatesClient`] instead of
-/// constructing these by hand.
-#[doc(hidden)]
+/// Outgoing wire-protocol message used internally by the trade-updates
+/// stream. Crate-private; callers reach the same behaviour through
+/// [`crate::streaming::TradingUpdatesClient`].
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "action")]
-pub enum TradingUpdatesRequest {
+pub(crate) enum TradingUpdatesRequest {
     /// Authenticate with API key and secret.
     #[serde(rename = "auth")]
     Auth {
@@ -29,10 +26,9 @@ pub enum TradingUpdatesRequest {
     },
 }
 
-/// Body of the `listen` request.
-#[doc(hidden)]
+/// Body of the `listen` request. Crate-private wire-payload type.
 #[derive(Clone, Debug, Serialize)]
-pub struct ListenStreams {
+pub(crate) struct ListenStreams {
     /// Streams to subscribe to (only `trade_updates` is currently meaningful).
     pub streams: Vec<String>,
 }

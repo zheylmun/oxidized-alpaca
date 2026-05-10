@@ -119,7 +119,7 @@ impl TradingUpdatesClient {
     async fn recv(socket: &mut TradingUpdatesSocket) -> Result<TradingUpdatesMessage, Error> {
         socket.next_message().await.map_err(|e| {
             error!("Error retrieving next message: {e:?}");
-            Error::WebsocketError(e)
+            Error::from(e)
         })
     }
 }
