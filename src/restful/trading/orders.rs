@@ -1,5 +1,5 @@
 use crate::restful::{SortDirection, TradingClient};
-use crate::{ClientOrderId, OrderId};
+use crate::{AssetClass, ClientOrderId, OrderId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -281,6 +281,12 @@ pub struct ListOrdersRequest<'a> {
     symbols: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     side: Option<Side>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    asset_class: Option<AssetClass>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    before_order_id: Option<OrderId>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    after_order_id: Option<OrderId>,
 }
 
 impl ListOrdersRequest<'_> {
@@ -296,15 +302,25 @@ impl ListOrdersRequest<'_> {
         self
     }
 
-    /// Only return orders after this timestamp.
+    /// Only return orders submitted after this timestamp. Mutually
+    /// exclusive with [`before_order_id`](Self::before_order_id) and
+    /// [`after_order_id`](Self::after_order_id); setting this clears
+    /// either cursor.
     pub fn after(mut self, after: DateTime<Utc>) -> Self {
         self.after = Some(after);
+        self.before_order_id = None;
+        self.after_order_id = None;
         self
     }
 
-    /// Only return orders until this timestamp.
+    /// Only return orders submitted up to this timestamp. Mutually
+    /// exclusive with [`before_order_id`](Self::before_order_id) and
+    /// [`after_order_id`](Self::after_order_id); setting this clears
+    /// either cursor.
     pub fn until(mut self, until: DateTime<Utc>) -> Self {
         self.until = Some(until);
+        self.before_order_id = None;
+        self.after_order_id = None;
         self
     }
 
@@ -329,6 +345,34 @@ impl ListOrdersRequest<'_> {
     /// Filter by side.
     pub fn side(mut self, side: Side) -> Self {
         self.side = Some(side);
+        self
+    }
+
+    /// Filter by asset class (equities, options, crypto, …).
+    pub fn asset_class(mut self, asset_class: AssetClass) -> Self {
+        self.asset_class = Some(asset_class);
+        self
+    }
+
+    /// Cursor pagination: only return orders submitted before the order
+    /// with `id`. Mutually exclusive with [`after`](Self::after) and
+    /// [`until`](Self::until); setting this clears both timestamp
+    /// filters.
+    pub fn before_order_id(mut self, id: impl Into<OrderId>) -> Self {
+        self.before_order_id = Some(id.into());
+        self.after = None;
+        self.until = None;
+        self
+    }
+
+    /// Cursor pagination: only return orders submitted after the order
+    /// with `id`. Mutually exclusive with [`after`](Self::after) and
+    /// [`until`](Self::until); setting this clears both timestamp
+    /// filters.
+    pub fn after_order_id(mut self, id: impl Into<OrderId>) -> Self {
+        self.after_order_id = Some(id.into());
+        self.after = None;
+        self.until = None;
         self
     }
 
@@ -551,6 +595,9 @@ impl TradingClient {
             nested: None,
             symbols: None,
             side: None,
+            asset_class: None,
+            before_order_id: None,
+            after_order_id: None,
         }
     }
 
@@ -748,6 +795,73 @@ mod tests {
         assert!(
             query.contains("limit=10"),
             "expected limit=10 in query string, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_asset_class_serializes_alpaca_wire_value() {
+        let client = paper_client();
+        let request = client.list_orders().asset_class(AssetClass::UsOption);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("asset_class=us_option"),
+            "expected asset_class=us_option in query string, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_cursor_clears_timestamp_filters() {
+        let client = paper_client();
+        let request = client
+            .list_orders()
+            .after(
+                DateTime::parse_from_rfc3339("2025-05-01T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )
+            .until(
+                DateTime::parse_from_rfc3339("2025-05-10T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )
+            .before_order_id("11111111-1111-1111-1111-111111111111");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("before_order_id=11111111-1111-1111-1111-111111111111"),
+            "expected before_order_id in query string, got {query}"
+        );
+        assert!(
+            !query.contains("after="),
+            "after should be cleared by before_order_id, got {query}"
+        );
+        assert!(
+            !query.contains("until="),
+            "until should be cleared by before_order_id, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_timestamp_filters_clear_cursor() {
+        let client = paper_client();
+        let request = client
+            .list_orders()
+            .after_order_id("22222222-2222-2222-2222-222222222222")
+            .after(
+                DateTime::parse_from_rfc3339("2025-05-01T00:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            );
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("after="),
+            "expected after timestamp in query string, got {query}"
+        );
+        assert!(
+            !query.contains("after_order_id="),
+            "after_order_id should be cleared by after(...), got {query}"
         );
     }
 
