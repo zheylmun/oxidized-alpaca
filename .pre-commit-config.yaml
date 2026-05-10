@@ -1,0 +1,34 @@
+# Pre-commit configuration for oxidized_alpaca.
+#
+# Compatible with both `prek` (https://github.com/j178/prek) and the original
+# `pre-commit` framework (https://pre-commit.com).
+#
+# Install once per checkout: `prek install --install-hooks` (or
+# `pre-commit install --install-hooks`).
+repos:
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v4.4.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        # Default types: build, chore, ci, docs, feat, fix, perf, refactor,
+        # revert, style, test. Suffixes accepted: `!` for breaking, optional
+        # `(scope)`. Matches what release-plz reads to compute version bumps.
+        args: []
+
+  - repo: local
+    hooks:
+      - id: cargo-fmt
+        name: cargo fmt --check
+        entry: cargo fmt --all -- --check
+        language: system
+        types: [rust]
+        pass_filenames: false
+
+      - id: cargo-clippy
+        name: cargo clippy
+        # Mirrors `.github/workflows/ci.yml` so local feedback matches CI.
+        entry: cargo clippy --all-features --tests --benches -- -Dclippy::all
+        language: system
+        types: [rust]
+        pass_filenames: false
