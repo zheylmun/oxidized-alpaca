@@ -79,6 +79,7 @@ impl Adjustment {
 /// which omits the parameter when the iterator is empty so Alpaca's
 /// default of `raw` is used.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct AdjustmentList(Vec<Adjustment>);
 
 impl AdjustmentList {
