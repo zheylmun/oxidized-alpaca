@@ -183,7 +183,11 @@ impl AssetRequest<'_> {
             .map(AssetAttribute::as_str)
             .collect::<Vec<_>>()
             .join(",");
-        self.attributes = if joined.is_empty() { None } else { Some(joined) };
+        self.attributes = if joined.is_empty() {
+            None
+        } else {
+            Some(joined)
+        };
         self
     }
 
