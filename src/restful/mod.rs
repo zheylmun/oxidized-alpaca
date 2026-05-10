@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 
 pub(crate) use crate::serde_helpers::{
     decimal_as_string, null_def_vec, optional_decimal_as_string, string_as_decimal,
-    string_as_optional_decimal, string_as_optional_u64,
+    string_as_optional_decimal, string_as_optional_u64, unix_seconds_vec_as_datetimes,
 };
 
 /// Sort direction shared across endpoints that accept ordering hints.
