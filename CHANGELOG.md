@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Mark `Error` `#[non_exhaustive]` so future error variants can be added without
+  a major bump.
+- Wrap `reqwest::Error` and `url::ParseError` in opaque `RestError` and
+  `UrlError` newtypes (mirroring the existing `WebsocketError` pattern) so the
+  underlying transport crates can be upgraded across major versions without a
+  breaking release. Use `std::error::Error::source` to inspect the chain.
+- Mark the streaming server-tagged enums (`StockStreamMessage`,
+  `CryptoStreamMessage`, `NewsStreamMessage`, `OptionStreamMessage`,
+  `TradingUpdatesMessage`) `#[non_exhaustive]` so newly documented message types
+  from Alpaca can be added without a major bump.
+- Mark `AdjustmentList` `#[non_exhaustive]`.
+
+### Fixed
+
+- Resolve the ambiguous rustdoc link on the `Result` alias in `crate::error`.
+
 ## [0.0.5](https://github.com/VoidstarSolutions/oxidized-alpaca/compare/v0.0.4...v0.0.5) - 2026-05-07
 
 ### Fixed

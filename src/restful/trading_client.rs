@@ -43,8 +43,7 @@ impl TradingClient {
     pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = Url::parse(self.base_url())
             .expect("base URL constants are valid")
-            .join(path)
-            .map_err(Error::UrlParse)?;
+            .join(path)?;
         Ok(self
             .client
             .request(method, url)
@@ -58,7 +57,10 @@ impl TradingClient {
         &self,
         request: RequestBuilder,
     ) -> Result<T> {
-        let response = request.send().await.map_err(Error::ReqwestSend)?;
+        let response = request
+            .send()
+            .await
+            .map_err(|e| Error::ReqwestSend(e.into()))?;
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();
@@ -67,13 +69,19 @@ impl TradingClient {
                 body,
             });
         }
-        response.json().await.map_err(Error::ReqwestDeserialize)
+        response
+            .json()
+            .await
+            .map_err(|e| Error::ReqwestDeserialize(e.into()))
     }
 
     /// Send a request and discard the body, returning an
     /// [`Error::ApiError`] for non-2xx status codes.
     pub(crate) async fn send_no_body(&self, request: RequestBuilder) -> Result<()> {
-        let response = request.send().await.map_err(Error::ReqwestSend)?;
+        let response = request
+            .send()
+            .await
+            .map_err(|e| Error::ReqwestSend(e.into()))?;
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();

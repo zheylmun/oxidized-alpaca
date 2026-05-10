@@ -6,7 +6,10 @@ impl MarketDataClient {
     pub async fn logo(&self, symbol: &str) -> crate::Result<Vec<u8>> {
         let path = format!("v1beta1/logos/{symbol}");
         let request = self.request(Method::GET, &path)?;
-        let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
+        let response = request
+            .send()
+            .await
+            .map_err(|e| crate::Error::ReqwestSend(e.into()))?;
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();
@@ -18,7 +21,7 @@ impl MarketDataClient {
         let bytes = response
             .bytes()
             .await
-            .map_err(crate::Error::ReqwestDeserialize)?;
+            .map_err(|e| crate::Error::ReqwestDeserialize(e.into()))?;
         Ok(bytes.to_vec())
     }
 }

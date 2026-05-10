@@ -40,8 +40,72 @@ impl From<socketeer::Error> for Error {
     }
 }
 
+/// Opaque error returned by the REST transport.
+///
+/// The crate uses [`reqwest`] internally, but its concrete error type is
+/// not exposed so the underlying dependency can be swapped out (or upgraded
+/// across major versions) without a breaking release. Use
+/// [`std::error::Error::source`] to inspect the chain when diagnosing failures.
+#[cfg(feature = "restful")]
+#[derive(Debug)]
+pub struct RestError(ReqwestError);
+
+#[cfg(feature = "restful")]
+impl std::fmt::Display for RestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "restful")]
+impl std::error::Error for RestError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+#[cfg(feature = "restful")]
+impl From<ReqwestError> for RestError {
+    fn from(value: ReqwestError) -> Self {
+        Self(value)
+    }
+}
+
+/// Opaque error returned when a URL fails to parse.
+///
+/// Wraps [`url::ParseError`] so the `url` crate can be upgraded across major
+/// versions without a breaking release. Use [`std::error::Error::source`] to
+/// inspect the chain when diagnosing failures.
+#[derive(Debug)]
+pub struct UrlError(url::ParseError);
+
+impl std::fmt::Display for UrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for UrlError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+impl From<url::ParseError> for UrlError {
+    fn from(value: url::ParseError) -> Self {
+        Self(value)
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Self::UrlParse(UrlError(value))
+    }
+}
+
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
+#[non_exhaustive]
 pub enum Error {
     /// Oxidized Alpaca requires the following environment variables to be set:
     ///
@@ -63,11 +127,11 @@ pub enum Error {
     /// Reqwest Send Error
     #[cfg(feature = "restful")]
     #[error("Reqwest send error: {0}")]
-    ReqwestSend(#[source] ReqwestError),
+    ReqwestSend(#[source] RestError),
     /// Reqwest Deserialize Error
     #[cfg(feature = "restful")]
     #[error("Reqwest decoding error: {0}")]
-    ReqwestDeserialize(#[source] ReqwestError),
+    ReqwestDeserialize(#[source] RestError),
 
     /// API returned a non-2xx status code
     #[error("API error (HTTP {}): {}", status, body)]
@@ -85,7 +149,7 @@ pub enum Error {
 
     /// Url Parse Error
     #[error("Url parse error: {0}")]
-    UrlParse(#[source] url::ParseError),
+    UrlParse(#[source] UrlError),
     /// Unexpected connection message
     #[error("Unexpected connection message: {0}")]
     UnexpectedConnectionMessage(String),
@@ -105,18 +169,22 @@ pub enum Error {
     },
 }
 
-/// A `Result` type alias using [`Error`] as the default error type.
+/// A `Result` type alias using [`enum@Error`] as the default error type.
 pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[cfg(test)]
 mod tests {
-    use super::Error;
+    #[cfg(feature = "restful")]
+    use super::RestError;
+    #[cfg(feature = "streaming")]
+    use super::WebsocketError;
+    use super::{Error, UrlError};
 
     #[test]
     fn url_parse_display_includes_inner_cause() {
         let inner = url::Url::parse("not a url").unwrap_err();
         let inner_text = inner.to_string();
-        let err = Error::UrlParse(inner);
+        let err: Error = inner.into();
         let rendered = err.to_string();
         assert!(
             rendered.contains(&inner_text),
@@ -213,5 +281,71 @@ mod tests {
             .downcast_ref::<url::ParseError>()
             .expect("the deepest source should be the original url::ParseError");
         assert_eq!(parse_err.to_string(), url_err_text);
+    }
+
+    #[test]
+    fn url_parse_preserves_chain_through_opaque_wrapper() {
+        use std::error::Error as _;
+
+        let parse_err = url::Url::parse("not a url").unwrap_err();
+        let url_err: UrlError = parse_err.into();
+        let err = Error::UrlParse(url_err);
+
+        let wrapper = err
+            .source()
+            .expect("Error::UrlParse should expose its UrlError as a source");
+        assert!(
+            wrapper.source().is_none(),
+            "url::ParseError has no further source to walk through",
+        );
+    }
+
+    #[cfg(feature = "streaming")]
+    #[test]
+    fn websocket_error_newtype_constructible_directly_from_socketeer() {
+        let inner = socketeer::Error::WebsocketClosed;
+        let inner_text = inner.to_string();
+        let ws: WebsocketError = inner.into();
+        assert_eq!(
+            ws.to_string(),
+            inner_text,
+            "WebsocketError Display should pass through the inner cause verbatim",
+        );
+    }
+
+    #[cfg(feature = "restful")]
+    #[tokio::test]
+    async fn rest_error_preserves_chain_through_opaque_wrapper() {
+        use std::error::Error as _;
+
+        let inner = reqwest::Client::new()
+            .get("http://127.0.0.1:1/")
+            .send()
+            .await
+            .expect_err("port 1 on localhost should refuse the connection");
+        let inner_text = inner.to_string();
+        let rest_err: RestError = inner.into();
+
+        assert_eq!(
+            rest_err.to_string(),
+            inner_text,
+            "RestError Display should pass through the inner cause verbatim",
+        );
+
+        let err = Error::ReqwestSend(rest_err);
+        let rendered = err.to_string();
+        assert!(
+            rendered.starts_with("Reqwest send error:"),
+            "expected `{rendered}` to be tagged with the reqwest send error prefix",
+        );
+        assert!(
+            rendered.contains(&inner_text),
+            "expected `{rendered}` to surface the inner cause `{inner_text}`",
+        );
+
+        let wrapper = err
+            .source()
+            .expect("Error::ReqwestSend should expose its RestError as a source");
+        let _chain_tail = wrapper.source();
     }
 }
