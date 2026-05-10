@@ -1,6 +1,6 @@
 use oxidized_alpaca::{
     AccountType, TradingClient,
-    restful::trading::assets::{AssetClass, Exchange, Status},
+    restful::trading::assets::{AssetAttribute, AssetClass, Exchange, Status},
 };
 
 #[tokio::test]
@@ -44,7 +44,7 @@ async fn get_all_us_equity_assets() {
 
     let assets = client
         .list_assets()
-        .attributes(&["ptp_no_exception"])
+        .attributes(&[AssetAttribute::PtpNoException])
         .execute()
         .await
         .unwrap();
@@ -65,7 +65,7 @@ async fn get_all_otc_assets() {
 
     let assets = client
         .list_assets()
-        .attributes(&["ptp_no_exception"])
+        .attributes(&[AssetAttribute::PtpNoException])
         .execute()
         .await
         .unwrap();
@@ -78,7 +78,7 @@ async fn get_all_ptp_no_exception_assets() {
 
     let assets = client
         .list_assets()
-        .attributes(&["ptp_no_exception"])
+        .attributes(&[AssetAttribute::PtpNoException])
         .execute()
         .await
         .unwrap();

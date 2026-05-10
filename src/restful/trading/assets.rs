@@ -40,6 +40,71 @@ pub enum Status {
     Inactive,
 }
 
+/// Optional attribute flag attached to an [`Asset`]. Unknown values from
+/// Alpaca are preserved verbatim under [`AssetAttribute::Other`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum AssetAttribute {
+    /// PTP no-exception trading enabled.
+    PtpNoException,
+    /// PTP with-exception trading enabled.
+    PtpWithException,
+    /// Asset is in IPO state.
+    Ipo,
+    /// Underlying has tradable options.
+    HasOptions,
+    /// Options late-close window is supported.
+    OptionsLateClose,
+    /// Fractional shares supported in extended hours.
+    FractionalEhEnabled,
+    /// Any attribute not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl AssetAttribute {
+    /// Wire string for this attribute. Used to encode the
+    /// `?attributes=` query parameter.
+    #[must_use]
+    pub fn as_str(&self) -> &str {
+        match self {
+            Self::PtpNoException => "ptp_no_exception",
+            Self::PtpWithException => "ptp_with_exception",
+            Self::Ipo => "ipo",
+            Self::HasOptions => "has_options",
+            Self::OptionsLateClose => "options_late_close",
+            Self::FractionalEhEnabled => "fractional_eh_enabled",
+            Self::Other(raw) => raw,
+        }
+    }
+}
+
+impl serde::Serialize for AssetAttribute {
+    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
+        serializer.serialize_str(self.as_str())
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for AssetAttribute {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "ptp_no_exception" => Self::PtpNoException,
+            "ptp_with_exception" => Self::PtpWithException,
+            "ipo" => Self::Ipo,
+            "has_options" => Self::HasOptions,
+            "options_late_close" => Self::OptionsLateClose,
+            "fractional_eh_enabled" => Self::FractionalEhEnabled,
+            _ => Self::Other(raw),
+        })
+    }
+}
+
+impl std::fmt::Display for AssetAttribute {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(self.as_str())
+    }
+}
+
 /// An asset as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -74,7 +139,7 @@ pub struct Asset {
     pub margin_requirement_short: Option<Decimal>,
     /// Additional asset attributes.
     #[serde(default, deserialize_with = "null_def_vec")]
-    pub attributes: Vec<String>,
+    pub attributes: Vec<AssetAttribute>,
 }
 
 /// Builder for filtering asset list requests.
@@ -109,9 +174,15 @@ impl AssetRequest<'_> {
         self.exchange = Some(exchange);
         self
     }
-    /// Filter by attributes.
-    pub fn attributes(mut self, attributes: &[&str]) -> Self {
-        self.attributes = Some(attributes.join(","));
+    /// Filter by asset attributes. Multiple values are sent as a
+    /// comma-joined `attributes=` query parameter.
+    pub fn attributes(mut self, attributes: &[AssetAttribute]) -> Self {
+        let joined = attributes
+            .iter()
+            .map(AssetAttribute::as_str)
+            .collect::<Vec<_>>()
+            .join(",");
+        self.attributes = if joined.is_empty() { None } else { Some(joined) };
         self
     }
 
@@ -178,6 +249,60 @@ mod tests {
         assert_eq!(
             asset.margin_requirement_long,
             Some(Decimal::from_str_exact("100").unwrap())
+        );
+    }
+
+    #[test]
+    fn asset_attribute_known_codes_round_trip() {
+        let cases = [
+            (AssetAttribute::PtpNoException, "\"ptp_no_exception\""),
+            (AssetAttribute::PtpWithException, "\"ptp_with_exception\""),
+            (AssetAttribute::Ipo, "\"ipo\""),
+            (AssetAttribute::HasOptions, "\"has_options\""),
+            (AssetAttribute::OptionsLateClose, "\"options_late_close\""),
+            (
+                AssetAttribute::FractionalEhEnabled,
+                "\"fractional_eh_enabled\"",
+            ),
+        ];
+        for (variant, expected) in cases {
+            assert_eq!(serde_json::to_string(&variant).unwrap(), expected);
+            let parsed: AssetAttribute = serde_json::from_str(expected).unwrap();
+            assert_eq!(parsed, variant);
+        }
+    }
+
+    #[test]
+    fn asset_attribute_unknown_falls_back_to_other() {
+        let parsed: AssetAttribute = serde_json::from_str("\"future_flag\"").unwrap();
+        assert_eq!(parsed, AssetAttribute::Other("future_flag".to_string()));
+        assert_eq!(serde_json::to_string(&parsed).unwrap(), "\"future_flag\"");
+    }
+
+    #[test]
+    fn asset_with_typed_attributes_deserializes() {
+        let sample = r#"{
+            "id": "id-1",
+            "class": "us_equity",
+            "exchange": "NASDAQ",
+            "symbol": "AAPL",
+            "name": "Apple Inc.",
+            "status": "active",
+            "tradable": true,
+            "marginable": true,
+            "shortable": true,
+            "easy_to_borrow": true,
+            "fractionable": true,
+            "attributes": ["has_options", "fractional_eh_enabled", "future_flag"]
+        }"#;
+        let asset: Asset = serde_json::from_str(sample).unwrap();
+        assert_eq!(
+            asset.attributes,
+            vec![
+                AssetAttribute::HasOptions,
+                AssetAttribute::FractionalEhEnabled,
+                AssetAttribute::Other("future_flag".to_string()),
+            ]
         );
     }
 }
