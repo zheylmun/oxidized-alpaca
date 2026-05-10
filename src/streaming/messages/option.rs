@@ -115,6 +115,7 @@ pub struct OptionQuote {
 /// Messages received from the options streaming feed.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "T")]
+#[non_exhaustive]
 pub enum OptionStreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests.
     #[serde(rename = "success")]

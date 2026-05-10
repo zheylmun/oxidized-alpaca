@@ -383,6 +383,7 @@ pub struct StockImbalance {
 /// Messages received from the stock streaming feed.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "T")]
+#[non_exhaustive]
 pub enum StockStreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests.
     #[serde(rename = "success")]

@@ -231,6 +231,7 @@ pub struct CryptoOrderbook {
 /// Messages received from the crypto streaming feed.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "T")]
+#[non_exhaustive]
 pub enum CryptoStreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests.
     #[serde(rename = "success")]

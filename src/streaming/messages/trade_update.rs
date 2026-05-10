@@ -187,6 +187,7 @@ pub struct TradeUpdate {
 #[allow(clippy::large_enum_variant)]
 #[derive(Clone, Debug, Deserialize)]
 #[serde(tag = "stream", content = "data")]
+#[non_exhaustive]
 pub enum TradingUpdatesMessage {
     /// Authentication outcome.
     #[serde(rename = "authorization")]

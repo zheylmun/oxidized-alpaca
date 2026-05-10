@@ -62,6 +62,7 @@ pub struct NewsArticle {
 /// Messages received from the news streaming feed.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(tag = "T")]
+#[non_exhaustive]
 pub enum NewsStreamMessage {
     /// Internally consumed stream acknowledging successful completion of requests.
     #[serde(rename = "success")]
