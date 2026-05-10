@@ -146,16 +146,30 @@ listed below are the public entry points on the relevant client.
 | Calendar                | `get_calendar` |
 | Clock                   | `get_clock` |
 | Options contracts       | `list_option_contracts`, `get_option_contract` |
-| Orders                  | `create_order`, `list_orders`, `get_order`, `get_order_by_client_id`, `replace_order`, `cancel_order`, `cancel_all_orders` |
+| Orders                  | `market_order`, `limit_order`, `stop_order`, `stop_limit_order`, `trailing_stop_order_by_price`, `trailing_stop_order_by_percent`, `list_orders`, `get_order`, `get_order_by_client_id`, `replace_order`, `cancel_order`, `cancel_all_orders` |
 | Portfolio history       | `portfolio_history` |
 | Positions               | `list_positions`, `get_position`, `close_position`, `close_all_positions`, `exercise_option`, `do_not_exercise` |
 | Watchlists              | `list_watchlists`, `get_watchlist`, `create_watchlist`, `update_watchlist`, `add_to_watchlist`, `remove_from_watchlist`, `delete_watchlist` |
 
-`create_order` and `replace_order` return builders that support market, limit,
-stop, stop-limit, trailing-stop, and bracket/OCO/OTO order classes via setters
-such as `.qty`, `.notional`, `.time_in_force`, `.limit_price`, `.stop_price`,
-`.trail_price`, `.trail_percent`, `.extended_hours`, `.client_order_id`,
-`.order_class`, `.take_profit`, and `.stop_loss`.
+There is one entry point per Alpaca order type. Each constructor takes
+the parameters that order type strictly requires (e.g. `limit_price`
+for `limit_order`, `stop_price` + `limit_price` for `stop_limit_order`,
+or one of `trail_price`/`trail_percent` via the two trailing-stop
+variants), so it is impossible to submit a half-configured order.
+
+The returned builder exposes only the truly optional knobs:
+`.qty`, `.notional`, `.time_in_force`, `.extended_hours`, and
+`.client_order_id`. Bracket / OCO / OTO orders are reached by
+attaching `.take_profit(...)` and/or `.stop_loss(...)` to any of these
+builders — the order class is inferred at submit time (both legs →
+bracket, one leg → OTO). For OCO exits, override the inference with
+`.order_class(OrderClass::Oco)`.
+
+`cancel_all_orders` and `close_all_positions` return the per-item
+status arrays Alpaca delivers in the underlying HTTP 207 response
+(`Vec<CancelOrderStatus>` / `Vec<ClosePositionStatus>`); inspect each
+entry's `status` field to distinguish successes (`200`) from
+failures.
 
 ### Market Data API (`MarketDataClient`)
 
