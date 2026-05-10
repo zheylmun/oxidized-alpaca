@@ -7,6 +7,14 @@ use serde::{Deserialize, Serialize};
 
 pub use crate::orders::{Order, OrderClass, OrderStatus, OrderType, Side, TimeInForce};
 
+fn infer_order_class(has_take_profit: bool, has_stop_loss: bool) -> Option<OrderClass> {
+    match (has_take_profit, has_stop_loss) {
+        (true, true) => Some(OrderClass::Bracket),
+        (true, false) | (false, true) => Some(OrderClass::Oto),
+        (false, false) => None,
+    }
+}
+
 /// Status filter accepted by the list-orders endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -190,11 +198,8 @@ impl CreateOrderRequest<'_> {
     /// Submit the order.
     pub async fn execute(mut self) -> crate::Result<Order> {
         if self.order_class.is_none() {
-            self.order_class = match (self.take_profit.is_some(), self.stop_loss.is_some()) {
-                (true, true) => Some(OrderClass::Bracket),
-                (true, false) | (false, true) => Some(OrderClass::Oto),
-                (false, false) => None,
-            };
+            self.order_class =
+                infer_order_class(self.take_profit.is_some(), self.stop_loss.is_some());
         }
         let request = self.client.request(Method::POST, "v2/orders")?.json(&self);
         self.client.send_and_deserialize(request).await
@@ -754,51 +759,19 @@ mod tests {
     }
 
     #[test]
-    #[serial]
-    fn execute_infers_bracket_when_both_legs_set() {
-        let client = paper_client();
-        let mut request = client
-            .limit_order("AAPL", Side::Buy, dec("150"))
-            .qty(dec("10"))
-            .take_profit(TakeProfit::new(dec("160")))
-            .stop_loss(StopLoss::new(dec("145")));
-        // Mirror the inference that execute() runs.
-        if request.order_class.is_none() {
-            request.order_class = match (request.take_profit.is_some(), request.stop_loss.is_some())
-            {
-                (true, true) => Some(OrderClass::Bracket),
-                (true, false) | (false, true) => Some(OrderClass::Oto),
-                (false, false) => None,
-            };
-        }
-        let value = serde_json::to_value(&request).unwrap();
-        assert_eq!(
-            value.get("order_class").and_then(|v| v.as_str()),
-            Some("bracket")
-        );
+    fn infer_order_class_returns_bracket_when_both_legs_set() {
+        assert_eq!(infer_order_class(true, true), Some(OrderClass::Bracket));
     }
 
     #[test]
-    #[serial]
-    fn execute_infers_oto_when_only_take_profit_set() {
-        let client = paper_client();
-        let mut request = client
-            .limit_order("AAPL", Side::Buy, dec("150"))
-            .qty(dec("10"))
-            .take_profit(TakeProfit::new(dec("160")));
-        if request.order_class.is_none() {
-            request.order_class = match (request.take_profit.is_some(), request.stop_loss.is_some())
-            {
-                (true, true) => Some(OrderClass::Bracket),
-                (true, false) | (false, true) => Some(OrderClass::Oto),
-                (false, false) => None,
-            };
-        }
-        let value = serde_json::to_value(&request).unwrap();
-        assert_eq!(
-            value.get("order_class").and_then(|v| v.as_str()),
-            Some("oto")
-        );
+    fn infer_order_class_returns_oto_when_one_leg_set() {
+        assert_eq!(infer_order_class(true, false), Some(OrderClass::Oto));
+        assert_eq!(infer_order_class(false, true), Some(OrderClass::Oto));
+    }
+
+    #[test]
+    fn infer_order_class_returns_none_when_no_legs_set() {
+        assert_eq!(infer_order_class(false, false), None);
     }
 
     #[test]
