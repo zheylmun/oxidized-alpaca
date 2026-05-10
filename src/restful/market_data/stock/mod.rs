@@ -21,6 +21,10 @@ pub mod trades;
 /// [`Date`][AsOf::Date] to anchor the mapping at a specific calendar day,
 /// or [`SkipSymbolMapping`][AsOf::SkipSymbolMapping] to disable mapping
 /// (sent as the literal `"-"`).
+///
+/// `asof` is a request-only parameter; Alpaca does not echo it back on
+/// any response shape, so this enum implements [`Serialize`] (for
+/// query-string emission) but intentionally not `Deserialize`.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 #[non_exhaustive]
 pub enum AsOf {
