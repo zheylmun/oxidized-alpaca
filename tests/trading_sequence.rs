@@ -2,7 +2,7 @@ use oxidized_alpaca::{
     AccountType, TradingClient,
     restful::trading::{
         accounts::Currency,
-        assets::{AssetClass, Exchange, Status},
+        assets::{AssetAttribute, AssetClass, Exchange, Status},
     },
 };
 
@@ -46,7 +46,7 @@ async fn trading_sequence() {
 
     let assets = client
         .list_assets()
-        .attributes(&["ptp_no_exception"])
+        .attributes(&[AssetAttribute::PtpNoException])
         .execute()
         .await
         .unwrap();

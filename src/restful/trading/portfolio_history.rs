@@ -1,14 +1,19 @@
-use crate::restful::TradingClient;
+use crate::restful::{TradingClient, unix_seconds_vec_as_datetimes};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
 /// Portfolio history response.
+///
+/// Equity, P/L, and base-value figures are wire-numeric (`f64`) because
+/// Alpaca returns them as JSON numbers; treat them as rounded display
+/// values rather than authoritative ledger amounts.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
 pub struct PortfolioHistory {
-    /// Unix timestamps for each data point.
-    pub timestamp: Vec<i64>,
+    /// UTC timestamps for each data point.
+    #[serde(deserialize_with = "unix_seconds_vec_as_datetimes")]
+    pub timestamp: Vec<DateTime<Utc>>,
     /// Equity values at each timestamp.
     pub equity: Vec<f64>,
     /// Profit/loss values at each timestamp.
@@ -17,8 +22,8 @@ pub struct PortfolioHistory {
     pub profit_loss_pct: Vec<f64>,
     /// Base portfolio value.
     pub base_value: f64,
-    /// Timeframe of the data points.
-    pub timeframe: String,
+    /// Resolution of the data points.
+    pub timeframe: HistoryTimeFrame,
 }
 
 /// Period over which portfolio history should be reported.
@@ -46,7 +51,7 @@ pub enum HistoryPeriod {
 }
 
 /// Sample resolution for portfolio history data points.
-#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum HistoryTimeFrame {
     /// One-minute samples.
@@ -176,5 +181,29 @@ impl TradingClient {
             end: None,
             pnl_reset: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn portfolio_history_deserializes_typed_columns() {
+        let json = r#"{
+            "timestamp": [1718294400, 1718294460],
+            "equity": [100000.0, 100050.5],
+            "profit_loss": [0.0, 50.5],
+            "profit_loss_pct": [0.0, 0.0005],
+            "base_value": 100000.0,
+            "timeframe": "1Min"
+        }"#;
+        let history: PortfolioHistory = serde_json::from_str(json).unwrap();
+        assert_eq!(history.timestamp.len(), 2);
+        assert_eq!(
+            history.timestamp[0],
+            DateTime::<Utc>::from_timestamp(1718294400, 0).unwrap(),
+        );
+        assert_eq!(history.timeframe, HistoryTimeFrame::OneMinute);
     }
 }

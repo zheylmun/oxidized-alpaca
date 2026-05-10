@@ -1,5 +1,7 @@
 //! Shared serde helpers used by both REST and streaming types.
 
+#[cfg(feature = "restful")]
+use chrono::{DateTime, TimeZone, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer};
 
@@ -25,7 +27,6 @@ where
     }
 }
 
-#[cfg(feature = "restful")]
 pub(crate) fn null_def_vec<'de, D, T>(deserializer: D) -> Result<Vec<T>, D::Error>
 where
     D: Deserializer<'de>,
@@ -67,4 +68,21 @@ where
         Some(s) => s.parse().map(Some).map_err(serde::de::Error::custom),
         None => Ok(None),
     }
+}
+
+#[cfg(feature = "restful")]
+pub(crate) fn unix_seconds_vec_as_datetimes<'de, D>(
+    deserializer: D,
+) -> Result<Vec<DateTime<Utc>>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    let raw = Vec::<i64>::deserialize(deserializer)?;
+    raw.into_iter()
+        .map(|secs| {
+            Utc.timestamp_opt(secs, 0)
+                .single()
+                .ok_or_else(|| serde::de::Error::custom(format!("invalid unix timestamp: {secs}")))
+        })
+        .collect()
 }

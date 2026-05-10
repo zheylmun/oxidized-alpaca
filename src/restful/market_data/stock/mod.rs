@@ -138,7 +138,7 @@ pub struct Bar {
     pub low: f64,
     /// The trading volume.
     #[serde(rename = "v")]
-    pub volume: usize,
+    pub volume: u64,
 }
 
 #[cfg(test)]

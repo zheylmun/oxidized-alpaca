@@ -1,4 +1,5 @@
 use crate::restful::{SortDirection, TradingClient};
+use crate::{ClientOrderId, OrderId};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -91,7 +92,7 @@ pub struct CreateOrderRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     extended_hours: Option<bool>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    client_order_id: Option<String>,
+    client_order_id: Option<ClientOrderId>,
     #[serde(skip_serializing_if = "Option::is_none")]
     order_class: Option<OrderClass>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -152,8 +153,8 @@ impl CreateOrderRequest<'_> {
     }
 
     /// Set a client-defined order ID (max 128 characters).
-    pub fn client_order_id(mut self, id: &str) -> Self {
-        self.client_order_id = Some(id.to_string());
+    pub fn client_order_id(mut self, id: impl Into<ClientOrderId>) -> Self {
+        self.client_order_id = Some(id.into());
         self
     }
 
@@ -269,7 +270,7 @@ pub struct ReplaceOrderRequest<'a> {
     #[serde(skip)]
     client: &'a TradingClient,
     #[serde(skip)]
-    order_id: String,
+    order_id: OrderId,
     #[serde(skip_serializing_if = "Option::is_none")]
     qty: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -281,7 +282,7 @@ pub struct ReplaceOrderRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     trail: Option<Decimal>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    client_order_id: Option<String>,
+    client_order_id: Option<ClientOrderId>,
 }
 
 impl ReplaceOrderRequest<'_> {
@@ -316,8 +317,8 @@ impl ReplaceOrderRequest<'_> {
     }
 
     /// Set a new client order ID.
-    pub fn client_order_id(mut self, id: &str) -> Self {
-        self.client_order_id = Some(id.to_string());
+    pub fn client_order_id(mut self, id: impl Into<ClientOrderId>) -> Self {
+        self.client_order_id = Some(id.into());
         self
     }
 
@@ -390,21 +391,24 @@ impl TradingClient {
     }
 
     /// Get a specific order by ID.
-    pub async fn get_order(&self, order_id: &str) -> crate::Result<Order> {
+    pub async fn get_order(&self, order_id: &OrderId) -> crate::Result<Order> {
         let request = self.request(Method::GET, &format!("v2/orders/{order_id}"))?;
         self.send_and_deserialize(request).await
     }
 
     /// Get an order by client order ID.
-    pub async fn get_order_by_client_id(&self, client_order_id: &str) -> crate::Result<Order> {
+    pub async fn get_order_by_client_id(
+        &self,
+        client_order_id: &ClientOrderId,
+    ) -> crate::Result<Order> {
         let request = self
             .request(Method::GET, "v2/orders/by_client_order_id")?
-            .query(&[("client_order_id", client_order_id)]);
+            .query(&[("client_order_id", client_order_id.as_str())]);
         self.send_and_deserialize(request).await
     }
 
     /// Cancel a specific order.
-    pub async fn cancel_order(&self, order_id: &str) -> crate::Result<()> {
+    pub async fn cancel_order(&self, order_id: &OrderId) -> crate::Result<()> {
         let request = self.request(Method::DELETE, &format!("v2/orders/{order_id}"))?;
         let response = request.send().await.map_err(crate::Error::ReqwestSend)?;
         let status = response.status();
@@ -436,17 +440,19 @@ impl TradingClient {
     /// Replace (modify) an existing order.
     ///
     /// ```ignore
+    /// use oxidized_alpaca::OrderId;
     /// use rust_decimal_macros::dec;
     ///
-    /// let order = client.replace_order("order-id")
+    /// let order_id = OrderId::new("order-id");
+    /// let order = client.replace_order(&order_id)
     ///     .qty(dec!(5))
     ///     .limit_price(dec!(150.00))
     ///     .execute().await?;
     /// ```
-    pub fn replace_order(&self, order_id: &str) -> ReplaceOrderRequest<'_> {
+    pub fn replace_order(&self, order_id: &OrderId) -> ReplaceOrderRequest<'_> {
         ReplaceOrderRequest {
             client: self,
-            order_id: order_id.to_string(),
+            order_id: order_id.clone(),
             qty: None,
             limit_price: None,
             stop_price: None,

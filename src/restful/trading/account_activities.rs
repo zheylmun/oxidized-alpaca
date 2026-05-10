@@ -1,4 +1,5 @@
 use crate::restful::{SortDirection, TradingClient, string_as_optional_decimal};
+use crate::{ActivityId, OrderId};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -25,40 +26,40 @@ pub enum ActivityCategory {
 #[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ActivityType {
-    /// Order fills
-    FILL,
-    /// Transactions (cash)
-    TRANS,
-    /// Miscellaneous
-    MISC,
-    /// ACATS in
-    ACATC,
-    /// ACATS out
-    ACATS,
-    /// Cash deposits
-    CSD,
-    /// Cash withdrawals
-    CSW,
-    /// Dividends
-    DIV,
-    /// Journal entries (cash)
-    JNLC,
-    /// Journal entries (stock)
-    JNLS,
-    /// Interest
-    INT,
-    /// Fees
-    FEE,
-    /// Option assignment
-    OPASN,
-    /// Option corporate action
-    OPCA,
-    /// Option exercise
-    OPEXP,
-    /// Option expiration
-    OPXRC,
-    /// Splits
-    SPLIT,
+    /// Order fills (`FILL`).
+    Fill,
+    /// Transactions, cash (`TRANS`).
+    Trans,
+    /// Miscellaneous (`MISC`).
+    Misc,
+    /// ACATS in (`ACATC`).
+    AcatsIn,
+    /// ACATS out (`ACATS`).
+    AcatsOut,
+    /// Cash deposits (`CSD`).
+    CashDeposit,
+    /// Cash withdrawals (`CSW`).
+    CashWithdrawal,
+    /// Dividends (`DIV`).
+    Dividend,
+    /// Journal entries, cash (`JNLC`).
+    JournalCash,
+    /// Journal entries, stock (`JNLS`).
+    JournalStock,
+    /// Interest (`INT`).
+    Interest,
+    /// Fees (`FEE`).
+    Fee,
+    /// Option assignment (`OPASN`).
+    OptionAssignment,
+    /// Option corporate action (`OPCA`).
+    OptionCorporateAction,
+    /// Option exercise (`OPEXP`).
+    OptionExercise,
+    /// Option expiration (`OPXRC`).
+    OptionExpiration,
+    /// Splits (`SPLIT`).
+    Split,
     /// Any activity code not modeled above; the raw string from the API.
     Other(String),
 }
@@ -66,23 +67,23 @@ pub enum ActivityType {
 impl ActivityType {
     fn as_str(&self) -> &str {
         match self {
-            Self::FILL => "FILL",
-            Self::TRANS => "TRANS",
-            Self::MISC => "MISC",
-            Self::ACATC => "ACATC",
-            Self::ACATS => "ACATS",
-            Self::CSD => "CSD",
-            Self::CSW => "CSW",
-            Self::DIV => "DIV",
-            Self::JNLC => "JNLC",
-            Self::JNLS => "JNLS",
-            Self::INT => "INT",
-            Self::FEE => "FEE",
-            Self::OPASN => "OPASN",
-            Self::OPCA => "OPCA",
-            Self::OPEXP => "OPEXP",
-            Self::OPXRC => "OPXRC",
-            Self::SPLIT => "SPLIT",
+            Self::Fill => "FILL",
+            Self::Trans => "TRANS",
+            Self::Misc => "MISC",
+            Self::AcatsIn => "ACATC",
+            Self::AcatsOut => "ACATS",
+            Self::CashDeposit => "CSD",
+            Self::CashWithdrawal => "CSW",
+            Self::Dividend => "DIV",
+            Self::JournalCash => "JNLC",
+            Self::JournalStock => "JNLS",
+            Self::Interest => "INT",
+            Self::Fee => "FEE",
+            Self::OptionAssignment => "OPASN",
+            Self::OptionCorporateAction => "OPCA",
+            Self::OptionExercise => "OPEXP",
+            Self::OptionExpiration => "OPXRC",
+            Self::Split => "SPLIT",
             Self::Other(raw) => raw,
         }
     }
@@ -104,23 +105,23 @@ impl<'de> Deserialize<'de> for ActivityType {
     fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
         let raw = String::deserialize(deserializer)?;
         Ok(match raw.as_str() {
-            "FILL" => Self::FILL,
-            "TRANS" => Self::TRANS,
-            "MISC" => Self::MISC,
-            "ACATC" => Self::ACATC,
-            "ACATS" => Self::ACATS,
-            "CSD" => Self::CSD,
-            "CSW" => Self::CSW,
-            "DIV" => Self::DIV,
-            "JNLC" => Self::JNLC,
-            "JNLS" => Self::JNLS,
-            "INT" => Self::INT,
-            "FEE" => Self::FEE,
-            "OPASN" => Self::OPASN,
-            "OPCA" => Self::OPCA,
-            "OPEXP" => Self::OPEXP,
-            "OPXRC" => Self::OPXRC,
-            "SPLIT" => Self::SPLIT,
+            "FILL" => Self::Fill,
+            "TRANS" => Self::Trans,
+            "MISC" => Self::Misc,
+            "ACATC" => Self::AcatsIn,
+            "ACATS" => Self::AcatsOut,
+            "CSD" => Self::CashDeposit,
+            "CSW" => Self::CashWithdrawal,
+            "DIV" => Self::Dividend,
+            "JNLC" => Self::JournalCash,
+            "JNLS" => Self::JournalStock,
+            "INT" => Self::Interest,
+            "FEE" => Self::Fee,
+            "OPASN" => Self::OptionAssignment,
+            "OPCA" => Self::OptionCorporateAction,
+            "OPEXP" => Self::OptionExercise,
+            "OPXRC" => Self::OptionExpiration,
+            "SPLIT" => Self::Split,
             _ => Self::Other(raw),
         })
     }
@@ -131,7 +132,7 @@ impl<'de> Deserialize<'de> for ActivityType {
 #[non_exhaustive]
 pub struct Activity {
     /// Activity ID.
-    pub id: String,
+    pub id: ActivityId,
     /// Type of activity.
     pub activity_type: ActivityType,
     /// Sub-classification of the activity, when the API provides one.
@@ -169,7 +170,7 @@ pub struct Activity {
     pub side: Option<Side>,
     /// Associated order ID.
     #[serde(default)]
-    pub order_id: Option<String>,
+    pub order_id: Option<OrderId>,
     /// Timestamp of the transaction.
     #[serde(default)]
     pub transaction_time: Option<DateTime<Utc>>,
@@ -263,7 +264,7 @@ impl ListActivitiesRequest<'_> {
             let request = self.client.request(Method::GET, &path)?.query(&self);
             let page: Vec<Activity> = self.client.send_and_deserialize(request).await?;
             let received = page.len();
-            let last_id = page.last().map(|a| a.id.clone());
+            let last_id = page.last().map(|a| a.id.as_str().to_string());
             all.extend(page);
             if let Some(cap) = cap
                 && all.len() >= cap
@@ -290,7 +291,7 @@ impl TradingClient {
     ///
     /// ```ignore
     /// let activities = client.list_activities()
-    ///     .activity_type(ActivityType::FILL)
+    ///     .activity_type(ActivityType::Fill)
     ///     .limit(500)
     ///     .execute().await?;
     /// ```
@@ -318,9 +319,39 @@ mod tests {
     fn opca_round_trips() {
         let json = "\"OPCA\"";
         let parsed: ActivityType = serde_json::from_str(json).unwrap();
-        assert_eq!(parsed, ActivityType::OPCA);
+        assert_eq!(parsed, ActivityType::OptionCorporateAction);
         assert_eq!(parsed.to_string(), "OPCA");
         assert_eq!(serde_json::to_string(&parsed).unwrap(), json);
+    }
+
+    #[test]
+    fn every_known_code_round_trips() {
+        // Pins each variant's wire string so a typo in the manual ser/de
+        // impl surfaces immediately.
+        let cases = [
+            (ActivityType::Fill, "\"FILL\""),
+            (ActivityType::Trans, "\"TRANS\""),
+            (ActivityType::Misc, "\"MISC\""),
+            (ActivityType::AcatsIn, "\"ACATC\""),
+            (ActivityType::AcatsOut, "\"ACATS\""),
+            (ActivityType::CashDeposit, "\"CSD\""),
+            (ActivityType::CashWithdrawal, "\"CSW\""),
+            (ActivityType::Dividend, "\"DIV\""),
+            (ActivityType::JournalCash, "\"JNLC\""),
+            (ActivityType::JournalStock, "\"JNLS\""),
+            (ActivityType::Interest, "\"INT\""),
+            (ActivityType::Fee, "\"FEE\""),
+            (ActivityType::OptionAssignment, "\"OPASN\""),
+            (ActivityType::OptionCorporateAction, "\"OPCA\""),
+            (ActivityType::OptionExercise, "\"OPEXP\""),
+            (ActivityType::OptionExpiration, "\"OPXRC\""),
+            (ActivityType::Split, "\"SPLIT\""),
+        ];
+        for (variant, expected) in cases {
+            assert_eq!(serde_json::to_string(&variant).unwrap(), expected);
+            let parsed: ActivityType = serde_json::from_str(expected).unwrap();
+            assert_eq!(parsed, variant);
+        }
     }
 
     #[test]
@@ -342,7 +373,7 @@ mod tests {
             "description": "Option corporate action: spin-off"
         }"#;
         let activity: Activity = serde_json::from_str(json).unwrap();
-        assert_eq!(activity.activity_type, ActivityType::OPCA);
+        assert_eq!(activity.activity_type, ActivityType::OptionCorporateAction);
         assert_eq!(activity.activity_sub_type.as_deref(), Some("SPINOFF"));
         assert_eq!(activity.symbol.as_deref(), Some("AAPL"));
     }
@@ -358,7 +389,7 @@ mod tests {
             "side": "buy"
         }"#;
         let activity: Activity = serde_json::from_str(json).unwrap();
-        assert_eq!(activity.activity_type, ActivityType::FILL);
+        assert_eq!(activity.activity_type, ActivityType::Fill);
         assert!(activity.activity_sub_type.is_none());
         assert_eq!(activity.qty, Some(Decimal::from(10)));
     }
@@ -375,8 +406,8 @@ mod tests {
             "description": "Cash dividend"
         }"#;
         let activity: Activity = serde_json::from_str(json).unwrap();
-        assert_eq!(activity.id, "20250507000000000::abc");
-        assert_eq!(activity.activity_type, ActivityType::DIV);
+        assert_eq!(activity.id.as_str(), "20250507000000000::abc");
+        assert_eq!(activity.activity_type, ActivityType::Dividend);
         assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
         assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
     }

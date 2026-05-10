@@ -82,8 +82,34 @@ Filters and direction hints (`SortDirection`, `OrderStatusFilter`,
 `TradeConfirmEmail`) all expose typed values that round-trip through serde.
 
 Multi-symbol parameters take `&[&str]` slices (`stock_latest_quotes(&["AAPL",
-"MSFT"])`), and monetary or quantity fields on responses come back as
-`rust_decimal::Decimal` rather than strings.
+"MSFT"])`).
+
+### Numeric types
+
+Numeric fields on response types mirror Alpaca's wire format rather than being
+normalized to a single representation:
+
+- Fields Alpaca encodes as string-quoted decimals — most Trading API monetary
+  and quantity fields (orders, positions, account balances, watchlists,
+  account configuration) — deserialize to `rust_decimal::Decimal`, preserving
+  the full wire precision.
+- Fields Alpaca encodes as bare JSON numbers — market data bars, trades,
+  quotes, auctions, and snapshots for stocks, crypto, and options; streaming
+  market data; portfolio history equity and P/L; screener, forex, and
+  fixed-income prices — deserialize to `f64`. These have already been rounded
+  by JSON's number representation by the time they leave Alpaca, so treat
+  them as rounded display values rather than authoritative ledger amounts.
+
+The crate intentionally does **not** coerce one encoding into the other. This
+keeps the mapping from Alpaca's API docs onto the Rust types unambiguous and
+avoids hiding precision loss that has already happened on the wire.
+
+For anything beyond display — backtesting, P/L attribution, order sizing,
+anything that needs to be reproducible or auditable — you will typically want
+to **remap these values into a representation appropriate for your domain**
+(integer minor units, a fixed-point type, a `Money`/`Price` newtype, etc.)
+rather than computing on the wire types directly. The crate deliberately
+stops at faithfully decoding the API response and leaves that choice to you.
 
 ### Pagination
 

@@ -37,13 +37,40 @@ pub struct NewsArticle {
     pub images: Vec<NewsImage>,
 }
 
+/// Size variant of a [`NewsImage`]. Unknown size descriptors are preserved
+/// verbatim under [`NewsImageSize::Other`].
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum NewsImageSize {
+    /// Thumbnail-resolution image.
+    Thumb,
+    /// Small-resolution image.
+    Small,
+    /// Large-resolution image.
+    Large,
+    /// Any size descriptor not modeled above; the raw value from the API.
+    Other(String),
+}
+
+impl<'de> serde::Deserialize<'de> for NewsImageSize {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "thumb" => Self::Thumb,
+            "small" => Self::Small,
+            "large" => Self::Large,
+            _ => Self::Other(raw),
+        })
+    }
+}
+
 /// An image associated with a news article.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
 pub struct NewsImage {
-    /// The image size descriptor (e.g. "thumb", "small", "large").
+    /// The image size descriptor.
     #[serde(default)]
-    pub size: Option<String>,
+    pub size: Option<NewsImageSize>,
     /// The image URL.
     pub url: String,
 }
