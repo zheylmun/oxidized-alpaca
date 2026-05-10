@@ -1,5 +1,8 @@
 //! Oxidized Alpaca - A Rust client library for the Alpaca trading API.
 #![warn(missing_docs)]
+/// Asset domain types shared between the REST and streaming APIs.
+pub mod asset;
+pub use asset::AssetClass;
 mod env;
 /// Error types for the crate.
 pub mod error;

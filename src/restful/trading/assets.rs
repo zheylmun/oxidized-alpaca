@@ -2,21 +2,7 @@ use crate::restful::{TradingClient, null_def_vec, string_as_optional_decimal};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-/// `AssetClass` represents the category to which the asset belongs to.
-/// It serves to identify the nature of the financial instrument
-#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
-#[serde(rename_all = "snake_case")]
-#[non_exhaustive]
-pub enum AssetClass {
-    /// US equity securities.
-    UsEquity,
-    /// US options contracts.
-    UsOption,
-    /// Cryptocurrency.
-    Crypto,
-    /// Cryptocurrency perpetual futures.
-    CryptoPerp,
-}
+pub use crate::asset::AssetClass;
 
 /// `Exchange` represents the exchange where the asset is traded
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]

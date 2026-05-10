@@ -5,6 +5,7 @@ use chrono::{DateTime, Utc};
 use rust_decimal::Decimal;
 use serde::{Deserialize, Deserializer, Serialize};
 
+use crate::AssetClass;
 use crate::serde_helpers::{null_def_vec, string_as_decimal, string_as_optional_decimal};
 
 pub(crate) fn empty_string_as_none_order_class<'de, D>(
@@ -163,10 +164,10 @@ pub struct Order {
     pub replaces: Option<String>,
     /// Asset ID for the order.
     pub asset_id: String,
-    /// Asset class (e.g. `us_equity`, `crypto`, `us_option`). Populated on
-    /// streaming trade-updates events; may be absent on REST responses.
+    /// Asset class. Populated on streaming trade-updates events; may be
+    /// absent on REST responses.
     #[serde(default)]
-    pub asset_class: Option<String>,
+    pub asset_class: Option<AssetClass>,
     /// Ticker symbol.
     pub symbol: String,
     /// Quantity of shares to trade.

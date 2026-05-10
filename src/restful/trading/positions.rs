@@ -1,4 +1,5 @@
-use crate::restful::{TradingClient, string_as_decimal};
+use crate::AssetClass;
+use crate::restful::{TradingClient, string_as_decimal, trading::assets::Exchange};
 use reqwest::Method;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
@@ -23,9 +24,9 @@ pub struct Position {
     /// Ticker symbol.
     pub symbol: String,
     /// Exchange the asset is traded on.
-    pub exchange: String,
-    /// Asset class (e.g., "us_equity").
-    pub asset_class: String,
+    pub exchange: Exchange,
+    /// Asset class.
+    pub asset_class: AssetClass,
     /// Whether the asset is marginable.
     pub asset_marginable: Option<bool>,
     /// Average entry price of the position.
