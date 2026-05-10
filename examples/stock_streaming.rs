@@ -1,11 +1,11 @@
 use oxidized_alpaca::{
-    AccountType,
+    AccountType, StreamingFeed,
     streaming::{StockSubscriptionList, StreamingStockClient},
 };
 
 #[tokio::main]
 async fn main() {
-    let mut client = StreamingStockClient::new_test_client(AccountType::Paper)
+    let mut client = StreamingStockClient::new(AccountType::Paper, StreamingFeed::Test)
         .await
         .unwrap();
 

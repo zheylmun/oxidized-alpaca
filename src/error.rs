@@ -2,6 +2,44 @@
 use reqwest::Error as ReqwestError;
 use thiserror::Error;
 
+/// Opaque error returned by the streaming WebSocket transport.
+///
+/// The crate uses [`socketeer`] internally, but its concrete error type
+/// is not exposed so the underlying dependency can be swapped out
+/// without a breaking release. Use [`std::error::Error::source`] to
+/// inspect the chain when diagnosing failures.
+#[cfg(feature = "streaming")]
+#[derive(Debug)]
+pub struct WebsocketError(socketeer::Error);
+
+#[cfg(feature = "streaming")]
+impl std::fmt::Display for WebsocketError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl std::error::Error for WebsocketError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl From<socketeer::Error> for WebsocketError {
+    fn from(value: socketeer::Error) -> Self {
+        Self(value)
+    }
+}
+
+#[cfg(feature = "streaming")]
+impl From<socketeer::Error> for Error {
+    fn from(value: socketeer::Error) -> Self {
+        Self::Websocket(WebsocketError(value))
+    }
+}
+
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -40,10 +78,10 @@ pub enum Error {
         body: String,
     },
 
-    /// Socketeer connection error
+    /// Streaming WebSocket transport error.
     #[cfg(feature = "streaming")]
-    #[error("Socketeer websocket error: {0}")]
-    WebsocketError(#[from] socketeer::Error),
+    #[error("websocket error: {0}")]
+    Websocket(#[from] WebsocketError),
 
     /// Url Parse Error
     #[error("Url parse error: {0}")]
@@ -119,5 +157,50 @@ mod tests {
             !rendered.is_empty() && rendered.to_lowercase().contains("auth"),
             "expected `{rendered}` to mention auth",
         );
+    }
+
+    #[cfg(feature = "streaming")]
+    #[test]
+    fn websocket_error_display_includes_inner_cause() {
+        let inner = socketeer::Error::WebsocketClosed;
+        let inner_text = inner.to_string();
+        let err: Error = inner.into();
+        let rendered = err.to_string();
+        assert!(
+            rendered.starts_with("websocket error:"),
+            "expected `{rendered}` to be tagged with the websocket error prefix",
+        );
+        assert!(
+            rendered.contains(&inner_text),
+            "expected `{rendered}` to surface the inner cause `{inner_text}`",
+        );
+    }
+
+    #[cfg(feature = "streaming")]
+    #[test]
+    fn websocket_error_preserves_source_chain_through_opaque_wrapper() {
+        use std::error::Error as _;
+
+        let url_err = url::Url::parse("not a url").unwrap_err();
+        let url_err_text = url_err.to_string();
+        let inner = socketeer::Error::UrlParse {
+            url: "not a url".to_string(),
+            source: url_err,
+        };
+        let err: Error = inner.into();
+
+        // Top-level source is the opaque WebsocketError facade; the
+        // `socketeer::Error` layer is intentionally skipped in the chain
+        // so the private dependency stays out of the public API.
+        let wrapper = err
+            .source()
+            .expect("Error::Websocket should expose its WebsocketError as a source");
+        let parse_err = wrapper
+            .source()
+            .expect("WebsocketError forwards source past socketeer::Error");
+        let parse_err = parse_err
+            .downcast_ref::<url::ParseError>()
+            .expect("the deepest source should be the original url::ParseError");
+        assert_eq!(parse_err.to_string(), url_err_text);
     }
 }

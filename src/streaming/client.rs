@@ -21,13 +21,26 @@ macro_rules! error {
     };
 }
 
+pub(crate) mod sealed {
+    /// Sealing supertrait for [`super::StreamProtocol`]. Users cannot
+    /// implement this trait, so they cannot implement
+    /// [`super::StreamProtocol`] either; only the per-feed marker types
+    /// shipped by this crate are valid protocols.
+    pub trait Sealed {}
+}
+
 /// Per-feed protocol description for [`StreamingClient`].
 ///
-/// Each Alpaca streaming feed (stock, crypto, news, …) uses the same
-/// JSON-over-WebSocket envelope but has its own message enum and
-/// subscription-list shape. A `StreamProtocol` impl wires those up so the
-/// shared client doesn't have to know any feed-specific details.
-pub trait StreamProtocol: 'static {
+/// Each Alpaca streaming feed (stock, crypto, news, options, …) uses
+/// the same WebSocket envelope but has its own message enum and
+/// subscription-list shape. The per-feed marker types shipped by this
+/// crate (`StockProtocol`, `CryptoProtocol`, `NewsProtocol`,
+/// `OptionProtocol`) implement `StreamProtocol` to wire those up;
+/// callers reach the corresponding clients through the
+/// `StreamingStockClient` / `StreamingCryptoClient` / … type aliases.
+///
+/// This trait is sealed and cannot be implemented outside the crate.
+pub trait StreamProtocol: sealed::Sealed + 'static {
     /// The full message enum delivered by this feed (including control,
     /// error, and subscription variants).
     type Message: DeserializeOwned + Send + Clone + std::fmt::Debug + 'static;
@@ -39,10 +52,6 @@ pub trait StreamProtocol: 'static {
         + Send
         + std::fmt::Debug
         + 'static;
-    /// Wire codec for this feed. Stock/crypto/news use
-    /// [`socketeer::JsonCodec`]; options use [`socketeer::MsgPackCodec`].
-    type Codec: socketeer::Codec<Tx = Request<Self::Subscriptions>, Rx = Vec<Self::Message>>
-        + Default;
 
     /// Return the embedded [`ControlMessage`] when `message` is a
     /// `success` envelope (Connected / Authenticated). Used to drive
@@ -57,21 +66,38 @@ pub trait StreamProtocol: 'static {
     ) -> Result<Self::Subscriptions, Self::Message>;
 }
 
-type StreamSocket<P> = Socketeer<<P as StreamProtocol>::Codec>;
+/// Crate-private extension of [`StreamProtocol`] that names the
+/// `socketeer` codec for each feed. Kept off the public trait so the
+/// `socketeer` dependency stays an implementation detail — callers
+/// using the streaming clients never see it in any public signature.
+pub(crate) trait StreamProtocolCodec: StreamProtocol {
+    type Codec: socketeer::Codec<Tx = Request<Self::Subscriptions>, Rx = Vec<Self::Message>>
+        + Default;
+}
+
+type StreamSocket<P> = Socketeer<<P as StreamProtocolCodec>::Codec>;
 
 /// Generic streaming-feed client shared by every Alpaca WebSocket data feed.
 ///
 /// Construct one of the per-feed type aliases (`StreamingStockClient`,
-/// `StreamingCryptoClient`, `StreamingNewsClient`) rather than instantiating
-/// this directly.
+/// `StreamingCryptoClient`, `StreamingNewsClient`, `StreamingOptionClient`)
+/// rather than instantiating this directly.
 #[derive(Debug)]
-pub struct StreamingClient<P: StreamProtocol> {
+#[allow(
+    private_bounds,
+    reason = "StreamProtocolCodec is intentionally sealed — only this crate's marker types can satisfy it, which keeps the socketeer dependency an implementation detail."
+)]
+pub struct StreamingClient<P: StreamProtocol + StreamProtocolCodec> {
     websocket: StreamSocket<P>,
     messages: VecDeque<P::Message>,
     subscriptions: P::Subscriptions,
 }
 
-impl<P: StreamProtocol> StreamingClient<P> {
+#[allow(
+    private_bounds,
+    reason = "See StreamingClient — bound is sealed on purpose."
+)]
+impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
     /// Connect to `url` and complete the connect/auth handshake using the
     /// credentials for `account`.
     pub(crate) async fn connect(account: AccountType, url: &str) -> Result<Self, Error> {
@@ -167,7 +193,7 @@ impl<P: StreamProtocol> StreamingClient<P> {
                 }
                 Err(e) => {
                     error!("Error retrieving next message: {e:?}");
-                    return Err(Error::WebsocketError(e));
+                    return Err(Error::from(e));
                 }
             }
         }
@@ -180,7 +206,7 @@ impl<P: StreamProtocol> StreamingClient<P> {
                 Ok(messages) => self.messages.extend(messages),
                 Err(e) => {
                     error!("Error retrieving next message: {e:?}");
-                    return Err(Error::WebsocketError(e));
+                    return Err(Error::from(e));
                 }
             }
         }

@@ -28,7 +28,7 @@ pub mod error;
 pub use error::{Error, Result};
 /// Data feed types for streaming and market data sources.
 mod feed;
-pub use feed::{RestFeed, StreamingFeed};
+pub use feed::{CryptoFeed, OptionFeed, RestFeed, StreamingFeed};
 /// Strongly-typed identifier newtypes for Alpaca-issued IDs.
 pub mod ids;
 pub use ids::{
