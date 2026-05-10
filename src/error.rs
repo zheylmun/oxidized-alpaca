@@ -174,7 +174,11 @@ pub type Result<T, E = Error> = std::result::Result<T, E>;
 
 #[cfg(test)]
 mod tests {
-    use super::Error;
+    #[cfg(feature = "restful")]
+    use super::RestError;
+    #[cfg(feature = "streaming")]
+    use super::WebsocketError;
+    use super::{Error, UrlError};
 
     #[test]
     fn url_parse_display_includes_inner_cause() {
@@ -277,5 +281,71 @@ mod tests {
             .downcast_ref::<url::ParseError>()
             .expect("the deepest source should be the original url::ParseError");
         assert_eq!(parse_err.to_string(), url_err_text);
+    }
+
+    #[test]
+    fn url_parse_preserves_chain_through_opaque_wrapper() {
+        use std::error::Error as _;
+
+        let parse_err = url::Url::parse("not a url").unwrap_err();
+        let url_err: UrlError = parse_err.into();
+        let err = Error::UrlParse(url_err);
+
+        let wrapper = err
+            .source()
+            .expect("Error::UrlParse should expose its UrlError as a source");
+        assert!(
+            wrapper.source().is_none(),
+            "url::ParseError has no further source to walk through",
+        );
+    }
+
+    #[cfg(feature = "streaming")]
+    #[test]
+    fn websocket_error_newtype_constructible_directly_from_socketeer() {
+        let inner = socketeer::Error::WebsocketClosed;
+        let inner_text = inner.to_string();
+        let ws: WebsocketError = inner.into();
+        assert_eq!(
+            ws.to_string(),
+            inner_text,
+            "WebsocketError Display should pass through the inner cause verbatim",
+        );
+    }
+
+    #[cfg(feature = "restful")]
+    #[tokio::test]
+    async fn rest_error_preserves_chain_through_opaque_wrapper() {
+        use std::error::Error as _;
+
+        let inner = reqwest::Client::new()
+            .get("http://127.0.0.1:1/")
+            .send()
+            .await
+            .expect_err("port 1 on localhost should refuse the connection");
+        let inner_text = inner.to_string();
+        let rest_err: RestError = inner.into();
+
+        assert_eq!(
+            rest_err.to_string(),
+            inner_text,
+            "RestError Display should pass through the inner cause verbatim",
+        );
+
+        let err = Error::ReqwestSend(rest_err);
+        let rendered = err.to_string();
+        assert!(
+            rendered.starts_with("Reqwest send error:"),
+            "expected `{rendered}` to be tagged with the reqwest send error prefix",
+        );
+        assert!(
+            rendered.contains(&inner_text),
+            "expected `{rendered}` to surface the inner cause `{inner_text}`",
+        );
+
+        let wrapper = err
+            .source()
+            .expect("Error::ReqwestSend should expose its RestError as a source");
+        let _chain_tail = wrapper.source();
     }
 }
