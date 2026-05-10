@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 /// A most-active stock.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct MostActive {
     /// The stock symbol.
     pub symbol: String,
@@ -22,6 +23,7 @@ struct MostActivesResponse {
 
 /// A market mover (gainer or loser).
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Mover {
     /// The stock symbol.
     pub symbol: String,
@@ -43,6 +45,7 @@ struct MoversResponse {
 
 /// Market movers result.
 #[derive(Clone, Debug)]
+#[non_exhaustive]
 pub struct MarketMovers {
     /// Top gaining stocks.
     pub gainers: Vec<Mover>,

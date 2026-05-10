@@ -53,6 +53,7 @@ impl std::fmt::Display for CryptoLocation {
 
 /// A crypto bar (OHLCV).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct CryptoBar {
     /// The bar timestamp.
     #[serde(rename = "t")]
@@ -82,6 +83,7 @@ pub struct CryptoBar {
 
 /// A crypto trade.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct CryptoTrade {
     /// The trade timestamp.
     #[serde(rename = "t")]
@@ -102,6 +104,7 @@ pub struct CryptoTrade {
 
 /// A crypto quote.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct CryptoQuote {
     /// The quote timestamp.
     #[serde(rename = "t")]
@@ -122,6 +125,7 @@ pub struct CryptoQuote {
 
 /// A crypto snapshot.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct CryptoSnapshot {
     /// The latest trade.
     #[serde(rename = "latestTrade")]
@@ -142,6 +146,7 @@ pub struct CryptoSnapshot {
 
 /// An orderbook entry.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct OrderbookEntry {
     /// The price level.
     #[serde(rename = "p")]
@@ -153,6 +158,7 @@ pub struct OrderbookEntry {
 
 /// A crypto orderbook.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct CryptoOrderbook {
     /// The orderbook timestamp.
     #[serde(rename = "t")]

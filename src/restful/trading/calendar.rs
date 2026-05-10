@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// A market trading day.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct MarketDay {
     /// Calendar date.
     pub date: NaiveDate,

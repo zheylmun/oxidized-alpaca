@@ -10,6 +10,7 @@ use crate::streaming::wire::StreamError;
 /// volume; subscribe to specific contracts instead.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct OptionSubscriptionList {
     /// Contracts subscribed to trades.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -56,6 +57,7 @@ fn append_unique(list: Option<Vec<String>>, symbol: &str) -> Vec<String> {
 
 /// Real-time options trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct OptionTrade {
     /// OCC option symbol.
     #[serde(rename = "S")]
@@ -79,6 +81,7 @@ pub struct OptionTrade {
 
 /// Real-time options quote with bid and ask.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct OptionQuote {
     /// OCC option symbol.
     #[serde(rename = "S")]

@@ -16,6 +16,7 @@ pub enum PositionSide {
 
 /// An open position as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Position {
     /// Asset ID.
     pub asset_id: String,

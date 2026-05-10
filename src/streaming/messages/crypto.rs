@@ -6,6 +6,7 @@ use crate::streaming::wire::StreamError;
 /// Subscriptions for the crypto streaming feed.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct CryptoSubscriptionList {
     /// Symbols subscribed to minute bars.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -99,6 +100,7 @@ fn append_unique(list: Option<Vec<String>>, symbol: &str) -> Vec<String> {
 
 /// Side that initiated a crypto trade.
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum CryptoTakerSide {
     /// Buyer was the taker.
     #[serde(rename = "B")]
@@ -113,6 +115,7 @@ pub enum CryptoTakerSide {
 /// `vwap` and `trade_count` are populated for minute and daily bars; updated
 /// bars omit them.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct CryptoBar {
     /// Trading pair symbol (e.g. `BTC/USD`).
     #[serde(rename = "S")]
@@ -145,6 +148,7 @@ pub struct CryptoBar {
 
 /// Real-time crypto quote with bid and ask.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct CryptoQuote {
     /// Trading pair symbol.
     #[serde(rename = "S")]
@@ -168,6 +172,7 @@ pub struct CryptoQuote {
 
 /// Real-time crypto trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct CryptoTrade {
     /// Trading pair symbol.
     #[serde(rename = "S")]
@@ -191,6 +196,7 @@ pub struct CryptoTrade {
 
 /// One side of an orderbook level.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct CryptoBookLevel {
     /// Price for this level.
     #[serde(rename = "p")]
@@ -203,6 +209,7 @@ pub struct CryptoBookLevel {
 /// Crypto orderbook update. When `reset` is `true` the bids/asks represent the
 /// full book; otherwise they are an incremental update.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct CryptoOrderbook {
     /// Trading pair symbol.
     #[serde(rename = "S")]

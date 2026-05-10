@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// A news article.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct NewsArticle {
     /// The article ID.
     pub id: i64,
@@ -38,6 +39,7 @@ pub struct NewsArticle {
 
 /// An image associated with a news article.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct NewsImage {
     /// The image size descriptor (e.g. "thumb", "small", "large").
     #[serde(default)]

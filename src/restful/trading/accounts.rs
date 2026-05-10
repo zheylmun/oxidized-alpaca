@@ -28,6 +28,7 @@ pub enum AccountStatus {
 /// `Currency` represents the currency of an Alpaca account
 /// Currently, only USD is supported.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub enum Currency {
     /// US dollars.
     USD,
@@ -35,6 +36,7 @@ pub enum Currency {
 
 /// `AccountDetails` is returned by the Alpaca API when requesting account information
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct AccountDetails {
     /// Alpaca account ID
     pub id: String,

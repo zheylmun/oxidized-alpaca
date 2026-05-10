@@ -10,6 +10,7 @@ use crate::streaming::wire::StreamError;
 /// dedicated subscription channel of their own.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct StockSubscriptionList {
     /// Symbols subscribed to minute bars.
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -129,6 +130,7 @@ fn append_unique(list: Option<Vec<String>>, symbol: &str) -> Vec<String> {
 
 /// OHLCV bar for a stock symbol.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockBar {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -161,6 +163,7 @@ pub struct StockBar {
 
 /// Real-time quote with bid and ask data.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockQuote {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -196,6 +199,7 @@ pub struct StockQuote {
 
 /// Real-time trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockTrade {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -225,6 +229,7 @@ pub struct StockTrade {
 
 /// Notification that a previously reported trade has been corrected.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockTradeCorrection {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -266,6 +271,7 @@ pub struct StockTradeCorrection {
 
 /// Whether a previously reported trade was cancelled or erroneously reported.
 #[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum TradeCancelAction {
     /// The trade was cancelled.
     #[serde(rename = "C")]
@@ -277,6 +283,7 @@ pub enum TradeCancelAction {
 
 /// Notification that a previously reported trade was cancelled or erroneous.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockTradeCancelError {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -306,6 +313,7 @@ pub struct StockTradeCancelError {
 
 /// Trading-status update for a symbol (halts, resumes, etc.).
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockTradingStatus {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -332,6 +340,7 @@ pub struct StockTradingStatus {
 
 /// Limit Up–Limit Down price-band update.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockLuld {
     /// Ticker symbol.
     #[serde(rename = "S")]
@@ -355,6 +364,7 @@ pub struct StockLuld {
 
 /// Order imbalance event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StockImbalance {
     /// Ticker symbol.
     #[serde(rename = "S")]

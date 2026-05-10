@@ -8,6 +8,7 @@ use serde::{Deserialize, Serialize};
 
 /// An auction price entry.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct AuctionPrice {
     /// The date of the auction.
     #[serde(rename = "d")]
@@ -22,6 +23,7 @@ pub struct AuctionPrice {
 
 /// A daily auction record.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct DailyAuctions {
     /// The date of the auctions.
     #[serde(rename = "d")]
@@ -36,6 +38,7 @@ pub struct DailyAuctions {
 
 /// A single auction entry.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct AuctionEntry {
     /// The timestamp of the auction.
     #[serde(rename = "t")]

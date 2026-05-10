@@ -22,6 +22,7 @@ pub mod trades;
 /// or [`SkipSymbolMapping`][AsOf::SkipSymbolMapping] to disable mapping
 /// (sent as the literal `"-"`).
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[non_exhaustive]
 pub enum AsOf {
     /// A specific calendar date (sent as `YYYY-MM-DD`).
     Date(NaiveDate),
@@ -41,6 +42,7 @@ impl Serialize for AsOf {
 ///  Data adjustment Options
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum Adjustment {
     /// No adjustment, i.e., raw data.
     Raw,

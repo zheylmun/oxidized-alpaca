@@ -4,6 +4,7 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 /// Server control message indicating connection or authentication success.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum ControlMessage {
     /// Connection to the streaming server was successful.
     Connected,
@@ -47,6 +48,7 @@ pub enum StreamErrorCode {
 
 /// Error message from the streaming API.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct StreamError {
     /// Error code indicating the type of error.
     pub code: StreamErrorCode,

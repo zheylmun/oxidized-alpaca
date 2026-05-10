@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 /// A forex rate.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct ForexRate {
     /// The bid price.
     #[serde(rename = "bp")]

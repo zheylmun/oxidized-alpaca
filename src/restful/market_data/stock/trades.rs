@@ -10,6 +10,7 @@ use super::{AsOf, pagination};
 
 /// A stock trade.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct StockTrade {
     /// The timestamp of the trade.
     #[serde(rename = "t")]

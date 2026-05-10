@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 
 /// Portfolio history response.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct PortfolioHistory {
     /// Unix timestamps for each data point.
     pub timestamp: Vec<i64>,

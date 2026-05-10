@@ -10,6 +10,7 @@ use super::{AsOf, pagination};
 
 /// A stock quote (NBBO).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct StockQuote {
     /// The timestamp of the quote.
     #[serde(rename = "t")]

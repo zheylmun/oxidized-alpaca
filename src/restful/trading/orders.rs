@@ -21,6 +21,7 @@ pub enum OrderStatusFilter {
 
 /// Take-profit leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
+#[non_exhaustive]
 pub struct TakeProfit {
     /// Target limit price at which the take-profit child order fires.
     pub limit_price: Decimal,
@@ -35,6 +36,7 @@ impl TakeProfit {
 
 /// Stop-loss leg configuration for bracket / OTO orders.
 #[derive(Clone, Debug, Serialize)]
+#[non_exhaustive]
 pub struct StopLoss {
     /// Stop price that triggers the stop-loss child order.
     pub stop_price: Decimal,

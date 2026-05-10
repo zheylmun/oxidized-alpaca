@@ -5,6 +5,7 @@ use serde::Deserialize;
 
 /// Current market clock status.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Clock {
     /// Current timestamp.
     pub timestamp: DateTime<Utc>,

@@ -12,6 +12,7 @@ use serde::Deserialize;
 
 /// An option bar (OHLCV).
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct OptionBar {
     /// The bar timestamp.
     #[serde(rename = "t")]
@@ -41,6 +42,7 @@ pub struct OptionBar {
 
 /// An option trade.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct OptionTrade {
     /// The trade timestamp.
     #[serde(rename = "t")]
@@ -61,6 +63,7 @@ pub struct OptionTrade {
 
 /// An option quote.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct OptionQuote {
     /// The quote timestamp.
     #[serde(rename = "t")]
@@ -90,6 +93,7 @@ pub struct OptionQuote {
 
 /// Option greeks.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct OptionGreeks {
     /// Delta value.
     pub delta: Option<f64>,
@@ -105,6 +109,7 @@ pub struct OptionGreeks {
 
 /// An option snapshot.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct OptionSnapshot {
     /// The latest trade.
     #[serde(rename = "latestTrade")]

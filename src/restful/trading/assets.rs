@@ -56,6 +56,7 @@ pub enum Status {
 
 /// An asset as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
+#[non_exhaustive]
 pub struct Asset {
     /// Asset ID.
     pub id: String,

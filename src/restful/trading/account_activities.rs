@@ -128,6 +128,7 @@ impl<'de> Deserialize<'de> for ActivityType {
 
 /// An account activity event.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Activity {
     /// Activity ID.
     pub id: String,

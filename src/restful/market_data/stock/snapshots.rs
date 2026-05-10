@@ -6,6 +6,7 @@ use super::{Bar, quotes::StockQuote, trades::StockTrade};
 
 /// A stock snapshot containing latest trade, quote, and bar data.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct StockSnapshot {
     /// The latest trade.
     #[serde(rename = "latestTrade")]

@@ -40,6 +40,7 @@ pub struct ListenStreams {
 /// Authorization status returned in the `authorization` envelope.
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
+#[non_exhaustive]
 pub enum AuthorizationStatus {
     /// Credentials accepted.
     Authorized,
@@ -49,6 +50,7 @@ pub enum AuthorizationStatus {
 
 /// Payload of the `authorization` server envelope.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Authorization {
     /// Authorization outcome.
     pub status: AuthorizationStatus,
@@ -58,6 +60,7 @@ pub struct Authorization {
 
 /// Payload of the `listening` server envelope.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Listening {
     /// The streams the server is now delivering.
     pub streams: Vec<String>,
@@ -65,6 +68,7 @@ pub struct Listening {
 
 /// Single execution leg reported alongside a multi-leg trade-update event.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct TradeUpdateLeg {
     /// Execution ID for this leg.
     #[serde(default)]
@@ -137,6 +141,7 @@ pub enum TradeUpdateEvent {
 
 /// Payload of a `trade_updates` server envelope.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct TradeUpdate {
     /// What happened to the order.
     pub event: TradeUpdateEvent,

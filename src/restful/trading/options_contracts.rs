@@ -41,6 +41,7 @@ pub enum ContractStatus {
 
 /// An options contract as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct OptionContract {
     /// Contract ID.
     pub id: String,

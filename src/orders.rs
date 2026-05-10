@@ -127,6 +127,7 @@ pub enum OrderStatus {
 
 /// An order as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Order {
     /// Order ID.
     pub id: String,

@@ -7,6 +7,7 @@ use super::assets::Asset;
 
 /// A watchlist as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct Watchlist {
     /// Watchlist ID.
     pub id: String,

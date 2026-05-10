@@ -3,6 +3,7 @@ use reqwest::Method;
 
 /// Tick type for condition code lookups.
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub enum TickType {
     /// Trade tick type.
     Trade,
@@ -21,6 +22,7 @@ impl std::fmt::Display for TickType {
 
 /// Tape identifier required by the conditions endpoint.
 #[derive(Clone, Copy, Debug)]
+#[non_exhaustive]
 pub enum Tape {
     /// Tape A — NYSE-listed securities.
     A,

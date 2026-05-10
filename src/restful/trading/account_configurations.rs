@@ -44,6 +44,7 @@ pub enum TradeConfirmEmail {
 
 /// Account configuration settings.
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
+#[non_exhaustive]
 pub struct AccountConfig {
     /// Day trading buying power check setting.
     pub dtbp_check: DtbpCheck,

@@ -4,6 +4,7 @@ use serde::Deserialize;
 
 /// A fixed income price.
 #[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
 pub struct FixedIncomePrice {
     /// The instrument symbol.
     pub symbol: String,

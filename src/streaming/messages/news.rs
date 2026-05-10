@@ -8,6 +8,7 @@ use crate::streaming::wire::StreamError;
 /// Use the symbol `"*"` to receive news for every covered ticker.
 #[derive(Clone, Debug, Default, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
+#[non_exhaustive]
 pub struct NewsSubscriptionList {
     /// Symbols subscribed to news (use `"*"` for all).
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -34,6 +35,7 @@ impl NewsSubscriptionList {
 
 /// A single news article delivered on the news stream.
 #[derive(Clone, Debug, Deserialize, Serialize)]
+#[non_exhaustive]
 pub struct NewsArticle {
     /// Unique news article ID.
     pub id: i64,
