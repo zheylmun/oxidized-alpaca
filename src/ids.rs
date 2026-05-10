@@ -59,6 +59,12 @@ macro_rules! id_newtype {
                 Self(value.to_string())
             }
         }
+
+        impl From<&$name> for $name {
+            fn from(value: &$name) -> Self {
+                value.clone()
+            }
+        }
     };
 }
 
