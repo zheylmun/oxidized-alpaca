@@ -5,7 +5,8 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 /// Categories of corporate action accepted by the `types` filter.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum CorporateActionType {
     /// Forward stock split.
@@ -329,6 +330,45 @@ mod tests {
             "stock_and_cash_merger"
         );
         assert_eq!(CorporateActionType::PartialCall.as_str(), "partial_call");
+    }
+
+    #[test]
+    fn corporate_action_type_serde_round_trips_via_wire_strings() {
+        for variant in [
+            CorporateActionType::ForwardSplit,
+            CorporateActionType::ReverseSplit,
+            CorporateActionType::UnitSplit,
+            CorporateActionType::CashDividend,
+            CorporateActionType::StockDividend,
+            CorporateActionType::SpinOff,
+            CorporateActionType::CashMerger,
+            CorporateActionType::StockMerger,
+            CorporateActionType::StockAndCashMerger,
+            CorporateActionType::Redemption,
+            CorporateActionType::NameChange,
+            CorporateActionType::WorthlessRemoval,
+            CorporateActionType::RightsDistribution,
+            CorporateActionType::ContractAdjustment,
+            CorporateActionType::PartialCall,
+        ] {
+            let serialized = serde_json::to_string(&variant).unwrap();
+            assert_eq!(serialized, format!("\"{}\"", variant.as_str()));
+            let parsed: CorporateActionType = serde_json::from_str(&serialized).unwrap();
+            assert_eq!(parsed, variant);
+        }
+    }
+
+    #[test]
+    fn mover_market_serde_round_trips_via_wire_strings() {
+        use crate::restful::market_data::screener::MoverMarket;
+        for (variant, wire) in [
+            (MoverMarket::Stocks, "\"stocks\""),
+            (MoverMarket::Crypto, "\"crypto\""),
+        ] {
+            assert_eq!(serde_json::to_string(&variant).unwrap(), wire);
+            assert_eq!(serde_json::from_str::<MoverMarket>(wire).unwrap(), variant);
+            assert_eq!(variant.to_string(), wire.trim_matches('"'));
+        }
     }
 
     #[test]
