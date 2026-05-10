@@ -4,7 +4,11 @@
 /// at [`crate::streaming`]; reach for the deeper path here when you need the
 /// individual event payload structs.
 pub mod messages;
-pub use messages::*;
+pub use messages::{
+    CryptoStreamMessage, CryptoSubscriptionList, NewsStreamMessage, NewsSubscriptionList,
+    OptionStreamMessage, OptionSubscriptionList, StockStreamMessage, StockSubscriptionList,
+    TradeUpdate, TradingUpdatesMessage,
+};
 
 mod wire;
 pub use wire::{ControlMessage, StreamError, StreamErrorCode};
