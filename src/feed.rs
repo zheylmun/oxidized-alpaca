@@ -16,6 +16,16 @@ const STREAMING_OVERNIGHT_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/
 const STREAMING_OVERNIGHT_SANDBOX_URL: &str =
     "wss://stream.data.sandbox.alpaca.markets/v1beta1/overnight";
 
+const CRYPTO_US_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us";
+const CRYPTO_US_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1";
+const CRYPTO_EU_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1";
+
+const OPTION_INDICATIVE_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/indicative";
+const OPTION_INDICATIVE_SANDBOX_URL: &str =
+    "wss://stream.data.sandbox.alpaca.markets/v1beta1/indicative";
+const OPTION_OPRA_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/opra";
+const OPTION_OPRA_SANDBOX_URL: &str = "wss://stream.data.sandbox.alpaca.markets/v1beta1/opra";
+
 /// Stock market data feed selector for REST market-data endpoints.
 ///
 /// Serializes to the lowercase `feed=` query value Alpaca expects (e.g.
@@ -88,6 +98,65 @@ impl StreamingFeed {
             Self::Test => STREAMING_TEST_URL,
             Self::Boats => STREAMING_BOATS_SANDBOX_URL,
             Self::Overnight => STREAMING_OVERNIGHT_SANDBOX_URL,
+        }
+    }
+}
+
+/// Crypto streaming feed selector. Each variant maps to a distinct
+/// WebSocket endpoint Alpaca exposes.
+///
+/// Alpaca does not run a working crypto sandbox — the wss handshake and
+/// auth succeed against the sandbox host but every subscribe is rejected.
+/// All variants therefore route to the production wss host regardless
+/// of [`AccountType`]; the account type still selects which credential
+/// pair is used to authenticate.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
+pub enum CryptoFeed {
+    /// Alpaca-aggregated US crypto feed.
+    Us,
+    /// Kraken-backed US crypto feed.
+    UsKraken,
+    /// Kraken-backed EU crypto feed.
+    EuKraken,
+}
+
+impl CryptoFeed {
+    /// Return the WebSocket URL for this feed.
+    ///
+    /// `account_type` is accepted for interface symmetry with the other
+    /// feeds but does not change the URL; see the type-level docs.
+    #[must_use]
+    pub fn url(self, _account_type: AccountType) -> &'static str {
+        match self {
+            Self::Us => CRYPTO_US_URL,
+            Self::UsKraken => CRYPTO_US_KRAKEN_URL,
+            Self::EuKraken => CRYPTO_EU_KRAKEN_URL,
+        }
+    }
+}
+
+/// Options streaming feed selector. Each variant maps to a distinct
+/// WebSocket endpoint Alpaca exposes.
+#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[non_exhaustive]
+pub enum OptionFeed {
+    /// Alpaca-derived NBBO and trade events for accounts without OPRA
+    /// access.
+    Indicative,
+    /// OPRA real-time consolidated tape.
+    Opra,
+}
+
+impl OptionFeed {
+    /// Return the WebSocket URL for this feed under the given account type.
+    #[must_use]
+    pub fn url(self, account_type: AccountType) -> &'static str {
+        match (self, account_type) {
+            (Self::Indicative, AccountType::Live) => OPTION_INDICATIVE_LIVE_URL,
+            (Self::Indicative, AccountType::Paper) => OPTION_INDICATIVE_SANDBOX_URL,
+            (Self::Opra, AccountType::Live) => OPTION_OPRA_LIVE_URL,
+            (Self::Opra, AccountType::Paper) => OPTION_OPRA_SANDBOX_URL,
         }
     }
 }

@@ -37,33 +37,9 @@ impl StreamProtocol for StockProtocol {
 pub type StreamingStockClient = StreamingClient<StockProtocol>;
 
 impl StreamingStockClient {
-    /// Create a new streaming client connected to the test feed.
-    pub async fn new_test_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::Test.url(account_type)).await
-    }
-
-    /// Create a new streaming client connected to the IEX feed.
-    pub async fn new_iex_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::IEX.url(account_type)).await
-    }
-
-    /// Create a new streaming client connected to the SIP feed.
-    pub async fn new_sip_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::SIP.url(account_type)).await
-    }
-
-    /// Create a new streaming client connected to the 15-minute delayed SIP feed.
-    pub async fn new_delayed_sip_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::DelayedSip.url(account_type)).await
-    }
-
-    /// Create a new streaming client connected to the Blue Ocean ATS overnight feed.
-    pub async fn new_boats_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::Boats.url(account_type)).await
-    }
-
-    /// Create a new streaming client connected to the Alpaca-derived overnight feed.
-    pub async fn new_overnight_client(account_type: AccountType) -> Result<Self, Error> {
-        Self::connect(account_type, StreamingFeed::Overnight.url(account_type)).await
+    /// Connect to the chosen [`StreamingFeed`] using the credentials for
+    /// `account_type`.
+    pub async fn new(account_type: AccountType, feed: StreamingFeed) -> Result<Self, Error> {
+        Self::connect(account_type, feed.url(account_type)).await
     }
 }
