@@ -175,7 +175,7 @@ impl MarketDataClient {
     ///
     /// ```ignore
     /// let news = client.news()
-    ///     .symbols("AAPL,GOOG")
+    ///     .symbols(&["AAPL", "GOOG"])
     ///     .limit(10)
     ///     .execute().await?;
     /// ```

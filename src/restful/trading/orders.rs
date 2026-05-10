@@ -476,7 +476,7 @@ impl TradingClient {
     ///
     /// ```ignore
     /// let orders = client.list_orders()
-    ///     .status("open")
+    ///     .status(OrderStatusFilter::Open)
     ///     .limit(10)
     ///     .execute().await?;
     /// ```
