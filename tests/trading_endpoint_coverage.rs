@@ -82,11 +82,7 @@ async fn trading_endpoints_live_smoke() {
     let order_client_id = format!("coverage-{}", unique_suffix());
     let order = expect_ok_or_status(
         client
-            .limit_order(
-                "AAPL",
-                Side::Buy,
-                Decimal::from_str_exact("100").unwrap(),
-            )
+            .limit_order("AAPL", Side::Buy, Decimal::from_str_exact("100").unwrap())
             .qty(Decimal::from_str_exact("1").unwrap())
             .time_in_force(TimeInForce::Gtc)
             .client_order_id(order_client_id.as_str())

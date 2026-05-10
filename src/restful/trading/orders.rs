@@ -764,12 +764,12 @@ mod tests {
             .stop_loss(StopLoss::new(dec("145")));
         // Mirror the inference that execute() runs.
         if request.order_class.is_none() {
-            request.order_class =
-                match (request.take_profit.is_some(), request.stop_loss.is_some()) {
-                    (true, true) => Some(OrderClass::Bracket),
-                    (true, false) | (false, true) => Some(OrderClass::Oto),
-                    (false, false) => None,
-                };
+            request.order_class = match (request.take_profit.is_some(), request.stop_loss.is_some())
+            {
+                (true, true) => Some(OrderClass::Bracket),
+                (true, false) | (false, true) => Some(OrderClass::Oto),
+                (false, false) => None,
+            };
         }
         let value = serde_json::to_value(&request).unwrap();
         assert_eq!(
@@ -787,12 +787,12 @@ mod tests {
             .qty(dec("10"))
             .take_profit(TakeProfit::new(dec("160")));
         if request.order_class.is_none() {
-            request.order_class =
-                match (request.take_profit.is_some(), request.stop_loss.is_some()) {
-                    (true, true) => Some(OrderClass::Bracket),
-                    (true, false) | (false, true) => Some(OrderClass::Oto),
-                    (false, false) => None,
-                };
+            request.order_class = match (request.take_profit.is_some(), request.stop_loss.is_some())
+            {
+                (true, true) => Some(OrderClass::Bracket),
+                (true, false) | (false, true) => Some(OrderClass::Oto),
+                (false, false) => None,
+            };
         }
         let value = serde_json::to_value(&request).unwrap();
         assert_eq!(
