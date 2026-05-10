@@ -440,9 +440,11 @@ impl TradingClient {
     /// Replace (modify) an existing order.
     ///
     /// ```ignore
+    /// use oxidized_alpaca::OrderId;
     /// use rust_decimal_macros::dec;
     ///
-    /// let order = client.replace_order("order-id")
+    /// let order_id = OrderId::new("order-id");
+    /// let order = client.replace_order(&order_id)
     ///     .qty(dec!(5))
     ///     .limit_price(dec!(150.00))
     ///     .execute().await?;
