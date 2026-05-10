@@ -37,7 +37,7 @@ async fn market_data_endpoints_live_smoke() {
 
     // Stocks
     let bars = client
-        .stock_bars("AAPL", TimeFrame::OneDay)
+        .stock_bars("AAPL", TimeFrame::ONE_DAY)
         .start(window_start)
         .end(window_end)
         .limit(1)
@@ -72,7 +72,7 @@ async fn market_data_endpoints_live_smoke() {
     let _ = multi_trades;
 
     let multi_bars = client
-        .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+        .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_DAY)
         .start(window_start)
         .end(window_end)
         .limit(1)
@@ -143,7 +143,7 @@ async fn market_data_endpoints_live_smoke() {
 
     // Crypto
     let crypto_bars = client
-        .crypto_bars(&["BTC/USD"], TimeFrame::OneDay, CryptoLocation::Us)
+        .crypto_bars(&["BTC/USD"], TimeFrame::ONE_DAY, CryptoLocation::Us)
         .start(window_start)
         .end(window_end)
         .limit(1)
@@ -198,7 +198,7 @@ async fn market_data_endpoints_live_smoke() {
 
     let _ = expect_ok_or_status(
         client
-            .option_bars(&[&option_symbol], TimeFrame::OneDay)
+            .option_bars(&[&option_symbol], TimeFrame::ONE_DAY)
             .start(window_start)
             .end(window_end)
             .limit(1)

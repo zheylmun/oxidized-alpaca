@@ -92,6 +92,17 @@ pub enum Error {
     /// StreamingAuth error
     #[error("Streaming Auth error")]
     StreamingAuth,
+    /// A time-frame multiplier was outside the documented valid range.
+    #[cfg(feature = "restful")]
+    #[error("invalid timeframe: {amount}{unit} is outside the valid range {valid_range}")]
+    InvalidTimeFrame {
+        /// Unit of the rejected time-frame.
+        unit: crate::restful::market_data::TimeFrameUnit,
+        /// Multiplier that was rejected.
+        amount: u16,
+        /// Human-readable description of the valid range.
+        valid_range: &'static str,
+    },
 }
 
 /// A `Result` type alias using [`Error`] as the default error type.

@@ -168,7 +168,7 @@ impl MarketDataClient {
     /// Request historical bars for a single stock symbol.
     ///
     /// ```ignore
-    /// let bars = client.stock_bars("AAPL", TimeFrame::OneDay)
+    /// let bars = client.stock_bars("AAPL", TimeFrame::ONE_DAY)
     ///     .start(dt)
     ///     .limit(100)
     ///     .execute().await?;
@@ -422,7 +422,7 @@ mod tests {
     fn single_adjustment_serializes_in_query() {
         let client = paper_client();
         let request = client
-            .stock_bars("AAPL", TimeFrame::OneDay)
+            .stock_bars("AAPL", TimeFrame::ONE_DAY)
             .adjustment(Adjustment::Split);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
@@ -435,7 +435,7 @@ mod tests {
     #[serial]
     fn multiple_adjustments_join_with_commas_in_query() {
         let client = paper_client();
-        let request = client.stock_bars("AAPL", TimeFrame::OneDay).adjustments([
+        let request = client.stock_bars("AAPL", TimeFrame::ONE_DAY).adjustments([
             Adjustment::Split,
             Adjustment::Dividend,
             Adjustment::SpinOff,
@@ -453,7 +453,7 @@ mod tests {
     fn empty_adjustments_omits_parameter() {
         let client = paper_client();
         let request = client
-            .stock_bars("AAPL", TimeFrame::OneDay)
+            .stock_bars("AAPL", TimeFrame::ONE_DAY)
             .adjustments(std::iter::empty::<Adjustment>());
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
@@ -478,7 +478,7 @@ mod tests {
     #[serial]
     fn multi_constructor_joins_symbols() {
         let client = paper_client();
-        let request = client.stock_bars_multi(&["AAPL", "MSFT", "TSLA"], TimeFrame::OneDay);
+        let request = client.stock_bars_multi(&["AAPL", "MSFT", "TSLA"], TimeFrame::ONE_DAY);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
             query.contains("symbols=AAPL%2CMSFT%2CTSLA"),
@@ -491,7 +491,7 @@ mod tests {
     fn multi_builder_setters_serialize_to_query() {
         let client = paper_client();
         let request = client
-            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneHour)
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_HOUR)
             .start(sample_start())
             .end(sample_end())
             .adjustment(Adjustment::All)
@@ -515,7 +515,7 @@ mod tests {
     fn multi_limit_does_not_serialize() {
         let client = paper_client();
         let request = client
-            .stock_bars_multi(&["AAPL"], TimeFrame::OneDay)
+            .stock_bars_multi(&["AAPL"], TimeFrame::ONE_DAY)
             .limit(50);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
@@ -529,7 +529,7 @@ mod tests {
     fn multi_adjustments_join_with_commas_in_query() {
         let client = paper_client();
         let request = client
-            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_DAY)
             .adjustments([Adjustment::Split, Adjustment::Dividend, Adjustment::SpinOff]);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
@@ -543,7 +543,7 @@ mod tests {
     fn multi_empty_adjustments_omits_parameter() {
         let client = paper_client();
         let request = client
-            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_DAY)
             .adjustments(std::iter::empty::<Adjustment>());
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
@@ -557,7 +557,7 @@ mod tests {
     async fn multi_limit_zero_short_circuits_without_request() {
         let client = paper_client();
         let result = client
-            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::OneDay)
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_DAY)
             .limit(0)
             .execute()
             .await
@@ -570,7 +570,7 @@ mod tests {
     async fn multi_empty_symbols_short_circuits_without_request() {
         let client = paper_client();
         let result = client
-            .stock_bars_multi(&[], TimeFrame::OneDay)
+            .stock_bars_multi(&[], TimeFrame::ONE_DAY)
             .execute()
             .await
             .unwrap();
