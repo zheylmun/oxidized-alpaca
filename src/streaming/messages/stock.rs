@@ -164,7 +164,7 @@ pub struct StockBar {
 /// Real-time quote with bid and ask data.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct StockQuote {
+pub struct StockQuoteEvent {
     /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -200,7 +200,7 @@ pub struct StockQuote {
 /// Real-time trade event.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct StockTrade {
+pub struct StockTradeEvent {
     /// Ticker symbol.
     #[serde(rename = "S")]
     pub symbol: String,
@@ -408,10 +408,10 @@ pub enum StockStreamMessage {
     UpdatedBar(StockBar),
     /// Trade event.
     #[serde(rename = "t")]
-    Trade(StockTrade),
+    Trade(StockTradeEvent),
     /// Quote update.
     #[serde(rename = "q")]
-    Quote(StockQuote),
+    Quote(StockQuoteEvent),
     /// Notification that a previously reported trade was corrected.
     #[serde(rename = "c")]
     Correction(StockTradeCorrection),

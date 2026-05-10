@@ -36,7 +36,7 @@ impl NewsSubscriptionList {
 /// A single news article delivered on the news stream.
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[non_exhaustive]
-pub struct NewsArticle {
+pub struct NewsArticleEvent {
     /// Unique news article ID.
     pub id: i64,
     /// Article headline.
@@ -78,7 +78,7 @@ pub enum NewsStreamMessage {
     Subscription(NewsSubscriptionList),
     /// A news article.
     #[serde(rename = "n")]
-    News(NewsArticle),
+    News(NewsArticleEvent),
 }
 
 impl NewsStreamMessage {
