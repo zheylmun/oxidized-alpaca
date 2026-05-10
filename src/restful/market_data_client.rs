@@ -43,8 +43,7 @@ impl MarketDataClient {
     pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
         let url = Url::parse(MARKET_DATA_URL)
             .expect("MARKET_DATA_URL is a valid base URL")
-            .join(path)
-            .map_err(Error::UrlParse)?;
+            .join(path)?;
         Ok(self
             .client
             .request(method, url)
@@ -58,7 +57,10 @@ impl MarketDataClient {
         &self,
         request: RequestBuilder,
     ) -> Result<T> {
-        let response = request.send().await.map_err(Error::ReqwestSend)?;
+        let response = request
+            .send()
+            .await
+            .map_err(|e| Error::ReqwestSend(e.into()))?;
         let status = response.status();
         if !status.is_success() {
             let body = response.text().await.unwrap_or_default();
@@ -67,7 +69,10 @@ impl MarketDataClient {
                 body,
             });
         }
-        response.json().await.map_err(Error::ReqwestDeserialize)
+        response
+            .json()
+            .await
+            .map_err(|e| Error::ReqwestDeserialize(e.into()))
     }
 }
 

@@ -40,6 +40,69 @@ impl From<socketeer::Error> for Error {
     }
 }
 
+/// Opaque error returned by the REST transport.
+///
+/// The crate uses [`reqwest`] internally, but its concrete error type is
+/// not exposed so the underlying dependency can be swapped out (or upgraded
+/// across major versions) without a breaking release. Use
+/// [`std::error::Error::source`] to inspect the chain when diagnosing failures.
+#[cfg(feature = "restful")]
+#[derive(Debug)]
+pub struct RestError(ReqwestError);
+
+#[cfg(feature = "restful")]
+impl std::fmt::Display for RestError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+#[cfg(feature = "restful")]
+impl std::error::Error for RestError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+#[cfg(feature = "restful")]
+impl From<ReqwestError> for RestError {
+    fn from(value: ReqwestError) -> Self {
+        Self(value)
+    }
+}
+
+/// Opaque error returned when a URL fails to parse.
+///
+/// Wraps [`url::ParseError`] so the `url` crate can be upgraded across major
+/// versions without a breaking release. Use [`std::error::Error::source`] to
+/// inspect the chain when diagnosing failures.
+#[derive(Debug)]
+pub struct UrlError(url::ParseError);
+
+impl std::fmt::Display for UrlError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.0)
+    }
+}
+
+impl std::error::Error for UrlError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        self.0.source()
+    }
+}
+
+impl From<url::ParseError> for UrlError {
+    fn from(value: url::ParseError) -> Self {
+        Self(value)
+    }
+}
+
+impl From<url::ParseError> for Error {
+    fn from(value: url::ParseError) -> Self {
+        Self::UrlParse(UrlError(value))
+    }
+}
+
 /// Errors that can occur when using the Alpaca API client.
 #[derive(Debug, Error)]
 pub enum Error {
@@ -63,11 +126,11 @@ pub enum Error {
     /// Reqwest Send Error
     #[cfg(feature = "restful")]
     #[error("Reqwest send error: {0}")]
-    ReqwestSend(#[source] ReqwestError),
+    ReqwestSend(#[source] RestError),
     /// Reqwest Deserialize Error
     #[cfg(feature = "restful")]
     #[error("Reqwest decoding error: {0}")]
-    ReqwestDeserialize(#[source] ReqwestError),
+    ReqwestDeserialize(#[source] RestError),
 
     /// API returned a non-2xx status code
     #[error("API error (HTTP {}): {}", status, body)]
@@ -85,7 +148,7 @@ pub enum Error {
 
     /// Url Parse Error
     #[error("Url parse error: {0}")]
-    UrlParse(#[source] url::ParseError),
+    UrlParse(#[source] UrlError),
     /// Unexpected connection message
     #[error("Unexpected connection message: {0}")]
     UnexpectedConnectionMessage(String),
@@ -116,7 +179,7 @@ mod tests {
     fn url_parse_display_includes_inner_cause() {
         let inner = url::Url::parse("not a url").unwrap_err();
         let inner_text = inner.to_string();
-        let err = Error::UrlParse(inner);
+        let err: Error = inner.into();
         let rendered = err.to_string();
         assert!(
             rendered.contains(&inner_text),

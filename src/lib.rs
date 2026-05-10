@@ -25,6 +25,11 @@ pub use asset::AssetClass;
 mod env;
 /// Error types for the crate.
 pub mod error;
+#[cfg(feature = "restful")]
+pub use error::RestError;
+pub use error::UrlError;
+#[cfg(feature = "streaming")]
+pub use error::WebsocketError;
 pub use error::{Error, Result};
 /// Data feed types for streaming and market data sources.
 mod feed;
