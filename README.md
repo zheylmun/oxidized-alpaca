@@ -155,15 +155,18 @@ There is one entry point per Alpaca order type. Each constructor takes
 the parameters that order type strictly requires (e.g. `limit_price`
 for `limit_order`, `stop_price` + `limit_price` for `stop_limit_order`,
 or one of `trail_price`/`trail_percent` via the two trailing-stop
-variants), so it is impossible to submit a half-configured order.
+variants).
 
-The returned builder exposes only the truly optional knobs:
-`.qty`, `.notional`, `.time_in_force`, `.extended_hours`, and
-`.client_order_id`. Bracket / OCO / OTO orders are reached by
-attaching `.take_profit(...)` and/or `.stop_loss(...)` to any of these
-builders — the order class is inferred at submit time (both legs →
-bracket, one leg → OTO). For OCO exits, override the inference with
-`.order_class(OrderClass::Oco)`.
+Every order also requires a size — either share quantity (`.qty`) or
+dollar amount (`.notional`), never both. The builder uses a type-state
+to enforce this: `.execute()` is only available after one of those two
+has been called, so a half-configured order won't compile. The
+remaining setters — `.time_in_force`, `.extended_hours`, and
+`.client_order_id` — are genuinely optional. Bracket / OCO / OTO
+orders are reached by attaching `.take_profit(...)` and/or
+`.stop_loss(...)` to any of these builders — the order class is
+inferred at submit time (both legs → bracket, one leg → OTO). For OCO
+exits, override the inference with `.order_class(OrderClass::Oco)`.
 
 `cancel_all_orders` and `close_all_positions` return the per-item
 status arrays Alpaca delivers in the underlying HTTP 207 response

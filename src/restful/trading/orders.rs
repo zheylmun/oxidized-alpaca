@@ -4,8 +4,21 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+use std::marker::PhantomData;
 
 pub use crate::orders::{Order, OrderClass, OrderStatus, OrderType, Side, TimeInForce};
+
+/// Marker for a [`CreateOrderRequest`] that has not had a size
+/// ([`qty`][CreateOrderRequest::qty] or
+/// [`notional`][CreateOrderRequest::notional]) chosen yet.
+/// `execute()` is unavailable in this state.
+#[derive(Debug)]
+pub enum Draft {}
+
+/// Marker for a [`CreateOrderRequest`] that has had a size chosen and
+/// is ready to submit. `execute()` is only available in this state.
+#[derive(Debug)]
+pub enum Ready {}
 
 fn infer_order_class(has_take_profit: bool, has_stop_loss: bool) -> Option<OrderClass> {
     match (has_take_profit, has_stop_loss) {
@@ -99,12 +112,21 @@ impl StopLoss {
 /// Construct one through a per-`OrderType` entry point on
 /// [`TradingClient`] (e.g. [`TradingClient::market_order`],
 /// [`TradingClient::limit_order`], [`TradingClient::stop_limit_order`]).
-/// Each entry point bakes in the parameters that order type requires,
-/// so the only fields left for the chained setters are genuinely
-/// optional.
+/// Each entry point bakes in the parameters that order type requires.
+///
+/// Alpaca requires every order to specify either a share quantity
+/// ([`qty`][Self::qty]) or a dollar amount ([`notional`][Self::notional])
+/// — never both, never neither. That invariant is encoded in the type
+/// state: builders start in [`Draft`] and `execute()` is only available
+/// once `qty` or `notional` has been called, transitioning to [`Ready`].
+/// The remaining setters ([`time_in_force`][Self::time_in_force],
+/// [`extended_hours`][Self::extended_hours],
+/// [`client_order_id`][Self::client_order_id],
+/// [`take_profit`][Self::take_profit], [`stop_loss`][Self::stop_loss],
+/// [`order_class`][Self::order_class]) are genuinely optional.
 #[derive(Debug, Serialize)]
 #[must_use]
-pub struct CreateOrderRequest<'a> {
+pub struct CreateOrderRequest<'a, S = Draft> {
     #[serde(skip)]
     client: &'a TradingClient,
     symbol: String,
@@ -134,21 +156,50 @@ pub struct CreateOrderRequest<'a> {
     take_profit: Option<TakeProfit>,
     #[serde(skip_serializing_if = "Option::is_none")]
     stop_loss: Option<StopLoss>,
+    #[serde(skip)]
+    _marker: PhantomData<S>,
 }
 
-impl CreateOrderRequest<'_> {
-    /// Set the quantity of shares to trade.
-    pub fn qty(mut self, qty: Decimal) -> Self {
-        self.qty = Some(qty);
-        self.notional = None;
-        self
+impl<'a, S> CreateOrderRequest<'a, S> {
+    fn into_state<S2>(
+        self,
+        qty: Option<Decimal>,
+        notional: Option<Decimal>,
+    ) -> CreateOrderRequest<'a, S2> {
+        CreateOrderRequest {
+            client: self.client,
+            symbol: self.symbol,
+            side: self.side,
+            order_type: self.order_type,
+            time_in_force: self.time_in_force,
+            qty,
+            notional,
+            limit_price: self.limit_price,
+            stop_price: self.stop_price,
+            trail_price: self.trail_price,
+            trail_percent: self.trail_percent,
+            extended_hours: self.extended_hours,
+            client_order_id: self.client_order_id,
+            order_class: self.order_class,
+            take_profit: self.take_profit,
+            stop_loss: self.stop_loss,
+            _marker: PhantomData,
+        }
     }
 
-    /// Set the notional (dollar) amount to trade. Mutually exclusive with `qty`.
-    pub fn notional(mut self, notional: Decimal) -> Self {
-        self.notional = Some(notional);
-        self.qty = None;
-        self
+    /// Size the order by share quantity. Mutually exclusive with
+    /// [`notional`][Self::notional]; calling this transitions the
+    /// builder into the [`Ready`] state where `execute()` becomes
+    /// available.
+    pub fn qty(self, qty: Decimal) -> CreateOrderRequest<'a, Ready> {
+        self.into_state(Some(qty), None)
+    }
+
+    /// Size the order by dollar amount. Mutually exclusive with
+    /// [`qty`][Self::qty]; calling this transitions the builder into
+    /// the [`Ready`] state where `execute()` becomes available.
+    pub fn notional(self, notional: Decimal) -> CreateOrderRequest<'a, Ready> {
+        self.into_state(None, Some(notional))
     }
 
     /// Set the time in force.
@@ -194,7 +245,9 @@ impl CreateOrderRequest<'_> {
         self.order_class = Some(class);
         self
     }
+}
 
+impl CreateOrderRequest<'_, Ready> {
     /// Submit the order.
     pub async fn execute(mut self) -> crate::Result<Order> {
         if self.order_class.is_none() {
@@ -356,14 +409,15 @@ impl ReplaceOrderRequest<'_> {
 
 impl TradingClient {
     /// Internal helper that constructs a fresh [`CreateOrderRequest`]
-    /// with all type-specific price fields unset. The public
-    /// per-`OrderType` entry points layer the required fields on top.
+    /// in the [`Draft`] state with all type-specific price fields unset.
+    /// The public per-`OrderType` entry points layer the required fields
+    /// on top.
     fn new_create_order_request(
         &self,
         symbol: &str,
         side: Side,
         order_type: OrderType,
-    ) -> CreateOrderRequest<'_> {
+    ) -> CreateOrderRequest<'_, Draft> {
         CreateOrderRequest {
             client: self,
             symbol: symbol.to_string(),
@@ -381,6 +435,7 @@ impl TradingClient {
             order_class: None,
             take_profit: None,
             stop_loss: None,
+            _marker: PhantomData,
         }
     }
 
