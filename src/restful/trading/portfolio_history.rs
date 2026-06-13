@@ -121,6 +121,8 @@ pub struct PortfolioHistoryRequest<'a> {
     end: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pnl_reset: Option<PnlReset>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cashflow_types: Option<String>,
 }
 
 impl PortfolioHistoryRequest<'_> {
@@ -160,6 +162,13 @@ impl PortfolioHistoryRequest<'_> {
         self
     }
 
+    /// Filter which cashflow activity types are included (`ALL`, `NONE`, or a
+    /// comma-separated list of activity types).
+    pub fn cashflow_types(mut self, types: impl Into<String>) -> Self {
+        self.cashflow_types = Some(types.into());
+        self
+    }
+
     /// Execute the request.
     pub async fn execute(self) -> crate::Result<PortfolioHistory> {
         let request = self
@@ -188,6 +197,7 @@ impl TradingClient {
             start: None,
             end: None,
             pnl_reset: None,
+            cashflow_types: None,
         }
     }
 }
@@ -195,6 +205,30 @@ impl TradingClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> TradingClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        TradingClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn cashflow_types_serializes_to_query() {
+        let client = paper_client();
+        let request = client.portfolio_history().cashflow_types("DIV,INT");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert_eq!(query, "cashflow_types=DIV%2CINT");
+    }
 
     #[test]
     fn portfolio_history_deserializes_typed_columns() {
