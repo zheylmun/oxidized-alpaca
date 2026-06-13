@@ -1,10 +1,12 @@
 use crate::{
     RestFeed,
-    restful::{MarketDataClient, null_def_vec},
+    restful::{MarketDataClient, SortDirection, null_def_vec},
 };
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
+
+use super::AsOf;
 
 /// An auction price entry.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
@@ -84,6 +86,12 @@ pub struct StockAuctionsRequest<'a> {
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    asof: Option<AsOf>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    currency: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sort: Option<SortDirection>,
 }
 
 impl StockAuctionsRequest<'_> {
@@ -106,6 +114,22 @@ impl StockAuctionsRequest<'_> {
     /// auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
+        self
+    }
+    /// Anchor symbol mapping for renamed instruments. Pass
+    /// [`AsOf::SkipSymbolMapping`] to disable mapping.
+    pub fn asof(mut self, asof: AsOf) -> Self {
+        self.asof = Some(asof);
+        self
+    }
+    /// Set the response `currency` (ISO 4217). Defaults to USD when unset.
+    pub fn currency(mut self, currency: impl Into<String>) -> Self {
+        self.currency = Some(currency.into());
+        self
+    }
+    /// Set the result `sort` order. Defaults to ascending when unset.
+    pub fn sort(mut self, sort: SortDirection) -> Self {
+        self.sort = Some(sort);
         self
     }
 
@@ -146,13 +170,49 @@ impl MarketDataClient {
             feed: None,
             limit: None,
             page_token: None,
+            asof: None,
+            currency: None,
+            sort: None,
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::super::AsOf;
     use super::AuctionsResponse;
+    use crate::AccountType;
+    use crate::restful::{MarketDataClient, SortDirection};
+    use chrono::NaiveDate;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> MarketDataClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        MarketDataClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn asof_currency_sort_serialize_to_query() {
+        let client = paper_client();
+        let request = client
+            .stock_auctions("AAPL")
+            .asof(AsOf::Date(NaiveDate::from_ymd_opt(2025, 1, 15).unwrap()))
+            .currency("USD")
+            .sort(SortDirection::Desc);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("asof=2025-01-15"), "{query}");
+        assert!(query.contains("currency=USD"), "{query}");
+        assert!(query.contains("sort=desc"), "{query}");
+    }
 
     /// Pre-open sessions return null for the closing auctions field; ensure
     /// that does not break deserialization.
