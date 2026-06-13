@@ -16,6 +16,12 @@ pub struct FixedIncomePrice {
     /// The price timestamp.
     #[serde(rename = "t")]
     pub timestamp: DateTime<Utc>,
+    /// Yield to maturity.
+    #[serde(rename = "ytm", default)]
+    pub yield_to_maturity: Option<f64>,
+    /// Yield to worst.
+    #[serde(rename = "ytw", default)]
+    pub yield_to_worst: Option<f64>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -102,5 +108,7 @@ mod tests {
                 .unwrap()
                 .with_timezone(&Utc)
         );
+        assert_eq!(price.yield_to_maturity, Some(4.249));
+        assert_eq!(price.yield_to_worst, Some(4.249));
     }
 }
