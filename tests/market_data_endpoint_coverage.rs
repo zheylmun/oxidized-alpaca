@@ -247,7 +247,11 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = movers;
 
-    let _ = expect_ok_or_status(client.logo("AAPL").await, &[403, 404, 422], "logo");
+    let _ = expect_ok_or_status(
+        client.logo("AAPL").execute().await,
+        &[403, 404, 422],
+        "logo",
+    );
 
     let _ = expect_ok_or_status(
         client
