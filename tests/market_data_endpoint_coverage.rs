@@ -122,10 +122,11 @@ async fn market_data_endpoints_live_smoke() {
         "stock_auctions",
     );
 
-    client.stock_snapshot("AAPL", None).await.unwrap();
+    client.stock_snapshot("AAPL").execute().await.unwrap();
 
     let snapshots = client
-        .stock_snapshots(&["AAPL", "MSFT"], None)
+        .stock_snapshots(&["AAPL", "MSFT"])
+        .execute()
         .await
         .unwrap();
     let _ = snapshots;
