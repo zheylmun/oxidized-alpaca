@@ -106,6 +106,17 @@ impl std::fmt::Display for AssetAttribute {
     }
 }
 
+/// Borrowing status for a US equity asset.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum BorrowStatus {
+    /// The asset is easy to borrow for shorting.
+    EasyToBorrow,
+    /// The asset is hard to borrow for shorting.
+    HardToBorrow,
+}
+
 /// An asset as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
 #[non_exhaustive]
@@ -130,8 +141,19 @@ pub struct Asset {
     pub shortable: bool,
     /// Whether the asset is easy to borrow for shorting.
     pub easy_to_borrow: bool,
+    /// Borrowing status (easy or hard to borrow); supersedes the
+    /// `easy_to_borrow` flag for US equities.
+    #[serde(default)]
+    pub borrow_status: Option<BorrowStatus>,
     /// Whether the asset supports fractional shares.
     pub fractionable: bool,
+    /// The CUSIP of the asset (US equities).
+    #[serde(default)]
+    pub cusip: Option<String>,
+    /// Maintenance margin requirement percentage (deprecated in favor of
+    /// `margin_requirement_long` / `margin_requirement_short`).
+    #[serde(default)]
+    pub maintenance_margin_requirement: Option<f64>,
     /// Long margin requirement percentage.
     #[serde(deserialize_with = "string_as_optional_decimal", default)]
     pub margin_requirement_long: Option<Decimal>,
@@ -248,6 +270,8 @@ mod tests {
             "shortable": false,
             "easy_to_borrow": false,
             "fractionable": false,
+            "cusip": "464287655",
+            "borrow_status": "hard_to_borrow",
             "attributes": []
             }"#;
         let asset: Asset = serde_json::from_str(sample).unwrap();
@@ -255,6 +279,9 @@ mod tests {
             asset.margin_requirement_long,
             Some(Decimal::from_str_exact("100").unwrap())
         );
+        assert_eq!(asset.maintenance_margin_requirement, Some(100.0));
+        assert_eq!(asset.cusip.as_deref(), Some("464287655"));
+        assert_eq!(asset.borrow_status, Some(BorrowStatus::HardToBorrow));
     }
 
     #[test]
