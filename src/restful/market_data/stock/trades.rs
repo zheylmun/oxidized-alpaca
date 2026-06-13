@@ -33,6 +33,10 @@ pub struct StockTrade {
     /// The tape.
     #[serde(rename = "z", default)]
     pub tape: Option<String>,
+    /// Trade update/correction status (e.g. `canceled`, `corrected`),
+    /// present only when the trade was amended after the fact.
+    #[serde(rename = "u", default)]
+    pub update: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -425,7 +429,7 @@ mod tests {
             "next_page_token": "QUFQTHwxNzc4MTYwNjAwMDE3NTA0MDEwfFF8MzQ2MA==",
             "trades": {
                 "AAPL": [
-                    {"c":["@"],"i":5112,"p":289.27,"s":50,"t":"2026-05-07T13:30:00.01343918Z","x":"D","z":"C"},
+                    {"c":["@"],"i":5112,"p":289.27,"s":50,"t":"2026-05-07T13:30:00.01343918Z","x":"D","z":"C","u":"canceled"},
                     {"c":["@","I"],"i":5113,"p":289.27,"s":13,"t":"2026-05-07T13:30:00.014659266Z","x":"D","z":"C"}
                 ]
             }
@@ -435,6 +439,8 @@ mod tests {
         assert_eq!(parsed.trades["AAPL"].len(), 2);
         assert_eq!(parsed.trades["AAPL"][0].price, 289.27);
         assert_eq!(parsed.trades["AAPL"][0].size, 50);
+        assert_eq!(parsed.trades["AAPL"][0].update.as_deref(), Some("canceled"));
+        assert_eq!(parsed.trades["AAPL"][1].update, None);
         assert!(parsed.next_page_token.is_some());
     }
 
