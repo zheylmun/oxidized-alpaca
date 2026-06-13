@@ -133,6 +133,21 @@ pub struct CorporateActions {
     /// Redemption events.
     #[serde(default)]
     pub redemptions: Vec<CorporateActionPayload>,
+    /// Unit split events.
+    #[serde(default)]
+    pub unit_splits: Vec<CorporateActionPayload>,
+    /// Rights distribution events.
+    #[serde(default)]
+    pub rights_distributions: Vec<CorporateActionPayload>,
+    /// Partial call events.
+    #[serde(default)]
+    pub partial_calls: Vec<CorporateActionPayload>,
+    /// Reorganization events.
+    #[serde(default)]
+    pub reorganizations: Vec<CorporateActionPayload>,
+    /// Worthless removal events.
+    #[serde(default)]
+    pub worthless_removals: Vec<CorporateActionPayload>,
 }
 
 /// Builder for `/v1/corporate-actions`.
@@ -387,6 +402,23 @@ mod tests {
         assert_eq!(parsed.spin_offs.len(), 1);
         assert_eq!(parsed.spin_offs[0].id(), Some("def-456"));
         assert!(parsed.forward_splits.is_empty());
+    }
+
+    #[test]
+    fn deserializes_additional_event_categories() {
+        let json = r#"{
+            "unit_splits": [{"id":"u-1"}],
+            "rights_distributions": [{"id":"r-1"}],
+            "partial_calls": [{"id":"p-1"}],
+            "reorganizations": [{"id":"reo-1"}],
+            "worthless_removals": [{"id":"w-1"}]
+        }"#;
+        let parsed: CorporateActions = serde_json::from_str(json).unwrap();
+        assert_eq!(parsed.unit_splits[0].id(), Some("u-1"));
+        assert_eq!(parsed.rights_distributions[0].id(), Some("r-1"));
+        assert_eq!(parsed.partial_calls[0].id(), Some("p-1"));
+        assert_eq!(parsed.reorganizations[0].id(), Some("reo-1"));
+        assert_eq!(parsed.worthless_removals[0].id(), Some("w-1"));
     }
 
     #[test]
