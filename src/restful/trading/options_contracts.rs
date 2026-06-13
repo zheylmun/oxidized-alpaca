@@ -166,6 +166,10 @@ pub struct ListOptionContractsRequest<'a> {
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    show_deliverables: Option<bool>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    ppind: Option<bool>,
 }
 
 impl ListOptionContractsRequest<'_> {
@@ -235,6 +239,18 @@ impl ListOptionContractsRequest<'_> {
         self
     }
 
+    /// Include the `deliverables` array on each returned contract.
+    pub fn show_deliverables(mut self, show: bool) -> Self {
+        self.show_deliverables = Some(show);
+        self
+    }
+
+    /// Filter by penny-program eligibility (Penny Program Indicator).
+    pub fn ppind(mut self, ppind: bool) -> Self {
+        self.ppind = Some(ppind);
+        self
+    }
+
     /// Execute the request, auto-paginating until all matching contracts are
     /// retrieved or the configured `limit` is reached.
     pub async fn execute(mut self) -> crate::Result<Vec<OptionContract>> {
@@ -290,6 +306,8 @@ impl TradingClient {
             strike_price_lte: None,
             limit: None,
             page_token: None,
+            show_deliverables: None,
+            ppind: None,
         }
     }
 
@@ -303,6 +321,37 @@ impl TradingClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> TradingClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        TradingClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn show_deliverables_and_ppind_serialize_to_query() {
+        let client = paper_client();
+        let request = client
+            .list_option_contracts()
+            .show_deliverables(true)
+            .ppind(false);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("show_deliverables=true"),
+            "expected show_deliverables in {query}"
+        );
+        assert!(query.contains("ppind=false"), "expected ppind in {query}");
+    }
 
     #[test]
     fn test_option_contract_deserialization() {
