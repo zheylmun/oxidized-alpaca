@@ -372,6 +372,8 @@ mod multi_symbol_tests {
         assert_eq!(parsed.bars.len(), 2);
         assert_eq!(parsed.bars["AAPL"].len(), 1);
         assert_eq!(parsed.bars["AAPL"][0].close, 293.32);
+        assert_eq!(parsed.bars["AAPL"][0].trade_count, 788984);
+        assert_eq!(parsed.bars["AAPL"][0].vwap, 293.146183);
         assert_eq!(parsed.bars["MSFT"].len(), 1);
         assert!(parsed.next_page_token.is_none());
     }
