@@ -15,6 +15,12 @@ pub struct MarketDay {
     /// Market close time (`HH:MM`).
     #[serde(deserialize_with = "deserialize_hhmm")]
     pub close: NaiveTime,
+    /// Session (extended-hours) open time (`HHMM`).
+    #[serde(default, deserialize_with = "deserialize_opt_hhmm_compact")]
+    pub session_open: Option<NaiveTime>,
+    /// Session (extended-hours) close time (`HHMM`).
+    #[serde(default, deserialize_with = "deserialize_opt_hhmm_compact")]
+    pub session_close: Option<NaiveTime>,
     /// Settlement date.
     #[serde(default)]
     pub settlement_date: Option<NaiveDate>,
@@ -26,6 +32,19 @@ where
 {
     let raw = String::deserialize(deserializer)?;
     NaiveTime::parse_from_str(&raw, "%H:%M").map_err(serde::de::Error::custom)
+}
+
+fn deserialize_opt_hhmm_compact<'de, D>(deserializer: D) -> Result<Option<NaiveTime>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt = Option::<String>::deserialize(deserializer)?;
+    match opt {
+        Some(raw) => NaiveTime::parse_from_str(&raw, "%H%M")
+            .map(Some)
+            .map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
 }
 
 /// Builder for requesting the market calendar.
@@ -78,5 +97,26 @@ impl TradingClient {
             start: None,
             end: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn deserializes_market_day_with_session_times() {
+        let json = r#"{
+            "date": "2025-01-02",
+            "open": "09:30",
+            "close": "16:00",
+            "session_open": "0400",
+            "session_close": "2000",
+            "settlement_date": "2025-01-03"
+        }"#;
+        let day: MarketDay = serde_json::from_str(json).unwrap();
+        assert_eq!(day.open, NaiveTime::from_hms_opt(9, 30, 0).unwrap());
+        assert_eq!(day.session_open, NaiveTime::from_hms_opt(4, 0, 0));
+        assert_eq!(day.session_close, NaiveTime::from_hms_opt(20, 0, 0));
     }
 }
