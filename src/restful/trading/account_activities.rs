@@ -9,12 +9,13 @@ use super::orders::Side;
 
 /// Category filter accepted by the account-activities endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ActivityCategory {
     /// Trade-related activities only.
+    #[serde(rename = "trade_activity")]
     Trade,
     /// Non-trade activities only.
+    #[serde(rename = "non_trade_activity")]
     NonTrade,
 }
 
@@ -410,5 +411,19 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::Dividend);
         assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
         assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
+    }
+
+    /// The `category` query parameter accepts `trade_activity` /
+    /// `non_trade_activity`, not the bare `trade` / `non_trade`.
+    #[test]
+    fn category_serializes_to_spec_values() {
+        assert_eq!(
+            serde_json::to_string(&ActivityCategory::Trade).unwrap(),
+            "\"trade_activity\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ActivityCategory::NonTrade).unwrap(),
+            "\"non_trade_activity\""
+        );
     }
 }
