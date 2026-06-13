@@ -128,6 +128,30 @@ impl<'de> Deserialize<'de> for ActivityType {
     }
 }
 
+/// Fill type of a trade activity.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum FillType {
+    /// A complete fill.
+    Fill,
+    /// A partial fill.
+    PartialFill,
+}
+
+/// Status of a non-trade activity.
+#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum ActivityStatus {
+    /// The activity executed.
+    Executed,
+    /// The activity is a correction.
+    Correct,
+    /// The activity was canceled.
+    Canceled,
+}
+
 /// An account activity event.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
@@ -178,9 +202,24 @@ pub struct Activity {
     /// Description of the activity.
     #[serde(default)]
     pub description: Option<String>,
-    /// Status of the activity.
+    /// Fill type for trade activities (`fill` / `partial_fill`).
+    #[serde(rename = "type", default)]
+    pub transaction_type: Option<FillType>,
+    /// Order status for trade activities.
     #[serde(default)]
-    pub status: Option<String>,
+    pub order_status: Option<crate::orders::OrderStatus>,
+    /// Status of a non-trade activity.
+    #[serde(default)]
+    pub status: Option<ActivityStatus>,
+    /// Creation timestamp (non-trade activities).
+    #[serde(default)]
+    pub created_at: Option<DateTime<Utc>>,
+    /// CUSIP of the security involved (non-trade activities).
+    #[serde(default)]
+    pub cusip: Option<String>,
+    /// Group ID linking activities with sibling relationships.
+    #[serde(default)]
+    pub group_id: Option<String>,
 }
 
 /// Default per-page batch size used internally when auto-paginating
@@ -411,6 +450,43 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::Dividend);
         assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
         assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
+    }
+
+    #[test]
+    fn trade_activity_deserializes_type_and_order_status() {
+        let json = r#"{
+            "id": "20250507000000000::abc",
+            "activity_type": "FILL",
+            "type": "partial_fill",
+            "order_status": "filled",
+            "symbol": "AAPL",
+            "qty": "10",
+            "price": "150.25",
+            "side": "buy",
+            "transaction_time": "2025-05-07T13:30:00Z"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.transaction_type, Some(FillType::PartialFill));
+        assert_eq!(activity.order_status, Some(crate::orders::OrderStatus::Filled));
+    }
+
+    #[test]
+    fn non_trade_activity_deserializes_metadata_and_status() {
+        let json = r#"{
+            "id": "20250507000000000::def",
+            "activity_type": "DIV",
+            "date": "2025-05-07",
+            "net_amount": "12.34",
+            "status": "executed",
+            "created_at": "2025-05-07T09:00:00Z",
+            "cusip": "037833100",
+            "group_id": "grp-1"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.status, Some(ActivityStatus::Executed));
+        assert!(activity.created_at.is_some());
+        assert_eq!(activity.cusip.as_deref(), Some("037833100"));
+        assert_eq!(activity.group_id.as_deref(), Some("grp-1"));
     }
 
     /// The `category` query parameter accepts `trade_activity` /
