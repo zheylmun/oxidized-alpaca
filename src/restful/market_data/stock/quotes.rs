@@ -169,24 +169,28 @@ impl MarketDataClient {
         }
     }
 
-    /// Get the latest quote for a single stock symbol.
-    pub async fn stock_latest_quote(&self, symbol: &str) -> crate::Result<StockQuote> {
-        let path = format!("v2/stocks/{symbol}/quotes/latest");
-        let request = self.request(Method::GET, &path)?;
-        let response: LatestQuoteResponse = self.send_and_deserialize(request).await?;
-        Ok(response.quote)
+    /// Request the latest quote for a single stock symbol.
+    ///
+    /// Returns a builder; call [`StockLatestQuoteRequest::execute`] to send.
+    pub fn stock_latest_quote<'a>(&'a self, symbol: &str) -> StockLatestQuoteRequest<'a> {
+        StockLatestQuoteRequest {
+            client: self,
+            symbol: symbol.to_string(),
+            feed: None,
+            currency: None,
+        }
     }
 
-    /// Get the latest quotes for multiple stock symbols.
-    pub async fn stock_latest_quotes(
-        &self,
-        symbols: &[&str],
-    ) -> crate::Result<std::collections::HashMap<String, StockQuote>> {
-        let request = self
-            .request(Method::GET, "v2/stocks/quotes/latest")?
-            .query(&[("symbols", symbols.join(","))]);
-        let response: MultiLatestQuotesResponse = self.send_and_deserialize(request).await?;
-        Ok(response.quotes)
+    /// Request the latest quotes for multiple stock symbols.
+    ///
+    /// Returns a builder; call [`StockLatestQuotesRequest::execute`] to send.
+    pub fn stock_latest_quotes<'a>(&'a self, symbols: &[&str]) -> StockLatestQuotesRequest<'a> {
+        StockLatestQuotesRequest {
+            client: self,
+            symbols: symbols.join(","),
+            feed: None,
+            currency: None,
+        }
     }
 
     /// Request historical quotes for multiple stock symbols. Returns a
@@ -205,6 +209,76 @@ impl MarketDataClient {
             sort: None,
             page_token: None,
         }
+    }
+}
+
+/// Builder for the latest quote of a single stock symbol.
+#[derive(Debug, Serialize)]
+#[must_use]
+pub struct StockLatestQuoteRequest<'a> {
+    #[serde(skip)]
+    client: &'a MarketDataClient,
+    #[serde(skip)]
+    symbol: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    feed: Option<RestFeed>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    currency: Option<String>,
+}
+
+impl StockLatestQuoteRequest<'_> {
+    /// Set the data feed to use.
+    pub fn feed(mut self, feed: RestFeed) -> Self {
+        self.feed = Some(feed);
+        self
+    }
+    /// Set the response `currency` (ISO 4217). Defaults to USD when unset.
+    pub fn currency(mut self, currency: impl Into<String>) -> Self {
+        self.currency = Some(currency.into());
+        self
+    }
+    /// Send the request.
+    pub async fn execute(self) -> crate::Result<StockQuote> {
+        let symbol = &self.symbol;
+        let path = format!("v2/stocks/{symbol}/quotes/latest");
+        let request = self.client.request(Method::GET, &path)?.query(&self);
+        let response: LatestQuoteResponse = self.client.send_and_deserialize(request).await?;
+        Ok(response.quote)
+    }
+}
+
+/// Builder for the latest quotes of multiple stock symbols.
+#[derive(Debug, Serialize)]
+#[must_use]
+pub struct StockLatestQuotesRequest<'a> {
+    #[serde(skip)]
+    client: &'a MarketDataClient,
+    symbols: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    feed: Option<RestFeed>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    currency: Option<String>,
+}
+
+impl StockLatestQuotesRequest<'_> {
+    /// Set the data feed to use.
+    pub fn feed(mut self, feed: RestFeed) -> Self {
+        self.feed = Some(feed);
+        self
+    }
+    /// Set the response `currency` (ISO 4217). Defaults to USD when unset.
+    pub fn currency(mut self, currency: impl Into<String>) -> Self {
+        self.currency = Some(currency.into());
+        self
+    }
+    /// Send the request.
+    pub async fn execute(self) -> crate::Result<std::collections::HashMap<String, StockQuote>> {
+        let request = self
+            .client
+            .request(Method::GET, "v2/stocks/quotes/latest")?
+            .query(&self);
+        let response: MultiLatestQuotesResponse = self.client.send_and_deserialize(request).await?;
+        Ok(response.quotes)
     }
 }
 
@@ -345,6 +419,33 @@ mod tests {
     fn paper_client() -> MarketDataClient {
         ensure_paper_creds();
         MarketDataClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn latest_quote_feed_and_currency_serialize() {
+        let client = paper_client();
+        let request = client
+            .stock_latest_quote("AAPL")
+            .feed(RestFeed::IEX)
+            .currency("USD");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("feed=iex"), "{query}");
+        assert!(query.contains("currency=USD"), "{query}");
+    }
+
+    #[test]
+    #[serial]
+    fn latest_quotes_feed_currency_and_symbols_serialize() {
+        let client = paper_client();
+        let request = client
+            .stock_latest_quotes(&["AAPL", "MSFT"])
+            .feed(RestFeed::SIP)
+            .currency("USD");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("symbols=AAPL%2CMSFT"), "{query}");
+        assert!(query.contains("feed=sip"), "{query}");
+        assert!(query.contains("currency=USD"), "{query}");
     }
 
     fn sample_start() -> DateTime<Utc> {

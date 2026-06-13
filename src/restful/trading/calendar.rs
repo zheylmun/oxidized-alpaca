@@ -47,6 +47,17 @@ where
     }
 }
 
+/// Whether calendar days are filtered by trading date or settlement date.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "UPPERCASE")]
+#[non_exhaustive]
+pub enum CalendarDateType {
+    /// Filter by trading date.
+    Trading,
+    /// Filter by settlement date.
+    Settlement,
+}
+
 /// Builder for requesting the market calendar.
 #[derive(Debug, Serialize)]
 #[must_use]
@@ -57,6 +68,8 @@ pub struct CalendarRequest<'a> {
     start: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<NaiveDate>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    date_type: Option<CalendarDateType>,
 }
 
 impl CalendarRequest<'_> {
@@ -69,6 +82,12 @@ impl CalendarRequest<'_> {
     /// Filter calendar days up to this date.
     pub fn end(mut self, end: NaiveDate) -> Self {
         self.end = Some(end);
+        self
+    }
+
+    /// Filter by trading date or settlement date (defaults to trading).
+    pub fn date_type(mut self, date_type: CalendarDateType) -> Self {
+        self.date_type = Some(date_type);
         self
     }
 
@@ -96,6 +115,7 @@ impl TradingClient {
             client: self,
             start: None,
             end: None,
+            date_type: None,
         }
     }
 }
@@ -103,6 +123,21 @@ impl TradingClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> TradingClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        TradingClient::new(AccountType::Paper).unwrap()
+    }
 
     #[test]
     fn deserializes_market_day_with_session_times() {
@@ -118,5 +153,16 @@ mod tests {
         assert_eq!(day.open, NaiveTime::from_hms_opt(9, 30, 0).unwrap());
         assert_eq!(day.session_open, NaiveTime::from_hms_opt(4, 0, 0));
         assert_eq!(day.session_close, NaiveTime::from_hms_opt(20, 0, 0));
+    }
+
+    #[test]
+    #[serial]
+    fn date_type_serializes_to_query() {
+        let client = paper_client();
+        let request = client
+            .get_calendar()
+            .date_type(CalendarDateType::Settlement);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert_eq!(query, "date_type=SETTLEMENT");
     }
 }

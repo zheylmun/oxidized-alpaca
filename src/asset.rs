@@ -18,3 +18,17 @@ pub enum AssetClass {
     /// Cryptocurrency perpetual futures.
     CryptoPerp,
 }
+
+impl AssetClass {
+    /// Wire value as sent to / received from the Alpaca API. Matches the
+    /// `snake_case` serde serialization and is the single source of truth
+    /// for hand-built query strings (e.g. comma-joined filter lists).
+    pub(crate) fn as_wire(self) -> &'static str {
+        match self {
+            AssetClass::UsEquity => "us_equity",
+            AssetClass::UsOption => "us_option",
+            AssetClass::Crypto => "crypto",
+            AssetClass::CryptoPerp => "crypto_perp",
+        }
+    }
+}

@@ -129,6 +129,33 @@ impl ClosePositionRequest<'_> {
 
 use super::orders::Order;
 
+/// Builder for closing every open position (`DELETE /v2/positions`).
+#[derive(Debug, Serialize)]
+#[must_use]
+pub struct CloseAllPositionsRequest<'a> {
+    #[serde(skip)]
+    client: &'a TradingClient,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    cancel_orders: Option<bool>,
+}
+
+impl CloseAllPositionsRequest<'_> {
+    /// Also cancel all open orders before liquidating positions.
+    pub fn cancel_orders(mut self, cancel_orders: bool) -> Self {
+        self.cancel_orders = Some(cancel_orders);
+        self
+    }
+
+    /// Submit the bulk close request.
+    pub async fn execute(self) -> crate::Result<Vec<ClosePositionStatus>> {
+        let request = self
+            .client
+            .request(Method::DELETE, "v2/positions")?
+            .query(&self);
+        self.client.send_and_deserialize(request).await
+    }
+}
+
 impl TradingClient {
     /// List all open positions.
     pub async fn list_positions(&self) -> crate::Result<Vec<Position>> {
@@ -164,13 +191,16 @@ impl TradingClient {
 
     /// Attempt to close every open position.
     ///
-    /// Alpaca processes each position individually and returns a
-    /// per-symbol outcome; success is HTTP 207 with the array surfaced
-    /// here. Inspect each [`ClosePositionStatus::status`] to
-    /// distinguish successful closes (`200`) from failures.
-    pub async fn close_all_positions(&self) -> crate::Result<Vec<ClosePositionStatus>> {
-        let request = self.request(Method::DELETE, "v2/positions")?;
-        self.send_and_deserialize(request).await
+    /// Returns a builder; call [`CloseAllPositionsRequest::execute`] to send
+    /// the request. Alpaca processes each position individually and returns a
+    /// per-symbol outcome (HTTP 207); inspect each
+    /// [`ClosePositionStatus::status`] to distinguish successful closes
+    /// (`200`) from failures.
+    pub fn close_all_positions(&self) -> CloseAllPositionsRequest<'_> {
+        CloseAllPositionsRequest {
+            client: self,
+            cancel_orders: None,
+        }
     }
 
     /// Exercise an options position.
@@ -195,6 +225,30 @@ impl TradingClient {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> TradingClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        TradingClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn close_all_positions_cancel_orders_serializes_to_query() {
+        let client = paper_client();
+        let request = client.close_all_positions().cancel_orders(true);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert_eq!(query, "cancel_orders=true");
+    }
 
     #[test]
     fn test_position_deserialization() {

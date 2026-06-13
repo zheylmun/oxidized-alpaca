@@ -91,9 +91,13 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = quotes;
 
-    client.stock_latest_quote("AAPL").await.unwrap();
+    client.stock_latest_quote("AAPL").execute().await.unwrap();
 
-    let latest_quotes = client.stock_latest_quotes(&["AAPL", "MSFT"]).await.unwrap();
+    let latest_quotes = client
+        .stock_latest_quotes(&["AAPL", "MSFT"])
+        .execute()
+        .await
+        .unwrap();
     let _ = latest_quotes;
 
     let multi_quotes = client
@@ -118,10 +122,11 @@ async fn market_data_endpoints_live_smoke() {
         "stock_auctions",
     );
 
-    client.stock_snapshot("AAPL", None).await.unwrap();
+    client.stock_snapshot("AAPL").execute().await.unwrap();
 
     let snapshots = client
-        .stock_snapshots(&["AAPL", "MSFT"], None)
+        .stock_snapshots(&["AAPL", "MSFT"])
+        .execute()
         .await
         .unwrap();
     let _ = snapshots;
@@ -238,7 +243,7 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = news;
 
-    let most_actives = client.most_actives(Some(5)).await.unwrap();
+    let most_actives = client.most_actives(Some(5), None).await.unwrap();
     let _ = most_actives;
 
     let movers = client
@@ -247,7 +252,11 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = movers;
 
-    let _ = expect_ok_or_status(client.logo("AAPL").await, &[403, 404, 422], "logo");
+    let _ = expect_ok_or_status(
+        client.logo("AAPL").execute().await,
+        &[403, 404, 422],
+        "logo",
+    );
 
     let _ = expect_ok_or_status(
         client

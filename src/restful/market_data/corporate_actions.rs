@@ -153,6 +153,19 @@ pub struct CorporateActions {
     pub worthless_removals: Vec<CorporateActionPayload>,
 }
 
+/// Region filter for corporate actions.
+#[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+#[non_exhaustive]
+pub enum CorporateActionsRegion {
+    /// US corporate actions.
+    Us,
+    /// Non-US corporate actions.
+    NonUs,
+    /// All regions.
+    All,
+}
+
 /// Builder for `/v1/corporate-actions`.
 #[derive(Debug, Serialize)]
 #[must_use]
@@ -162,9 +175,13 @@ pub struct CorporateActionsRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     symbols: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    cusips: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     types: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     ids: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    region: Option<CorporateActionsRegion>,
     #[serde(skip_serializing_if = "Option::is_none")]
     start: Option<NaiveDate>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -173,6 +190,8 @@ pub struct CorporateActionsRequest<'a> {
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     sort: Option<SortDirection>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    page_token: Option<String>,
 }
 
 impl CorporateActionsRequest<'_> {
@@ -233,6 +252,28 @@ impl CorporateActionsRequest<'_> {
         self
     }
 
+    /// Filter to events that touch any of the given CUSIPs.
+    pub fn cusips(mut self, cusips: &[&str]) -> Self {
+        self.cusips = if cusips.is_empty() {
+            None
+        } else {
+            Some(cusips.join(","))
+        };
+        self
+    }
+
+    /// Filter events by region (US, non-US, or all).
+    pub fn region(mut self, region: CorporateActionsRegion) -> Self {
+        self.region = Some(region);
+        self
+    }
+
+    /// Continue a previous result set from its `next_page_token`.
+    pub fn page_token(mut self, page_token: impl Into<String>) -> Self {
+        self.page_token = Some(page_token.into());
+        self
+    }
+
     /// Execute the request.
     pub async fn execute(self) -> crate::Result<CorporateActions> {
         let request = self
@@ -259,12 +300,15 @@ impl MarketDataClient {
         CorporateActionsRequest {
             client: self,
             symbols: None,
+            cusips: None,
             types: None,
             ids: None,
+            region: None,
             start: None,
             end: None,
             limit: None,
             sort: None,
+            page_token: None,
         }
     }
 }
@@ -325,6 +369,21 @@ mod tests {
         assert!(query.contains("end=2025-12-31"), "{query}");
         assert!(query.contains("limit=50"), "{query}");
         assert!(query.contains("sort=desc"), "{query}");
+    }
+
+    #[test]
+    #[serial]
+    fn cusips_region_page_token_serialize_to_query() {
+        let client = paper_client();
+        let request = client
+            .corporate_actions()
+            .cusips(&["037833100", "594918104"])
+            .region(CorporateActionsRegion::NonUs)
+            .page_token("next-page");
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("cusips=037833100%2C594918104"), "{query}");
+        assert!(query.contains("region=non_us"), "{query}");
+        assert!(query.contains("page_token=next-page"), "{query}");
     }
 
     #[test]

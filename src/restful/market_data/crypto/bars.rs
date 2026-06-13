@@ -1,4 +1,4 @@
-use crate::restful::{MarketDataClient, market_data::TimeFrame};
+use crate::restful::{MarketDataClient, SortDirection, market_data::TimeFrame};
 use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
@@ -34,6 +34,8 @@ pub struct CryptoBarsRequest<'a> {
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sort: Option<SortDirection>,
 }
 
 impl CryptoBarsRequest<'_> {
@@ -51,6 +53,11 @@ impl CryptoBarsRequest<'_> {
     /// auto-paginated pages.
     pub fn limit(mut self, limit: usize) -> Self {
         self.limit = Some(limit);
+        self
+    }
+    /// Set the result `sort` order. Defaults to ascending when unset.
+    pub fn sort(mut self, sort: SortDirection) -> Self {
+        self.sort = Some(sort);
         self
     }
 
@@ -102,6 +109,7 @@ impl MarketDataClient {
             end: None,
             limit: None,
             page_token: None,
+            sort: None,
         }
     }
 
@@ -117,5 +125,36 @@ impl MarketDataClient {
             .query(&[("symbols", symbols.join(","))]);
         let response: LatestBarsResponse = self.send_and_deserialize(request).await?;
         Ok(response.bars)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> MarketDataClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        MarketDataClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn sort_serializes_to_query() {
+        let client = paper_client();
+        let request = client
+            .crypto_bars(&["BTC/USD"], TimeFrame::ONE_DAY, CryptoLocation::Us)
+            .sort(crate::restful::SortDirection::Desc);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(query.contains("sort=desc"), "{query}");
     }
 }

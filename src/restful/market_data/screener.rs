@@ -73,15 +73,54 @@ impl std::fmt::Display for MoverMarket {
     }
 }
 
-impl MarketDataClient {
-    /// Get most active stocks by volume.
-    pub async fn most_actives(&self, limit: Option<usize>) -> crate::Result<Vec<MostActive>> {
-        let mut request = self.request(Method::GET, "v1beta1/screener/stocks/most-actives")?;
-        if let Some(limit) = limit {
-            request = request.query(&[("top", limit)]);
+/// Ranking metric for the most-actives screener.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum MostActivesBy {
+    /// Rank by trading volume (the API default).
+    Volume,
+    /// Rank by number of trades.
+    Trades,
+}
+
+impl MostActivesBy {
+    fn wire(self) -> &'static str {
+        match self {
+            Self::Volume => "volume",
+            Self::Trades => "trades",
         }
+    }
+}
+
+impl MarketDataClient {
+    /// Get most active stocks, ranked by volume or trade count.
+    pub async fn most_actives(
+        &self,
+        limit: Option<usize>,
+        by: Option<MostActivesBy>,
+    ) -> crate::Result<Vec<MostActive>> {
+        let request = self.most_actives_request(limit, by)?;
         let response: MostActivesResponse = self.send_and_deserialize(request).await?;
         Ok(response.most_actives)
+    }
+
+    fn most_actives_request(
+        &self,
+        limit: Option<usize>,
+        by: Option<MostActivesBy>,
+    ) -> crate::Result<reqwest::RequestBuilder> {
+        let mut params: Vec<(&str, String)> = Vec::new();
+        if let Some(limit) = limit {
+            params.push(("top", limit.to_string()));
+        }
+        if let Some(by) = by {
+            params.push(("by", by.wire().to_string()));
+        }
+        let mut request = self.request(Method::GET, "v1beta1/screener/stocks/most-actives")?;
+        if !params.is_empty() {
+            request = request.query(&params);
+        }
+        Ok(request)
     }
 
     /// Get top market movers (gainers and losers).
@@ -100,5 +139,39 @@ impl MarketDataClient {
             gainers: response.gainers.unwrap_or_default(),
             losers: response.losers.unwrap_or_default(),
         })
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::AccountType;
+    use serial_test::serial;
+    use std::env;
+
+    fn paper_client() -> MarketDataClient {
+        unsafe {
+            if env::var("ALPACA_PAPER_API_KEY_ID").is_err() {
+                env::set_var("ALPACA_PAPER_API_KEY_ID", "test_key_id");
+            }
+            if env::var("ALPACA_PAPER_API_SECRET_KEY").is_err() {
+                env::set_var("ALPACA_PAPER_API_SECRET_KEY", "test_secret_key");
+            }
+        }
+        MarketDataClient::new(AccountType::Paper).unwrap()
+    }
+
+    #[test]
+    #[serial]
+    fn most_actives_by_serializes_to_query() {
+        let client = paper_client();
+        let request = client
+            .most_actives_request(Some(5), Some(MostActivesBy::Trades))
+            .unwrap()
+            .build()
+            .unwrap();
+        let query = request.url().query().unwrap();
+        assert!(query.contains("top=5"), "{query}");
+        assert!(query.contains("by=trades"), "{query}");
     }
 }

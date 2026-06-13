@@ -161,7 +161,7 @@ async fn trading_endpoints_live_smoke() {
         "close_position",
     );
 
-    let _ = client.close_all_positions().await.unwrap();
+    let _ = client.close_all_positions().execute().await.unwrap();
 
     let _ = expect_ok_or_status(
         client.exercise_option(&option_symbol).await,
