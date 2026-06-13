@@ -732,10 +732,17 @@ impl TradingClient {
         &self,
         client_order_id: &ClientOrderId,
     ) -> crate::Result<Order> {
-        let request = self
-            .request(Method::GET, "v2/orders/by_client_order_id")?
-            .query(&[("client_order_id", client_order_id.as_str())]);
+        let request = self.get_order_by_client_id_request(client_order_id)?;
         self.send_and_deserialize(request).await
+    }
+
+    fn get_order_by_client_id_request(
+        &self,
+        client_order_id: &ClientOrderId,
+    ) -> crate::Result<reqwest::RequestBuilder> {
+        Ok(self
+            .request(Method::GET, "v2/orders:by_client_order_id")?
+            .query(&[("client_order_id", client_order_id.as_str())]))
     }
 
     /// Cancel a specific order.
@@ -806,6 +813,25 @@ mod tests {
 
     fn dec(s: &str) -> Decimal {
         Decimal::from_str_exact(s).unwrap()
+    }
+
+    /// The lookup endpoint is `/v2/orders:by_client_order_id` (colon), not a
+    /// `/by_client_order_id` path segment (which would be parsed as an
+    /// order id). Pins the path and the query parameter.
+    #[test]
+    #[serial]
+    fn get_order_by_client_id_uses_colon_path() {
+        let client = paper_client();
+        let request = client
+            .get_order_by_client_id_request(&ClientOrderId::new("my-id-123"))
+            .unwrap()
+            .build()
+            .unwrap();
+        assert_eq!(request.url().path(), "/v2/orders:by_client_order_id");
+        assert_eq!(
+            request.url().query().unwrap(),
+            "client_order_id=my-id-123"
+        );
     }
 
     #[test]
