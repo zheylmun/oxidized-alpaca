@@ -22,6 +22,14 @@ pub struct PortfolioHistory {
     pub profit_loss_pct: Vec<f64>,
     /// Base portfolio value.
     pub base_value: f64,
+    /// Trading date for which `base_value` is the closing equity, when the
+    /// baseline is a prior close rather than the first returned data point.
+    #[serde(default)]
+    pub base_value_asof: Option<chrono::NaiveDate>,
+    /// Accumulated cashflow (dollar amounts) per activity type as of the end
+    /// of each time window.
+    #[serde(default)]
+    pub cashflow: Option<std::collections::HashMap<String, Vec<f64>>>,
     /// Resolution of the data points.
     pub timeframe: HistoryTimeFrame,
 }
@@ -196,6 +204,8 @@ mod tests {
             "profit_loss": [0.0, 50.5],
             "profit_loss_pct": [0.0, 0.0005],
             "base_value": 100000.0,
+            "base_value_asof": "2023-10-20",
+            "cashflow": {"CSD": [500.0], "DIV": [1.25, 2.5]},
             "timeframe": "1Min"
         }"#;
         let history: PortfolioHistory = serde_json::from_str(json).unwrap();
@@ -205,5 +215,10 @@ mod tests {
             DateTime::<Utc>::from_timestamp(1718294400, 0).unwrap(),
         );
         assert_eq!(history.timeframe, HistoryTimeFrame::OneMinute);
+        assert_eq!(
+            history.base_value_asof,
+            Some(chrono::NaiveDate::from_ymd_opt(2023, 10, 20).unwrap())
+        );
+        assert_eq!(history.cashflow.as_ref().unwrap()["DIV"], vec![1.25, 2.5]);
     }
 }
