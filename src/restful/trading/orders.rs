@@ -828,10 +828,7 @@ mod tests {
             .build()
             .unwrap();
         assert_eq!(request.url().path(), "/v2/orders:by_client_order_id");
-        assert_eq!(
-            request.url().query().unwrap(),
-            "client_order_id=my-id-123"
-        );
+        assert_eq!(request.url().query().unwrap(), "client_order_id=my-id-123");
     }
 
     #[test]

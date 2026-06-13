@@ -129,27 +129,60 @@ impl<'de> Deserialize<'de> for ActivityType {
 }
 
 /// Fill type of a trade activity.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+///
+/// Anything Alpaca returns that isn't modeled below is preserved verbatim
+/// under [`FillType::Other`] so a new wire value never fails the whole
+/// `Activity` deserialization.
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum FillType {
-    /// A complete fill.
+    /// A complete fill (`fill`).
     Fill,
-    /// A partial fill.
+    /// A partial fill (`partial_fill`).
     PartialFill,
+    /// Any fill type not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl<'de> Deserialize<'de> for FillType {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "fill" => Self::Fill,
+            "partial_fill" => Self::PartialFill,
+            _ => Self::Other(raw),
+        })
+    }
 }
 
 /// Status of a non-trade activity.
-#[derive(Clone, Copy, Debug, Deserialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
+///
+/// Anything Alpaca returns that isn't modeled below is preserved verbatim
+/// under [`ActivityStatus::Other`] so a new wire value never fails the whole
+/// `Activity` deserialization.
+#[derive(Clone, Debug, PartialEq, Eq)]
 #[non_exhaustive]
 pub enum ActivityStatus {
-    /// The activity executed.
+    /// The activity executed (`executed`).
     Executed,
-    /// The activity is a correction.
+    /// The activity is a correction (`correct`).
     Correct,
-    /// The activity was canceled.
+    /// The activity was canceled (`canceled`).
     Canceled,
+    /// Any status not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl<'de> Deserialize<'de> for ActivityStatus {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "executed" => Self::Executed,
+            "correct" => Self::Correct,
+            "canceled" => Self::Canceled,
+            _ => Self::Other(raw),
+        })
+    }
 }
 
 /// An account activity event.
@@ -467,7 +500,10 @@ mod tests {
         }"#;
         let activity: Activity = serde_json::from_str(json).unwrap();
         assert_eq!(activity.transaction_type, Some(FillType::PartialFill));
-        assert_eq!(activity.order_status, Some(crate::orders::OrderStatus::Filled));
+        assert_eq!(
+            activity.order_status,
+            Some(crate::orders::OrderStatus::Filled)
+        );
     }
 
     #[test]
@@ -487,6 +523,25 @@ mod tests {
         assert!(activity.created_at.is_some());
         assert_eq!(activity.cusip.as_deref(), Some("037833100"));
         assert_eq!(activity.group_id.as_deref(), Some("grp-1"));
+    }
+
+    #[test]
+    fn unknown_fill_type_and_status_fall_back_to_other() {
+        let json = r#"{
+            "id": "20250507000000000::ghi",
+            "activity_type": "FILL",
+            "type": "some_new_fill_kind",
+            "status": "some_new_status"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            activity.transaction_type,
+            Some(FillType::Other("some_new_fill_kind".to_string()))
+        );
+        assert_eq!(
+            activity.status,
+            Some(ActivityStatus::Other("some_new_status".to_string()))
+        );
     }
 
     /// The `category` query parameter accepts `trade_activity` /

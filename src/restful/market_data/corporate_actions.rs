@@ -39,6 +39,8 @@ pub enum CorporateActionType {
     ContractAdjustment,
     /// Partial call.
     PartialCall,
+    /// Reorganization.
+    Reorganization,
 }
 
 impl CorporateActionType {
@@ -59,6 +61,7 @@ impl CorporateActionType {
             Self::RightsDistribution => "rights_distribution",
             Self::ContractAdjustment => "contract_adjustment",
             Self::PartialCall => "partial_call",
+            Self::Reorganization => "reorganization",
         }
     }
 }
@@ -365,6 +368,7 @@ mod tests {
             CorporateActionType::RightsDistribution,
             CorporateActionType::ContractAdjustment,
             CorporateActionType::PartialCall,
+            CorporateActionType::Reorganization,
         ] {
             let serialized = serde_json::to_string(&variant).unwrap();
             assert_eq!(serialized, format!("\"{}\"", variant.as_str()));

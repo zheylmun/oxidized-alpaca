@@ -209,9 +209,6 @@ mod tests {
             account.pending_transfer_in,
             Some(Decimal::from_str_exact("500.25").unwrap())
         );
-        assert_eq!(
-            account.pending_transfer_out,
-            Some(Decimal::ZERO)
-        );
+        assert_eq!(account.pending_transfer_out, Some(Decimal::ZERO));
     }
 }
