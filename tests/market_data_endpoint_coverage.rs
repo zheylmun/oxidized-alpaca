@@ -91,9 +91,13 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = quotes;
 
-    client.stock_latest_quote("AAPL").await.unwrap();
+    client.stock_latest_quote("AAPL").execute().await.unwrap();
 
-    let latest_quotes = client.stock_latest_quotes(&["AAPL", "MSFT"]).await.unwrap();
+    let latest_quotes = client
+        .stock_latest_quotes(&["AAPL", "MSFT"])
+        .execute()
+        .await
+        .unwrap();
     let _ = latest_quotes;
 
     let multi_quotes = client
