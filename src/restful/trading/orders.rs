@@ -376,7 +376,7 @@ pub struct ListOrdersRequest<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     side: Option<Side>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    asset_class: Option<AssetClass>,
+    asset_class: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     before_order_id: Option<OrderId>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -442,9 +442,19 @@ impl ListOrdersRequest<'_> {
         self
     }
 
-    /// Filter by asset class (equities, options, crypto, …).
-    pub fn asset_class(mut self, asset_class: AssetClass) -> Self {
-        self.asset_class = Some(asset_class);
+    /// Filter by one or more asset classes (equities, options, crypto, …),
+    /// sent as a comma-separated list. An empty slice clears the filter.
+    pub fn asset_classes(mut self, asset_classes: &[AssetClass]) -> Self {
+        self.asset_class = if asset_classes.is_empty() {
+            None
+        } else {
+            let joined = asset_classes
+                .iter()
+                .map(|c| c.as_wire())
+                .collect::<Vec<_>>()
+                .join(",");
+            Some(joined)
+        };
         self
     }
 
@@ -945,11 +955,25 @@ mod tests {
     #[serial]
     fn list_orders_asset_class_serializes_alpaca_wire_value() {
         let client = paper_client();
-        let request = client.list_orders().asset_class(AssetClass::UsOption);
+        let request = client.list_orders().asset_classes(&[AssetClass::UsOption]);
         let query = serde_urlencoded::to_string(&request).unwrap();
         assert!(
             query.contains("asset_class=us_option"),
             "expected asset_class=us_option in query string, got {query}"
+        );
+    }
+
+    #[test]
+    #[serial]
+    fn list_orders_asset_class_joins_multiple_values() {
+        let client = paper_client();
+        let request = client
+            .list_orders()
+            .asset_classes(&[AssetClass::UsOption, AssetClass::Crypto]);
+        let query = serde_urlencoded::to_string(&request).unwrap();
+        assert!(
+            query.contains("asset_class=us_option%2Ccrypto"),
+            "expected comma-joined asset_class in query string, got {query}"
         );
     }
 
