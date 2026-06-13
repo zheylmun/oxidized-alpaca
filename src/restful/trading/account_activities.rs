@@ -9,12 +9,13 @@ use super::orders::Side;
 
 /// Category filter accepted by the account-activities endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
-#[serde(rename_all = "snake_case")]
 #[non_exhaustive]
 pub enum ActivityCategory {
     /// Trade-related activities only.
+    #[serde(rename = "trade_activity")]
     Trade,
     /// Non-trade activities only.
+    #[serde(rename = "non_trade_activity")]
     NonTrade,
 }
 
@@ -127,6 +128,63 @@ impl<'de> Deserialize<'de> for ActivityType {
     }
 }
 
+/// Fill type of a trade activity.
+///
+/// Anything Alpaca returns that isn't modeled below is preserved verbatim
+/// under [`FillType::Other`] so a new wire value never fails the whole
+/// `Activity` deserialization.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum FillType {
+    /// A complete fill (`fill`).
+    Fill,
+    /// A partial fill (`partial_fill`).
+    PartialFill,
+    /// Any fill type not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl<'de> Deserialize<'de> for FillType {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "fill" => Self::Fill,
+            "partial_fill" => Self::PartialFill,
+            _ => Self::Other(raw),
+        })
+    }
+}
+
+/// Status of a non-trade activity.
+///
+/// Anything Alpaca returns that isn't modeled below is preserved verbatim
+/// under [`ActivityStatus::Other`] so a new wire value never fails the whole
+/// `Activity` deserialization.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ActivityStatus {
+    /// The activity executed (`executed`).
+    Executed,
+    /// The activity is a correction (`correct`).
+    Correct,
+    /// The activity was canceled (`canceled`).
+    Canceled,
+    /// Any status not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl<'de> Deserialize<'de> for ActivityStatus {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "executed" => Self::Executed,
+            "correct" => Self::Correct,
+            "canceled" => Self::Canceled,
+            _ => Self::Other(raw),
+        })
+    }
+}
+
 /// An account activity event.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
@@ -177,9 +235,24 @@ pub struct Activity {
     /// Description of the activity.
     #[serde(default)]
     pub description: Option<String>,
-    /// Status of the activity.
+    /// Fill type for trade activities (`fill` / `partial_fill`).
+    #[serde(rename = "type", default)]
+    pub transaction_type: Option<FillType>,
+    /// Order status for trade activities.
     #[serde(default)]
-    pub status: Option<String>,
+    pub order_status: Option<crate::orders::OrderStatus>,
+    /// Status of a non-trade activity.
+    #[serde(default)]
+    pub status: Option<ActivityStatus>,
+    /// Creation timestamp (non-trade activities).
+    #[serde(default)]
+    pub created_at: Option<DateTime<Utc>>,
+    /// CUSIP of the security involved (non-trade activities).
+    #[serde(default)]
+    pub cusip: Option<String>,
+    /// Group ID linking activities with sibling relationships.
+    #[serde(default)]
+    pub group_id: Option<String>,
 }
 
 /// Default per-page batch size used internally when auto-paginating
@@ -410,5 +483,78 @@ mod tests {
         assert_eq!(activity.activity_type, ActivityType::Dividend);
         assert_eq!(activity.net_amount, Some(Decimal::new(1234, 2)));
         assert_eq!(activity.per_share_amount, Some(Decimal::new(24, 2)));
+    }
+
+    #[test]
+    fn trade_activity_deserializes_type_and_order_status() {
+        let json = r#"{
+            "id": "20250507000000000::abc",
+            "activity_type": "FILL",
+            "type": "partial_fill",
+            "order_status": "filled",
+            "symbol": "AAPL",
+            "qty": "10",
+            "price": "150.25",
+            "side": "buy",
+            "transaction_time": "2025-05-07T13:30:00Z"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.transaction_type, Some(FillType::PartialFill));
+        assert_eq!(
+            activity.order_status,
+            Some(crate::orders::OrderStatus::Filled)
+        );
+    }
+
+    #[test]
+    fn non_trade_activity_deserializes_metadata_and_status() {
+        let json = r#"{
+            "id": "20250507000000000::def",
+            "activity_type": "DIV",
+            "date": "2025-05-07",
+            "net_amount": "12.34",
+            "status": "executed",
+            "created_at": "2025-05-07T09:00:00Z",
+            "cusip": "037833100",
+            "group_id": "grp-1"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(activity.status, Some(ActivityStatus::Executed));
+        assert!(activity.created_at.is_some());
+        assert_eq!(activity.cusip.as_deref(), Some("037833100"));
+        assert_eq!(activity.group_id.as_deref(), Some("grp-1"));
+    }
+
+    #[test]
+    fn unknown_fill_type_and_status_fall_back_to_other() {
+        let json = r#"{
+            "id": "20250507000000000::ghi",
+            "activity_type": "FILL",
+            "type": "some_new_fill_kind",
+            "status": "some_new_status"
+        }"#;
+        let activity: Activity = serde_json::from_str(json).unwrap();
+        assert_eq!(
+            activity.transaction_type,
+            Some(FillType::Other("some_new_fill_kind".to_string()))
+        );
+        assert_eq!(
+            activity.status,
+            Some(ActivityStatus::Other("some_new_status".to_string()))
+        );
+    }
+
+    /// The `category` query parameter accepts `trade_activity` /
+    /// `non_trade_activity`, not the bare `trade` / `non_trade`.
+    #[test]
+    fn category_serializes_to_spec_values() {
+        assert_eq!(
+            serde_json::to_string(&ActivityCategory::Trade).unwrap(),
+            "\"trade_activity\""
+        );
+        assert_eq!(
+            serde_json::to_string(&ActivityCategory::NonTrade).unwrap(),
+            "\"non_trade_activity\""
+        );
     }
 }

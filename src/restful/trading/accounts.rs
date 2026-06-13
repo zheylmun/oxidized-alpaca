@@ -1,5 +1,5 @@
 use crate::AccountId;
-use crate::restful::{TradingClient, string_as_decimal};
+use crate::restful::{TradingClient, string_as_decimal, string_as_optional_decimal};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::Method;
 use rust_decimal::Decimal;
@@ -131,6 +131,12 @@ pub struct AccountDetails {
     /// Pending regulatory fees for the account.
     #[serde(deserialize_with = "string_as_decimal")]
     pub pending_reg_taf_fees: Decimal,
+    /// Cash pending transfer in.
+    #[serde(deserialize_with = "string_as_optional_decimal", default)]
+    pub pending_transfer_in: Option<Decimal>,
+    /// Cash pending transfer out.
+    #[serde(deserialize_with = "string_as_optional_decimal", default)]
+    pub pending_transfer_out: Option<Decimal>,
 }
 
 impl TradingClient {
@@ -192,10 +198,17 @@ mod tests {
           "balance_asof": "2024-12-30",
           "crypto_tier": 1,
           "intraday_adjustments": "0",
-          "pending_reg_taf_fees": "0"
+          "pending_reg_taf_fees": "0",
+          "pending_transfer_in": "500.25",
+          "pending_transfer_out": "0"
         }"#;
         let account: AccountDetails = serde_json::from_str(json).unwrap();
         assert_eq!(account.status, AccountStatus::Active);
         assert_eq!(account.cash, Decimal::from_str_exact("94902.73").unwrap());
+        assert_eq!(
+            account.pending_transfer_in,
+            Some(Decimal::from_str_exact("500.25").unwrap())
+        );
+        assert_eq!(account.pending_transfer_out, Some(Decimal::ZERO));
     }
 }

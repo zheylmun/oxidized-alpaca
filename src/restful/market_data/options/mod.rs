@@ -123,4 +123,32 @@ pub struct OptionSnapshot {
     /// The implied volatility.
     #[serde(rename = "impliedVolatility", default)]
     pub implied_volatility: Option<f64>,
+    /// The latest minute bar.
+    #[serde(rename = "minuteBar", default)]
+    pub minute_bar: Option<OptionBar>,
+    /// The latest daily bar.
+    #[serde(rename = "dailyBar", default)]
+    pub daily_bar: Option<OptionBar>,
+    /// The previous daily bar.
+    #[serde(rename = "prevDailyBar", default)]
+    pub prev_daily_bar: Option<OptionBar>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn option_snapshot_deserializes_bars() {
+        let json = r#"{
+            "latestQuote": {"t":"2026-05-08T19:59:59Z","ax":"N","ap":1.2,"as":10,"bx":"N","bp":1.1,"bs":12,"c":"A"},
+            "dailyBar": {"t":"2026-05-08T04:00:00Z","o":1.0,"h":1.3,"l":0.9,"c":1.2,"v":1500,"n":42,"vw":1.15},
+            "minuteBar": {"t":"2026-05-08T19:59:00Z","o":1.18,"h":1.21,"l":1.17,"c":1.2,"v":30,"n":5,"vw":1.19},
+            "prevDailyBar": {"t":"2026-05-07T04:00:00Z","o":0.95,"h":1.05,"l":0.9,"c":1.0,"v":1200,"n":33,"vw":0.98}
+        }"#;
+        let snapshot: OptionSnapshot = serde_json::from_str(json).unwrap();
+        assert_eq!(snapshot.daily_bar.as_ref().unwrap().close, 1.2);
+        assert_eq!(snapshot.minute_bar.as_ref().unwrap().trade_count, 5);
+        assert_eq!(snapshot.prev_daily_bar.as_ref().unwrap().open, 0.95);
+    }
 }

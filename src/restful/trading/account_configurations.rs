@@ -69,6 +69,9 @@ pub struct AccountConfig {
     /// Whether PTP no-exception entry is enabled.
     #[serde(default)]
     pub ptp_no_exception_entry: bool,
+    /// Whether overnight trading is disabled.
+    #[serde(default)]
+    pub disable_overnight_trading: bool,
 }
 
 /// Builder for updating account configuration.
@@ -206,10 +209,12 @@ mod tests {
             "max_margin_multiplier": "4",
             "max_options_trading_level": 2,
             "pdt_check": "entry",
-            "ptp_no_exception_entry": false
+            "ptp_no_exception_entry": false,
+            "disable_overnight_trading": true
         }"#;
         let config: AccountConfig = serde_json::from_str(json).unwrap();
         assert_eq!(config.dtbp_check, DtbpCheck::Both);
         assert!(!config.suspend_trade);
+        assert!(config.disable_overnight_trading);
     }
 }

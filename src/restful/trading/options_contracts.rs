@@ -40,6 +40,32 @@ pub enum ContractStatus {
     Inactive,
 }
 
+/// A deliverable underlying an option contract.
+#[derive(Clone, Debug, Deserialize)]
+#[non_exhaustive]
+pub struct OptionDeliverable {
+    /// Deliverable type (e.g. `equity`, `cash`).
+    #[serde(rename = "type")]
+    pub deliverable_type: String,
+    /// Underlying symbol of the deliverable.
+    pub symbol: String,
+    /// Asset ID of the deliverable, when applicable.
+    #[serde(default)]
+    pub asset_id: Option<String>,
+    /// Amount of the deliverable per contract.
+    #[serde(deserialize_with = "string_as_decimal")]
+    pub amount: Decimal,
+    /// Percentage of the deliverable allocated.
+    #[serde(deserialize_with = "string_as_decimal")]
+    pub allocation_percentage: Decimal,
+    /// Settlement type (e.g. `T+0`, `T+1`).
+    pub settlement_type: String,
+    /// Settlement method.
+    pub settlement_method: String,
+    /// Whether settlement is delayed.
+    pub delayed_settlement: bool,
+}
+
 /// An options contract as returned by the Alpaca API.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
@@ -74,6 +100,9 @@ pub struct OptionContract {
     /// Strike price of the contract.
     #[serde(deserialize_with = "string_as_decimal")]
     pub strike_price: Decimal,
+    /// Contract multiplier (typically 100).
+    #[serde(deserialize_with = "string_as_decimal")]
+    pub multiplier: Decimal,
     /// Contract size (typically 100 — number of underlying shares per contract).
     #[serde(default, deserialize_with = "string_as_optional_decimal")]
     pub size: Option<Decimal>,
@@ -90,6 +119,13 @@ pub struct OptionContract {
     /// Date of the close price.
     #[serde(default)]
     pub close_price_date: Option<NaiveDate>,
+    /// Date of the open-interest figure.
+    #[serde(default)]
+    pub open_interest_date: Option<NaiveDate>,
+    /// Deliverables underlying the contract (included when requested with
+    /// `show_deliverables`).
+    #[serde(default)]
+    pub deliverables: Option<Vec<OptionDeliverable>>,
 }
 
 /// Response wrapper for paginated option contract listings.
@@ -285,10 +321,24 @@ mod tests {
             "type": "call",
             "style": "american",
             "strike_price": "150.00",
+            "multiplier": "100",
             "size": "100",
             "open_interest": "5000",
+            "open_interest_date": "2024-12-30",
             "close_price": "5.25",
-            "close_price_date": "2024-12-30"
+            "close_price_date": "2024-12-30",
+            "deliverables": [
+                {
+                    "type": "equity",
+                    "symbol": "AAPL",
+                    "asset_id": "904837e3-3b76-47ec-b432-046db621571b",
+                    "amount": "100",
+                    "allocation_percentage": "100",
+                    "settlement_type": "T+0",
+                    "settlement_method": "BTOB",
+                    "delayed_settlement": false
+                }
+            ]
         }"#;
         let contract: OptionContract = serde_json::from_str(json).unwrap();
         assert_eq!(contract.option_type, OptionType::Call);
@@ -296,5 +346,18 @@ mod tests {
             contract.strike_price,
             Decimal::from_str_exact("150.00").unwrap()
         );
+        assert_eq!(contract.multiplier, Decimal::from_str_exact("100").unwrap());
+        assert_eq!(
+            contract.open_interest_date,
+            Some(chrono::NaiveDate::from_ymd_opt(2024, 12, 30).unwrap())
+        );
+        let deliverables = contract.deliverables.as_ref().unwrap();
+        assert_eq!(deliverables.len(), 1);
+        assert_eq!(deliverables[0].symbol, "AAPL");
+        assert_eq!(
+            deliverables[0].amount,
+            Decimal::from_str_exact("100").unwrap()
+        );
+        assert!(!deliverables[0].delayed_settlement);
     }
 }

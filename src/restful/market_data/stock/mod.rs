@@ -184,6 +184,12 @@ pub struct Bar {
     /// The trading volume.
     #[serde(rename = "v")]
     pub volume: u64,
+    /// The number of trades in the bar.
+    #[serde(rename = "n")]
+    pub trade_count: u64,
+    /// The volume-weighted average price.
+    #[serde(rename = "vw")]
+    pub vwap: f64,
 }
 
 #[cfg(test)]
