@@ -238,7 +238,7 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = news;
 
-    let most_actives = client.most_actives(Some(5)).await.unwrap();
+    let most_actives = client.most_actives(Some(5), None).await.unwrap();
     let _ = most_actives;
 
     let movers = client
