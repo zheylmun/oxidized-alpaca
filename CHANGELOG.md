@@ -7,6 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.7](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.6...v0.0.7) - 2026-06-30
+
+### Added
+
+- *(market-data)* add currency to stock snapshots via builders
+- *(market-data)* add feed/currency to latest stock quotes via builders
+- *(market-data)* add logo placeholder param via builder
+- *(market-data)* add most-actives ranking metric (by)
+- *(trading)* add cancel_orders to bulk position close
+- *(trading)* allow filtering orders by multiple asset classes
+- *(market-data)* add crypto bars sort param
+- *(market-data)* add stock auctions asof, currency, sort
+- *(trading)* add portfolio-history cashflow_types filter
+- *(market-data)* add corporate-actions cusips, region, page_token
+- *(trading)* add option-contract show_deliverables and ppind filters
+- *(trading)* add calendar date_type filter
+- *(trading)* enrich account Activity with trade/non-trade fields
+- *(market-data)* capture remaining corporate-action categories
+- *(market-data)* capture option snapshot daily/minute/prev bars
+- *(trading)* capture option contract multiplier, deliverables, OI date
+- *(market-data)* capture stock trade update/correction flag
+- *(trading)* capture portfolio-history base_value_asof and cashflow
+- *(trading)* capture calendar session_open/session_close
+- *(trading)* capture asset cusip, borrow_status, maintenance margin
+- *(trading)* capture disable_overnight_trading config flag
+- *(trading)* capture account pending_transfer_in/out
+- *(market-data)* capture fixed-income ytm and ytw
+
+### Fixed
+
+- *(api-compliance)* address PR review feedback
+- *(market-data)* capture bar trade_count (n) and vwap (vw)
+- *(trading)* use colon path for get-order-by-client-id
+- *(trading)* send spec values for activity category filter
+- *(market-data)* correct fixed-income latest-prices wire format
+
+### Other
+
+- *(deps)* upgrade socketeer to 0.5 and refresh lockfile
+
 ## [0.0.6](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.5...v0.0.6) - 2026-05-10
 
 ### Other
