@@ -38,7 +38,8 @@ impl MarketDataClient {
     /// Create a new [`MarketDataClient`] with explicitly supplied credentials.
     ///
     /// `account_type` is accepted for symmetry with the trading client and
-    /// forward compatibility; all market-data requests use the same endpoint.
+    /// forward compatibility, but is currently unused: all market-data
+    /// requests use the same endpoint regardless of account type.
     pub fn new_with_credentials(_account_type: AccountType, api_key: ApiKey) -> Result<Self> {
         Ok(Self {
             api_key,
