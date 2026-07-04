@@ -2,6 +2,7 @@ use socketeer::JsonCodec;
 
 use crate::{
     AccountType, Error,
+    env::ApiKey,
     streaming::{
         client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{NewsStreamMessage, NewsSubscriptionList},
@@ -45,12 +46,23 @@ impl StreamProtocolCodec for NewsProtocol {
 pub type StreamingNewsClient = StreamingClient<NewsProtocol>;
 
 impl StreamingNewsClient {
-    /// Connect to Alpaca's news streaming feed.
+    /// Connect to Alpaca's news streaming feed using credentials loaded from
+    /// the environment for `account_type`.
     pub async fn new(account_type: AccountType) -> Result<Self, Error> {
+        let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, api_key).await
+    }
+
+    /// Connect to Alpaca's news streaming feed using explicitly supplied
+    /// credentials. `account_type` still selects the paper/live URL.
+    pub async fn new_with_credentials(
+        account_type: AccountType,
+        api_key: ApiKey,
+    ) -> Result<Self, Error> {
         let url = match account_type {
             AccountType::Live => NEWS_LIVE_URL,
             AccountType::Paper => NEWS_SANDBOX_URL,
         };
-        Self::connect(account_type, url).await
+        Self::connect(api_key, url).await
     }
 }

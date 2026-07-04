@@ -2,6 +2,7 @@ use socketeer::MsgPackCodec;
 
 use crate::{
     AccountType, Error, OptionFeed,
+    env::ApiKey,
     streaming::{
         client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{OptionStreamMessage, OptionSubscriptionList},
@@ -46,9 +47,20 @@ impl StreamProtocolCodec for OptionProtocol {
 pub type StreamingOptionClient = StreamingClient<OptionProtocol>;
 
 impl StreamingOptionClient {
-    /// Connect to the chosen [`OptionFeed`] using the credentials for
-    /// `account_type`.
+    /// Connect to the chosen [`OptionFeed`] using credentials loaded from the
+    /// environment for `account_type`.
     pub async fn new(account_type: AccountType, feed: OptionFeed) -> Result<Self, Error> {
-        Self::connect(account_type, feed.url(account_type)).await
+        let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, feed, api_key).await
+    }
+
+    /// Connect to the chosen [`OptionFeed`] using explicitly supplied
+    /// credentials.
+    pub async fn new_with_credentials(
+        account_type: AccountType,
+        feed: OptionFeed,
+        api_key: ApiKey,
+    ) -> Result<Self, Error> {
+        Self::connect(api_key, feed.url(account_type)).await
     }
 }

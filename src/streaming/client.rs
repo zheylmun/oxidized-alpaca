@@ -3,7 +3,7 @@ use socketeer::Socketeer;
 use std::collections::VecDeque;
 
 use crate::{
-    AccountType, Error,
+    Error,
     env::ApiKey,
     streaming::wire::{ControlMessage, Request},
 };
@@ -98,10 +98,9 @@ pub struct StreamingClient<P: StreamProtocol + StreamProtocolCodec> {
     reason = "See StreamingClient — bound is sealed on purpose."
 )]
 impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
-    /// Connect to `url` and complete the connect/auth handshake using the
-    /// credentials for `account`.
-    pub(crate) async fn connect(account: AccountType, url: &str) -> Result<Self, Error> {
-        let api_key = ApiKey::from_env(&account)?;
+    /// Connect to `url` and complete the connect/auth handshake using
+    /// `api_key`.
+    pub(crate) async fn connect(api_key: ApiKey, url: &str) -> Result<Self, Error> {
         let websocket = StreamSocket::<P>::connect(url).await?;
         let mut client = Self {
             websocket,
