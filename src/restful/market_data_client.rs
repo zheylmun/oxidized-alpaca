@@ -32,6 +32,14 @@ impl MarketDataClient {
     /// Returns an error if the required environment variables are not set.
     pub fn new(account_type: AccountType) -> Result<Self> {
         let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, api_key)
+    }
+
+    /// Create a new [`MarketDataClient`] with explicitly supplied credentials.
+    ///
+    /// `account_type` is accepted for symmetry with the trading client and
+    /// forward compatibility; all market-data requests use the same endpoint.
+    pub fn new_with_credentials(_account_type: AccountType, api_key: ApiKey) -> Result<Self> {
         Ok(Self {
             api_key,
             client: Client::new(),
@@ -84,6 +92,14 @@ mod tests {
     #[serial_test::parallel]
     async fn test_market_data_client_creation() {
         let client = MarketDataClient::new(AccountType::Paper);
+        assert!(client.is_ok());
+    }
+
+    #[tokio::test]
+    #[serial_test::parallel]
+    async fn new_with_credentials_builds_client() {
+        let api_key = ApiKey::new("test_key_id", "test_secret_key");
+        let client = MarketDataClient::new_with_credentials(AccountType::Paper, api_key);
         assert!(client.is_ok());
     }
 }
