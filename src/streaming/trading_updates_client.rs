@@ -41,10 +41,20 @@ pub struct TradingUpdatesClient {
 }
 
 impl TradingUpdatesClient {
-    /// Connect to the trade-updates stream for `account_type` and complete
-    /// the auth + `listen` handshake.
+    /// Connect to the trade-updates stream for `account_type`, loading
+    /// credentials from the environment, and complete the auth + `listen`
+    /// handshake.
     pub async fn new(account_type: AccountType) -> Result<Self, Error> {
         let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, api_key).await
+    }
+
+    /// Connect to the trade-updates stream for `account_type` using explicitly
+    /// supplied credentials, and complete the auth + `listen` handshake.
+    pub async fn new_with_credentials(
+        account_type: AccountType,
+        api_key: ApiKey,
+    ) -> Result<Self, Error> {
         let url = match account_type {
             AccountType::Live => TRADING_UPDATES_LIVE_URL,
             AccountType::Paper => TRADING_UPDATES_PAPER_URL,
