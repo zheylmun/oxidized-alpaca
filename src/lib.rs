@@ -23,6 +23,7 @@
 pub mod asset;
 pub use asset::AssetClass;
 mod env;
+pub use env::ApiKey;
 /// Error types for the crate.
 pub mod error;
 #[cfg(feature = "restful")]

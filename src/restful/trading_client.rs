@@ -1,7 +1,7 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
 
-use crate::{AccountType, env::Env, error::Error, error::Result};
+use crate::{AccountType, env::ApiKey, error::Error, error::Result};
 
 const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";
@@ -19,21 +19,29 @@ const LIVE_TRADING_URL: &str = "https://api.alpaca.markets/";
 #[derive(Clone, Debug)]
 pub struct TradingClient {
     account_type: AccountType,
-    env: Env,
+    api_key: ApiKey,
     client: Client,
 }
 
 impl TradingClient {
-    /// Create a new [`TradingClient`] with the given [`AccountType`].
+    /// Create a new [`TradingClient`] with the given [`AccountType`],
+    /// loading credentials from the environment.
     ///
     /// # Errors
     ///
     /// Returns an error if the required environment variables are not set.
     pub fn new(account_type: AccountType) -> Result<Self> {
-        let env = Env::new(&account_type)?;
+        let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, api_key)
+    }
+
+    /// Create a new [`TradingClient`] with explicitly supplied credentials.
+    ///
+    /// `account_type` still selects the paper vs. live trading endpoint.
+    pub fn new_with_credentials(account_type: AccountType, api_key: ApiKey) -> Result<Self> {
         Ok(Self {
             account_type,
-            env,
+            api_key,
             client: Client::new(),
         })
     }
@@ -47,8 +55,8 @@ impl TradingClient {
         Ok(self
             .client
             .request(method, url)
-            .header(KEY_ID_HEADER, self.env.key_id())
-            .header(SECRET_KEY_HEADER, self.env.secret_key()))
+            .header(KEY_ID_HEADER, self.api_key.key_id())
+            .header(SECRET_KEY_HEADER, self.api_key.secret_key()))
     }
 
     /// Send a request and deserialize the JSON response, returning an
@@ -109,6 +117,14 @@ mod tests {
     #[serial_test::parallel]
     async fn test_trading_client_creation() {
         let client = TradingClient::new(AccountType::Paper);
+        assert!(client.is_ok());
+    }
+
+    #[tokio::test]
+    #[serial_test::parallel]
+    async fn new_with_credentials_builds_client() {
+        let api_key = ApiKey::new("test_key_id", "test_secret_key");
+        let client = TradingClient::new_with_credentials(AccountType::Paper, api_key);
         assert!(client.is_ok());
     }
 }

@@ -12,18 +12,28 @@ const LIVE_SECRET_KEY_ENV: &str = "ALPACA_LIVE_API_SECRET_KEY";
 /// Debug value for sensitive information
 const CENSORED_SECRET: &str = "********";
 
-/// Loads and stores the credentials for the requested Alpaca environment.
-/// Crate-internal: callers always reach Env through one of the client
-/// constructors.
+/// Alpaca API credentials: a key ID and secret key pair.
+///
+/// Construct directly with [`ApiKey::new`] to supply credentials
+/// explicitly, or let a client's `new` constructor load them from the
+/// environment. Cloneable and safe to share across threads.
 #[derive(Clone)]
-pub(crate) struct Env {
+pub struct ApiKey {
     key_id: String,
     secret_key: String,
 }
 
-impl Env {
-    /// Attempt to create a new `Env` instance with the given [`AccountType`].
-    pub(crate) fn new(account_type: &AccountType) -> Result<Env, Error> {
+impl ApiKey {
+    /// Create an `ApiKey` from an explicit key ID and secret key.
+    pub fn new(key_id: impl Into<String>, secret_key: impl Into<String>) -> Self {
+        ApiKey {
+            key_id: key_id.into(),
+            secret_key: secret_key.into(),
+        }
+    }
+
+    /// Load credentials from the environment for the given [`AccountType`].
+    pub(crate) fn from_env(account_type: &AccountType) -> Result<ApiKey, Error> {
         let env_keys = match account_type {
             AccountType::Paper => (PAPER_KEY_ID_ENV, PAPER_SECRET_KEY_ENV),
             AccountType::Live => (LIVE_KEY_ID_ENV, LIVE_SECRET_KEY_ENV),
@@ -36,7 +46,7 @@ impl Env {
             variable_name: env_keys.1.to_string(),
             source: e,
         })?;
-        Ok(Env { key_id, secret_key })
+        Ok(ApiKey { key_id, secret_key })
     }
 
     pub(crate) fn key_id(&self) -> &str {
@@ -49,9 +59,9 @@ impl Env {
 }
 
 /// Don't print the secrets to logs on accident
-impl fmt::Debug for Env {
+impl fmt::Debug for ApiKey {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.debug_struct("Env")
+        f.debug_struct("ApiKey")
             .field("key_id", &CENSORED_SECRET)
             .field("secret_key", &CENSORED_SECRET)
             .finish()
@@ -106,11 +116,11 @@ mod tests {
     fn test_env_correct() {
         let env = capture_env();
         set_paper_vars();
-        let alpaca_env = Env::new(&AccountType::Paper).unwrap();
+        let alpaca_env = ApiKey::from_env(&AccountType::Paper).unwrap();
         assert_eq!(alpaca_env.key_id, PAPER_ID);
         assert_eq!(alpaca_env.secret_key, PAPER_SECRET);
         set_live_vars();
-        let alpaca_env = Env::new(&AccountType::Live).unwrap();
+        let alpaca_env = ApiKey::from_env(&AccountType::Live).unwrap();
         assert_eq!(alpaca_env.key_id, LIVE_ID);
         assert_eq!(alpaca_env.secret_key, LIVE_SECRET);
         restore_env(env);
@@ -124,7 +134,7 @@ mod tests {
         unsafe {
             env::remove_var(PAPER_KEY_ID_ENV);
         }
-        let res = Env::new(&AccountType::Paper);
+        let res = ApiKey::from_env(&AccountType::Paper);
         assert!(res.is_err());
         restore_env(env);
     }
@@ -137,7 +147,7 @@ mod tests {
         unsafe {
             env::remove_var(PAPER_SECRET_KEY_ENV);
         }
-        let res = Env::new(&AccountType::Paper);
+        let res = ApiKey::from_env(&AccountType::Paper);
         assert!(res.is_err());
         restore_env(env);
     }
@@ -149,7 +159,7 @@ mod tests {
         unsafe {
             env::remove_var(LIVE_KEY_ID_ENV);
         }
-        let res = Env::new(&AccountType::Live);
+        let res = ApiKey::from_env(&AccountType::Live);
         assert!(res.is_err());
         restore_env(env);
     }
@@ -162,8 +172,26 @@ mod tests {
         unsafe {
             env::remove_var(LIVE_SECRET_KEY_ENV);
         }
-        let res = Env::new(&AccountType::Live);
+        let res = ApiKey::from_env(&AccountType::Live);
         assert!(res.is_err());
         restore_env(env);
+    }
+
+    #[test]
+    #[serial_test::parallel]
+    fn new_stores_supplied_credentials() {
+        let key = ApiKey::new("my_key_id", "my_secret");
+        assert_eq!(key.key_id(), "my_key_id");
+        assert_eq!(key.secret_key(), "my_secret");
+    }
+
+    #[test]
+    #[serial_test::parallel]
+    fn debug_censors_both_fields() {
+        let key = ApiKey::new("my_key_id", "my_secret");
+        let rendered = format!("{key:?}");
+        assert!(!rendered.contains("my_key_id"));
+        assert!(!rendered.contains("my_secret"));
+        assert!(rendered.contains("********"));
     }
 }

@@ -2,6 +2,7 @@ use socketeer::JsonCodec;
 
 use crate::{
     AccountType, CryptoFeed, Error,
+    env::ApiKey,
     streaming::{
         client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{CryptoStreamMessage, CryptoSubscriptionList},
@@ -42,15 +43,26 @@ impl StreamProtocolCodec for CryptoProtocol {
 pub type StreamingCryptoClient = StreamingClient<CryptoProtocol>;
 
 impl StreamingCryptoClient {
-    /// Connect to the chosen [`CryptoFeed`] using the credentials for
-    /// `account_type`.
+    /// Connect to the chosen [`CryptoFeed`] using credentials loaded from the
+    /// environment for `account_type`.
     ///
     /// Alpaca does not run a working crypto sandbox, so every feed
     /// routes to the production wss host regardless of account type;
     /// the account type still selects which credential pair is used
     /// to authenticate.
     pub async fn new(account_type: AccountType, feed: CryptoFeed) -> Result<Self, Error> {
-        Self::connect(account_type, feed.url(account_type)).await
+        let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, feed, api_key).await
+    }
+
+    /// Connect to the chosen [`CryptoFeed`] using explicitly supplied
+    /// credentials.
+    pub async fn new_with_credentials(
+        account_type: AccountType,
+        feed: CryptoFeed,
+        api_key: ApiKey,
+    ) -> Result<Self, Error> {
+        Self::connect(api_key, feed.url(account_type)).await
     }
 }
 

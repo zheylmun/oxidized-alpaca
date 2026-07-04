@@ -5,8 +5,6 @@ use reqwest::Method;
 use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
 
-use super::orders::Side;
-
 /// Category filter accepted by the account-activities endpoint.
 #[derive(Clone, Copy, Debug, Serialize, PartialEq, Eq)]
 #[non_exhaustive]
@@ -185,6 +183,38 @@ impl<'de> Deserialize<'de> for ActivityStatus {
     }
 }
 
+/// Side of a trade activity.
+///
+/// Distinct from [`crate::orders::Side`]: order sides are only buy or sell,
+/// but trade activities also report short sales (`sell_short`). Anything
+/// Alpaca returns that isn't modeled below is preserved verbatim under
+/// [`ActivitySide::Other`] so a new wire value never fails the whole
+/// `Activity` deserialization.
+#[derive(Clone, Debug, PartialEq, Eq)]
+#[non_exhaustive]
+pub enum ActivitySide {
+    /// A buy (`buy`).
+    Buy,
+    /// A sell (`sell`).
+    Sell,
+    /// A short sale (`sell_short`).
+    SellShort,
+    /// Any side not modeled above; the raw string from the API.
+    Other(String),
+}
+
+impl<'de> Deserialize<'de> for ActivitySide {
+    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+        let raw = String::deserialize(deserializer)?;
+        Ok(match raw.as_str() {
+            "buy" => Self::Buy,
+            "sell" => Self::Sell,
+            "sell_short" => Self::SellShort,
+            _ => Self::Other(raw),
+        })
+    }
+}
+
 /// An account activity event.
 #[derive(Clone, Debug, Deserialize)]
 #[non_exhaustive]
@@ -223,9 +253,9 @@ pub struct Activity {
     /// Remaining quantity to fill.
     #[serde(default, deserialize_with = "string_as_optional_decimal")]
     pub leaves_qty: Option<Decimal>,
-    /// Buy or sell side.
+    /// Buy, sell, or short-sale side (trade activities).
     #[serde(default)]
-    pub side: Option<Side>,
+    pub side: Option<ActivitySide>,
     /// Associated order ID.
     #[serde(default)]
     pub order_id: Option<OrderId>,
@@ -504,6 +534,31 @@ mod tests {
             activity.order_status,
             Some(crate::orders::OrderStatus::Filled)
         );
+    }
+
+    #[test]
+    fn trade_activity_side_deserializes_including_short_sale() {
+        // Regression: Alpaca reports short sales as `sell_short` on trade
+        // activities, which is not a valid order side. Pin every known side
+        // plus the unknown-value fallback.
+        let cases = [
+            ("buy", ActivitySide::Buy),
+            ("sell", ActivitySide::Sell),
+            ("sell_short", ActivitySide::SellShort),
+        ];
+        for (wire, expected) in cases {
+            let json = format!(
+                r#"{{"id":"20250507000000000::abc","activity_type":"FILL","symbol":"AAPL","qty":"10","price":"150.25","side":"{wire}"}}"#
+            );
+            let activity: Activity = serde_json::from_str(&json).unwrap();
+            assert_eq!(activity.side, Some(expected));
+        }
+    }
+
+    #[test]
+    fn unknown_activity_side_falls_back_to_other() {
+        let parsed: ActivitySide = serde_json::from_str("\"buy_to_cover\"").unwrap();
+        assert_eq!(parsed, ActivitySide::Other("buy_to_cover".to_string()));
     }
 
     #[test]

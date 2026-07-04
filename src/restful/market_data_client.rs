@@ -1,7 +1,7 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
 
-use crate::{AccountType, env::Env, error::Error, error::Result};
+use crate::{AccountType, env::ApiKey, error::Error, error::Result};
 
 const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";
@@ -17,7 +17,7 @@ const MARKET_DATA_URL: &str = "https://data.alpaca.markets/";
 /// and used across multiple threads.
 #[derive(Clone, Debug)]
 pub struct MarketDataClient {
-    env: Env,
+    api_key: ApiKey,
     client: Client,
 }
 
@@ -31,9 +31,18 @@ impl MarketDataClient {
     ///
     /// Returns an error if the required environment variables are not set.
     pub fn new(account_type: AccountType) -> Result<Self> {
-        let env = Env::new(&account_type)?;
+        let api_key = ApiKey::from_env(&account_type)?;
+        Self::new_with_credentials(account_type, api_key)
+    }
+
+    /// Create a new [`MarketDataClient`] with explicitly supplied credentials.
+    ///
+    /// `account_type` is accepted for symmetry with the trading client and
+    /// forward compatibility, but is currently unused: all market-data
+    /// requests use the same endpoint regardless of account type.
+    pub fn new_with_credentials(_account_type: AccountType, api_key: ApiKey) -> Result<Self> {
         Ok(Self {
-            env,
+            api_key,
             client: Client::new(),
         })
     }
@@ -47,8 +56,8 @@ impl MarketDataClient {
         Ok(self
             .client
             .request(method, url)
-            .header(KEY_ID_HEADER, self.env.key_id())
-            .header(SECRET_KEY_HEADER, self.env.secret_key()))
+            .header(KEY_ID_HEADER, self.api_key.key_id())
+            .header(SECRET_KEY_HEADER, self.api_key.secret_key()))
     }
 
     /// Send a request and deserialize the JSON response, returning an
@@ -84,6 +93,14 @@ mod tests {
     #[serial_test::parallel]
     async fn test_market_data_client_creation() {
         let client = MarketDataClient::new(AccountType::Paper);
+        assert!(client.is_ok());
+    }
+
+    #[tokio::test]
+    #[serial_test::parallel]
+    async fn new_with_credentials_builds_client() {
+        let api_key = ApiKey::new("test_key_id", "test_secret_key");
+        let client = MarketDataClient::new_with_credentials(AccountType::Paper, api_key);
         assert!(client.is_ok());
     }
 }
