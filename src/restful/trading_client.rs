@@ -1,7 +1,7 @@
 use reqwest::{Client, Method, RequestBuilder, Url};
 use serde::de::DeserializeOwned;
 
-use crate::{AccountType, env::Env, error::Error, error::Result};
+use crate::{AccountType, env::ApiKey, error::Error, error::Result};
 
 const KEY_ID_HEADER: &str = "APCA-API-KEY-ID";
 const SECRET_KEY_HEADER: &str = "APCA-API-SECRET-KEY";
@@ -19,7 +19,7 @@ const LIVE_TRADING_URL: &str = "https://api.alpaca.markets/";
 #[derive(Clone, Debug)]
 pub struct TradingClient {
     account_type: AccountType,
-    env: Env,
+    api_key: ApiKey,
     client: Client,
 }
 
@@ -30,10 +30,10 @@ impl TradingClient {
     ///
     /// Returns an error if the required environment variables are not set.
     pub fn new(account_type: AccountType) -> Result<Self> {
-        let env = Env::new(&account_type)?;
+        let api_key = ApiKey::from_env(&account_type)?;
         Ok(Self {
             account_type,
-            env,
+            api_key,
             client: Client::new(),
         })
     }
@@ -47,8 +47,8 @@ impl TradingClient {
         Ok(self
             .client
             .request(method, url)
-            .header(KEY_ID_HEADER, self.env.key_id())
-            .header(SECRET_KEY_HEADER, self.env.secret_key()))
+            .header(KEY_ID_HEADER, self.api_key.key_id())
+            .header(SECRET_KEY_HEADER, self.api_key.secret_key()))
     }
 
     /// Send a request and deserialize the JSON response, returning an

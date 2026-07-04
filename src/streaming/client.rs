@@ -4,7 +4,7 @@ use std::collections::VecDeque;
 
 use crate::{
     AccountType, Error,
-    env::Env,
+    env::ApiKey,
     streaming::wire::{ControlMessage, Request},
 };
 
@@ -101,7 +101,7 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
     /// Connect to `url` and complete the connect/auth handshake using the
     /// credentials for `account`.
     pub(crate) async fn connect(account: AccountType, url: &str) -> Result<Self, Error> {
-        let env = Env::new(&account)?;
+        let api_key = ApiKey::from_env(&account)?;
         let websocket = StreamSocket::<P>::connect(url).await?;
         let mut client = Self {
             websocket,
@@ -121,8 +121,8 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
         client
             .websocket
             .send(Request::AuthMessage {
-                key: env.key_id().to_string(),
-                secret: env.secret_key().to_string(),
+                key: api_key.key_id().to_string(),
+                secret: api_key.secret_key().to_string(),
             })
             .await?;
         let auth_response = client.next_message_internal().await?;

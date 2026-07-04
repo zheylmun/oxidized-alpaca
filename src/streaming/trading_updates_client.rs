@@ -3,7 +3,7 @@ use std::collections::VecDeque;
 
 use crate::{
     AccountType, Error,
-    env::Env,
+    env::ApiKey,
     streaming::messages::trade_update::{
         AuthorizationStatus, ListenStreams, TradeUpdate, TradingUpdatesMessage,
         TradingUpdatesRequest,
@@ -44,7 +44,7 @@ impl TradingUpdatesClient {
     /// Connect to the trade-updates stream for `account_type` and complete
     /// the auth + `listen` handshake.
     pub async fn new(account_type: AccountType) -> Result<Self, Error> {
-        let env = Env::new(&account_type)?;
+        let api_key = ApiKey::from_env(&account_type)?;
         let url = match account_type {
             AccountType::Live => TRADING_UPDATES_LIVE_URL,
             AccountType::Paper => TRADING_UPDATES_PAPER_URL,
@@ -53,8 +53,8 @@ impl TradingUpdatesClient {
 
         websocket
             .send(TradingUpdatesRequest::Auth {
-                key: env.key_id().to_string(),
-                secret: env.secret_key().to_string(),
+                key: api_key.key_id().to_string(),
+                secret: api_key.secret_key().to_string(),
             })
             .await?;
         match Self::recv(&mut websocket).await? {
