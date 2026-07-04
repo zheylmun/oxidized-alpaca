@@ -30,6 +30,27 @@ select when constructing a client:
 Construction returns `Err(Error::MissingEnvironmentVariable)` if the required
 variables for the chosen account are not set.
 
+### Explicit credentials
+
+If you'd rather not rely on environment variables, every client also has a
+`new_with_credentials(account_type, api_key)` constructor that takes an
+explicit `ApiKey`. `account_type` still selects the paper vs. live endpoint,
+exactly as with `new(...)`; only the credential source changes. This path
+never reads or requires the environment variables above.
+
+```rust
+use oxidized_alpaca::{AccountType, ApiKey, Error, TradingClient};
+
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+    let api_key = ApiKey::new("your_key_id", "your_secret_key");
+    let client = TradingClient::new_with_credentials(AccountType::Paper, api_key)?;
+    let account = client.get_account().await?;
+    println!("{account:?}");
+    Ok(())
+}
+```
+
 ## REST API overview
 
 Two REST clients are exposed at the crate root:
