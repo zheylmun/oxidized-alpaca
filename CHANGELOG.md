@@ -7,6 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.7...v0.0.8) - 2026-07-04
+
+### Added
+
+- add TradingUpdatesClient::new_with_credentials
+- add new_with_credentials to streaming market-data clients
+- add MarketDataClient::new_with_credentials
+- add TradingClient::new_with_credentials
+
+### Fixed
+
+- model trade-activity side separately to handle sell_short
+
+### Other
+
+- clarify MarketDataClient::new_with_credentials account_type is unused
+- document explicit ApiKey credential constructors
+- promote Env to public ApiKey type with explicit constructor
+
 ## [0.0.7](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.6...v0.0.7) - 2026-06-30
 
 ### Added
