@@ -127,6 +127,9 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
         let auth_response = client.next_message_internal().await?;
         if let Some(ControlMessage::Authenticated) = P::control(&auth_response) {
             info!("Authenticated with Alpaca Streaming API");
+        } else {
+            error!("Alpaca rejected the streaming credentials: {auth_response:?}");
+            return Err(Error::StreamingAuth);
         }
         Ok(client)
     }
@@ -223,5 +226,69 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
             }
             Err(other) => Some(other),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::StreamingClient;
+    use crate::{Error, env::ApiKey, streaming::StockProtocol};
+    use futures::{SinkExt, StreamExt};
+    use socketeer::{Message, WebSocketStreamType, get_mock_address, tungstenite};
+
+    // The `success` envelope the real feed sends immediately on connect.
+    const CONNECTED: &str = r#"[{"T":"success","msg":"connected"}]"#;
+
+    /// Script the server side of the connect/auth handshake: send the
+    /// connection confirmation, wait for the client's auth request, then reply
+    /// with `auth_response` (a JSON array of stock stream messages). The socket
+    /// is held open until the client hangs up so the final frame flushes.
+    async fn scripted_handshake(
+        mut ws: WebSocketStreamType,
+        auth_response: &'static str,
+    ) -> Result<bool, tungstenite::Error> {
+        ws.send(Message::text(CONNECTED)).await?;
+        let _auth_request = ws.next().await;
+        ws.send(Message::text(auth_response)).await?;
+        while let Some(Ok(message)) = ws.next().await {
+            if message.is_close() {
+                break;
+            }
+        }
+        Ok(true)
+    }
+
+    /// A rejected key pair must surface as `Error::StreamingAuth`, not a
+    /// "successful" connect. Regression test for the silent auth-rejection bug.
+    #[tokio::test]
+    async fn connect_rejects_failed_auth() {
+        let address = get_mock_address(|ws| {
+            scripted_handshake(ws, r#"[{"T":"error","code":402,"msg":"auth failed"}]"#)
+        })
+        .await;
+        let url = format!("ws://{address}");
+
+        let result =
+            StreamingClient::<StockProtocol>::connect(ApiKey::new("bad", "creds"), &url).await;
+
+        assert!(
+            matches!(result, Err(Error::StreamingAuth)),
+            "expected Err(StreamingAuth) on rejected auth, got {result:?}"
+        );
+    }
+
+    /// A successful handshake still returns a connected client.
+    #[tokio::test]
+    async fn connect_accepts_successful_auth() {
+        let address = get_mock_address(|ws| {
+            scripted_handshake(ws, r#"[{"T":"success","msg":"authenticated"}]"#)
+        })
+        .await;
+        let url = format!("ws://{address}");
+
+        let result =
+            StreamingClient::<StockProtocol>::connect(ApiKey::new("good", "creds"), &url).await;
+
+        assert!(result.is_ok(), "expected Ok(client), got {result:?}");
     }
 }
