@@ -188,6 +188,14 @@ pub enum Error {
     /// StreamingAuth error
     #[error("Streaming Auth error")]
     StreamingAuth,
+    /// A subscribe/unsubscribe request was rejected by the streaming server.
+    ///
+    /// Carries the server's [`StreamError`](crate::streaming::StreamError)
+    /// (code + message) so callers can classify the rejection — e.g. an
+    /// insufficient-subscription plan versus an invalid symbol.
+    #[cfg(feature = "streaming")]
+    #[error("streaming subscription rejected: {0:?}")]
+    StreamingSubscribe(crate::streaming::StreamError),
     /// A time-frame multiplier was outside the documented valid range.
     #[cfg(feature = "restful")]
     #[error("invalid timeframe: {amount}{unit} is outside the valid range {valid_range}")]

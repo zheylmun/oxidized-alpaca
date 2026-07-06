@@ -5,7 +5,7 @@ use std::collections::VecDeque;
 use crate::{
     Error,
     env::ApiKey,
-    streaming::wire::{ControlMessage, Request},
+    streaming::wire::{ControlMessage, Request, StreamError},
 };
 
 macro_rules! info {
@@ -57,6 +57,11 @@ pub trait StreamProtocol: sealed::Sealed + 'static {
     /// `success` envelope (Connected / Authenticated). Used to drive
     /// the auth handshake.
     fn control(message: &Self::Message) -> Option<&ControlMessage>;
+
+    /// Return the embedded [`StreamError`] when `message` is an `error`
+    /// envelope. Used to surface a rejected subscribe/unsubscribe instead
+    /// of blocking forever waiting for a confirmation that never arrives.
+    fn stream_error(message: &Self::Message) -> Option<&StreamError>;
 
     /// If `message` is a subscription confirmation, return the updated
     /// subscription list. Otherwise return the message unchanged so the
@@ -183,6 +188,10 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
             match self.websocket.next_message().await {
                 Ok(messages) => {
                     for message in messages {
+                        if let Some(stream_error) = P::stream_error(&message) {
+                            error!("Alpaca rejected the subscription request: {stream_error:?}");
+                            return Err(Error::StreamingSubscribe(stream_error.clone()));
+                        }
                         match self.handle_subscription_update(message) {
                             None => {
                                 received = true;
@@ -290,5 +299,60 @@ mod tests {
             StreamingClient::<StockProtocol>::connect(ApiKey::new("good", "creds"), &url).await;
 
         assert!(result.is_ok(), "expected Ok(client), got {result:?}");
+    }
+
+    /// A subscribe the server rejects (error envelope, socket kept open) must
+    /// return `Err(StreamingSubscribe)` rather than blocking forever waiting
+    /// for a confirmation that never arrives. Regression test for the silent
+    /// subscribe-rejection hang.
+    #[tokio::test]
+    async fn add_subscriptions_surfaces_rejection() {
+        use crate::streaming::{StockSubscriptionList, StreamErrorCode};
+
+        // Complete the auth handshake, then reject the subscribe request with
+        // an error envelope while keeping the socket open — mirroring Alpaca's
+        // behaviour for e.g. an insufficient-subscription plan.
+        async fn reject_subscribe(
+            mut ws: WebSocketStreamType,
+        ) -> Result<bool, tungstenite::Error> {
+            ws.send(Message::text(CONNECTED)).await?;
+            let _auth_request = ws.next().await;
+            ws.send(Message::text(r#"[{"T":"success","msg":"authenticated"}]"#))
+                .await?;
+            let _subscribe_request = ws.next().await;
+            ws.send(Message::text(
+                r#"[{"T":"error","code":409,"msg":"insufficient subscription"}]"#,
+            ))
+            .await?;
+            while let Some(Ok(message)) = ws.next().await {
+                if message.is_close() {
+                    break;
+                }
+            }
+            Ok(true)
+        }
+
+        let address = get_mock_address(reject_subscribe).await;
+        let url = format!("ws://{address}");
+        let mut client = StreamingClient::<StockProtocol>::connect(ApiKey::new("k", "s"), &url)
+            .await
+            .expect("handshake succeeds");
+
+        let subscriptions = StockSubscriptionList::new().add_trades("AAPL");
+        // The timeout guards against a regression re-introducing the hang: on
+        // the fixed code the call returns promptly with an error.
+        let outcome = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            client.add_subscriptions(&subscriptions),
+        )
+        .await
+        .expect("add_subscriptions must not hang on a rejected subscribe");
+
+        match outcome {
+            Err(Error::StreamingSubscribe(err)) => {
+                assert_eq!(err.code, StreamErrorCode::InsufficientSubscription);
+            }
+            other => panic!("expected Err(StreamingSubscribe), got {other:?}"),
+        }
     }
 }
