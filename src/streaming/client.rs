@@ -321,9 +321,7 @@ mod tests {
         // Complete the auth handshake, then reject the subscribe request with
         // an error envelope while keeping the socket open — mirroring Alpaca's
         // behaviour for e.g. an insufficient-subscription plan.
-        async fn reject_subscribe(
-            mut ws: WebSocketStreamType,
-        ) -> Result<bool, tungstenite::Error> {
+        async fn reject_subscribe(mut ws: WebSocketStreamType) -> Result<bool, tungstenite::Error> {
             ws.send(Message::text(CONNECTED)).await?;
             let _auth_request = ws.next().await;
             ws.send(Message::text(r#"[{"T":"success","msg":"authenticated"}]"#))
@@ -382,8 +380,10 @@ mod tests {
             let _auth_request = ws.next().await;
             ws.send(Message::text(r#"[{"T":"success","msg":"authenticated"}]"#))
                 .await?;
-            ws.send(Message::text(r#"[{"T":"error","code":407,"msg":"slow client"}]"#))
-                .await?;
+            ws.send(Message::text(
+                r#"[{"T":"error","code":407,"msg":"slow client"}]"#,
+            ))
+            .await?;
             while let Some(Ok(message)) = ws.next().await {
                 if message.is_close() {
                     break;
@@ -398,12 +398,10 @@ mod tests {
             .await
             .expect("handshake succeeds");
 
-        let outcome = tokio::time::timeout(
-            std::time::Duration::from_secs(5),
-            client.next_message(),
-        )
-        .await
-        .expect("next_message must not hang on an error envelope");
+        let outcome =
+            tokio::time::timeout(std::time::Duration::from_secs(5), client.next_message())
+                .await
+                .expect("next_message must not hang on an error envelope");
 
         match outcome {
             Err(Error::StreamingError(err)) => {
