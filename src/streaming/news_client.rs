@@ -6,7 +6,7 @@ use crate::{
     streaming::{
         client::{StreamProtocol, StreamProtocolCodec, StreamingClient, sealed},
         messages::{NewsStreamMessage, NewsSubscriptionList},
-        wire::{ControlMessage, Request},
+        wire::{ControlMessage, Request, StreamError},
     },
 };
 
@@ -26,6 +26,10 @@ impl StreamProtocol for NewsProtocol {
 
     fn control(message: &Self::Message) -> Option<&ControlMessage> {
         message.control()
+    }
+
+    fn stream_error(message: &Self::Message) -> Option<&StreamError> {
+        message.stream_error()
     }
 
     fn take_subscription_update(

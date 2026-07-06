@@ -436,6 +436,13 @@ impl StockStreamMessage {
             _ => None,
         }
     }
+
+    pub(crate) const fn stream_error(&self) -> Option<&StreamError> {
+        match self {
+            StockStreamMessage::Error(err) => Some(err),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

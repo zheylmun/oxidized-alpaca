@@ -272,6 +272,13 @@ impl CryptoStreamMessage {
             _ => None,
         }
     }
+
+    pub(crate) const fn stream_error(&self) -> Option<&StreamError> {
+        match self {
+            CryptoStreamMessage::Error(err) => Some(err),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]

@@ -30,7 +30,8 @@ serde_path_to_error = "0.1.16"
 
 [dev-dependencies]
 serial_test = "3"
-tokio = { version = "1", features = ["rt-multi-thread", "macros"] }
+socketeer = { version = "0.5", features = ["mocking"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 tracing-subscriber = "0.3"
 serde_urlencoded = "0.7"
 rmp-serde = "1"

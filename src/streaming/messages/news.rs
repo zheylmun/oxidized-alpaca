@@ -88,6 +88,13 @@ impl NewsStreamMessage {
             _ => None,
         }
     }
+
+    pub(crate) const fn stream_error(&self) -> Option<&StreamError> {
+        match self {
+            NewsStreamMessage::Error(err) => Some(err),
+            _ => None,
+        }
+    }
 }
 
 #[cfg(test)]
