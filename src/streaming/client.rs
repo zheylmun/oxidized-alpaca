@@ -141,9 +141,18 @@ impl<P: StreamProtocol + StreamProtocolCodec> StreamingClient<P> {
 
     /// Receive the next message from the feed, transparently consuming
     /// subscription-confirmation envelopes.
+    ///
+    /// If the server sends an error envelope, this returns
+    /// [`Error::StreamingError`] rather than delivering it as a message —
+    /// so a server-side error can't be silently dropped by a caller that
+    /// only matches on data variants. The WebSocket is left open.
     pub async fn next_message(&mut self) -> Result<P::Message, Error> {
         loop {
             let incoming = self.next_message_internal().await?;
+            if let Some(stream_error) = P::stream_error(&incoming) {
+                error!("Alpaca streaming error: {stream_error:?}");
+                return Err(Error::StreamingError(stream_error.clone()));
+            }
             if let Some(message) = self.handle_subscription_update(incoming) {
                 return Ok(message);
             }
@@ -353,6 +362,54 @@ mod tests {
                 assert_eq!(err.code, StreamErrorCode::InsufficientSubscription);
             }
             other => panic!("expected Err(StreamingSubscribe), got {other:?}"),
+        }
+    }
+
+    /// A mid-stream error envelope must surface as `Err(StreamingError)` from
+    /// `next_message`, not be handed back as `Ok(Message::Error(..))` where a
+    /// caller matching only data variants would silently drop it. Regression
+    /// test for the mid-stream-error footgun.
+    #[tokio::test]
+    async fn next_message_surfaces_stream_error() {
+        use crate::streaming::StreamErrorCode;
+
+        // Complete the handshake, then push a mid-stream error envelope and
+        // keep the socket open.
+        async fn stream_error_after_auth(
+            mut ws: WebSocketStreamType,
+        ) -> Result<bool, tungstenite::Error> {
+            ws.send(Message::text(CONNECTED)).await?;
+            let _auth_request = ws.next().await;
+            ws.send(Message::text(r#"[{"T":"success","msg":"authenticated"}]"#))
+                .await?;
+            ws.send(Message::text(r#"[{"T":"error","code":407,"msg":"slow client"}]"#))
+                .await?;
+            while let Some(Ok(message)) = ws.next().await {
+                if message.is_close() {
+                    break;
+                }
+            }
+            Ok(true)
+        }
+
+        let address = get_mock_address(stream_error_after_auth).await;
+        let url = format!("ws://{address}");
+        let mut client = StreamingClient::<StockProtocol>::connect(ApiKey::new("k", "s"), &url)
+            .await
+            .expect("handshake succeeds");
+
+        let outcome = tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            client.next_message(),
+        )
+        .await
+        .expect("next_message must not hang on an error envelope");
+
+        match outcome {
+            Err(Error::StreamingError(err)) => {
+                assert_eq!(err.code, StreamErrorCode::SlowClient);
+            }
+            other => panic!("expected Err(StreamingError), got {other:?}"),
         }
     }
 }

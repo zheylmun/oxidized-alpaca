@@ -196,6 +196,15 @@ pub enum Error {
     #[cfg(feature = "streaming")]
     #[error("streaming subscription rejected: {0:?}")]
     StreamingSubscribe(crate::streaming::StreamError),
+    /// The streaming server sent an error envelope mid-stream (i.e. after the
+    /// connect/auth/subscribe handshakes) while reading with `next_message`.
+    ///
+    /// Carries the server's [`StreamError`](crate::streaming::StreamError)
+    /// (code + message). The WebSocket is left open — the caller decides
+    /// whether to retry, resubscribe, or shut down.
+    #[cfg(feature = "streaming")]
+    #[error("streaming error: {0:?}")]
+    StreamingError(crate::streaming::StreamError),
     /// A time-frame multiplier was outside the documented valid range.
     #[cfg(feature = "restful")]
     #[error("invalid timeframe: {amount}{unit} is outside the valid range {valid_range}")]
