@@ -1,0 +1,68 @@
+name: "Alpaca API Compatibility"
+
+# Runs the live-API integration tests on a schedule so that schema changes
+# on Alpaca's side (fields added, removed, or retyped) are caught even when
+# there are no pushes to the repository. On failure it opens — or comments on
+# an already-open — GitHub issue so the maintainer is notified.
+on:
+  schedule:
+    # Twice weekly: Monday and Thursday at 13:00 UTC.
+    - cron: "0 13 * * 1,4"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  compat:
+    name: Live API Compatibility Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      ALPACA_PAPER_API_KEY_ID: ${{ secrets.ALPACA_PAPER_API_KEY_ID }}
+      ALPACA_PAPER_API_SECRET_KEY: ${{ secrets.ALPACA_PAPER_API_SECRET_KEY }}
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v6
+
+      - name: "Setup Rust Toolchain"
+        uses: dtolnay/rust-toolchain@stable
+
+      # Mirrors the main CI test step: exercises every covered endpoint against
+      # the live paper API and deserializes real responses into the crate types.
+      - name: "Run live API integration tests"
+        run: cargo test --all-features -- --skip env
+
+      - name: "Report failure as an issue"
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          title="Alpaca API compatibility check failing"
+          label="schema-watch"
+
+          # Ensure the label exists (ignore error if it already does).
+          gh label create "$label" \
+            --color B60205 \
+            --description "Automated Alpaca API compatibility check" \
+            2>/dev/null || true
+
+          # Reuse an already-open issue so a sustained outage produces one
+          # thread rather than a new issue per run.
+          existing="$(gh issue list --state open --label "$label" \
+            --json number --jq '.[0].number // empty')"
+
+          body="The scheduled Alpaca API compatibility check failed.
+
+          This usually means Alpaca changed a response schema (a field was added, removed, or retyped) and one of the crate's types no longer deserializes, or the paper API was unreachable.
+
+          Failed run: ${RUN_URL}"
+
+          if [ -n "$existing" ]; then
+            gh issue comment "$existing" --body "Still failing as of the latest run: ${RUN_URL}"
+          else
+            gh issue create --title "$title" --label "$label" --body "$body"
+          fi
