@@ -40,12 +40,13 @@ async fn trading_endpoints_live_smoke() {
     );
 
     let config = client.get_account_config().await.unwrap();
-    let _ = client
-        .update_account_config()
-        .dtbp_check(config.dtbp_check)
-        .execute()
-        .await
-        .unwrap();
+    let mut update = client.update_account_config();
+    // `dtbp_check` may be absent now that day-trading fields are conditional;
+    // only round-trip it when Alpaca still returns it.
+    if let Some(dtbp_check) = config.dtbp_check {
+        update = update.dtbp_check(dtbp_check);
+    }
+    let _ = update.execute().await.unwrap();
 
     let _ = client.list_activities().limit(1).execute().await.unwrap();
 

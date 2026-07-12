@@ -47,7 +47,12 @@ pub enum TradeConfirmEmail {
 #[non_exhaustive]
 pub struct AccountConfig {
     /// Day trading buying power check setting.
-    pub dtbp_check: DtbpCheck,
+    ///
+    /// `None` when Alpaca omits the field. Following changes to pattern day
+    /// trading regulation in 2026, this and [`pdt_check`](Self::pdt_check) are
+    /// not returned for accounts where they no longer apply.
+    #[serde(default)]
+    pub dtbp_check: Option<DtbpCheck>,
     /// Trade confirmation email preference.
     pub trade_confirm_email: TradeConfirmEmail,
     /// Whether trading is suspended.
@@ -65,7 +70,11 @@ pub struct AccountConfig {
     #[serde(default)]
     pub max_options_trading_level: Option<u8>,
     /// Pattern day trader check setting.
-    pub pdt_check: PdtCheck,
+    ///
+    /// `None` when Alpaca omits the field (see
+    /// [`dtbp_check`](Self::dtbp_check)).
+    #[serde(default)]
+    pub pdt_check: Option<PdtCheck>,
     /// Whether PTP no-exception entry is enabled.
     #[serde(default)]
     pub ptp_no_exception_entry: bool,
@@ -213,8 +222,31 @@ mod tests {
             "disable_overnight_trading": true
         }"#;
         let config: AccountConfig = serde_json::from_str(json).unwrap();
-        assert_eq!(config.dtbp_check, DtbpCheck::Both);
+        assert_eq!(config.dtbp_check, Some(DtbpCheck::Both));
+        assert_eq!(config.pdt_check, Some(PdtCheck::Entry));
         assert!(!config.suspend_trade);
         assert!(config.disable_overnight_trading);
+    }
+
+    /// As of mid-2026, following changes to pattern day trading regulation,
+    /// Alpaca omits the `dtbp_check` and `pdt_check` fields for accounts where
+    /// they no longer apply. `AccountConfig` must still deserialize such
+    /// responses.
+    #[test]
+    fn test_account_config_without_daytrading_fields() {
+        let json = r#"{
+            "closing_transactions_only": false,
+            "disable_overnight_trading": false,
+            "fractional_trading": true,
+            "max_margin_multiplier": "4",
+            "no_shorting": false,
+            "ptp_no_exception_entry": false,
+            "suspend_trade": false,
+            "trade_confirm_email": "all"
+        }"#;
+        let config: AccountConfig = serde_json::from_str(json).unwrap();
+        assert_eq!(config.dtbp_check, None);
+        assert_eq!(config.pdt_check, None);
+        assert_eq!(config.trade_confirm_email, TradeConfirmEmail::All);
     }
 }
