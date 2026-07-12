@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.10](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.9...v0.0.10) - 2026-07-12
+
+### Fixed
+
+- *(trading)* tolerate omitted day-trading account fields
+
+### Other
+
+- *(schema-watch)* guard against empty Alpaca credentials
+- add scheduled Alpaca API compatibility check
+
 ## [0.0.9](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.8...v0.0.9) - 2026-07-06
 
 ### Fixed
