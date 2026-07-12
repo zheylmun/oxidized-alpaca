@@ -60,8 +60,15 @@ pub struct AccountDetails {
     /// The fees collected.
     #[serde(deserialize_with = "string_as_decimal")]
     pub accrued_fees: Decimal,
-    ///Whether or not the account has been flagged as a pattern day trader
-    pub pattern_day_trader: bool,
+    /// Whether or not the account has been flagged as a pattern day trader.
+    ///
+    /// `None` when Alpaca omits the field. Following changes to pattern day
+    /// trading regulation in 2026, this and the other day-trading fields
+    /// ([`daytrade_count`](Self::daytrade_count),
+    /// [`daytrading_buying_power`](Self::daytrading_buying_power)) are not
+    /// returned for accounts where they no longer apply.
+    #[serde(default)]
+    pub pattern_day_trader: Option<bool>,
     /// User setting. If true, the account is not allowed to place orders.
     pub trade_suspended_by_user: bool,
     /// If true, the account is not allowed to place orders.
@@ -105,16 +112,23 @@ pub struct AccountDetails {
     /// Value of special memorandum account
     #[serde(deserialize_with = "string_as_decimal")]
     pub sma: Decimal,
-    /// The current number of daytrades that have been made in the last 5 trading days (inclusive of today)
-    pub daytrade_count: u32,
+    /// The current number of daytrades that have been made in the last 5 trading days (inclusive of today).
+    ///
+    /// `None` when Alpaca omits the field (see
+    /// [`pattern_day_trader`](Self::pattern_day_trader)).
+    #[serde(default)]
+    pub daytrade_count: Option<u32>,
     /// The date of the snapshot for last_* fields
     pub balance_asof: NaiveDate,
     /// Account maintenance margin requirement on the previous trading day
     #[serde(deserialize_with = "string_as_decimal")]
     pub last_maintenance_margin: Decimal,
-    /// Account buying power for day trades (continuously updated value)
-    #[serde(deserialize_with = "string_as_decimal")]
-    pub daytrading_buying_power: Decimal,
+    /// Account buying power for day trades (continuously updated value).
+    ///
+    /// `None` when Alpaca omits the field (see
+    /// [`pattern_day_trader`](Self::pattern_day_trader)).
+    #[serde(deserialize_with = "string_as_optional_decimal", default)]
+    pub daytrading_buying_power: Option<Decimal>,
     /// Account buying power under Regulation T
     #[serde(deserialize_with = "string_as_decimal")]
     pub regt_buying_power: Decimal,
@@ -210,5 +224,63 @@ mod tests {
             Some(Decimal::from_str_exact("500.25").unwrap())
         );
         assert_eq!(account.pending_transfer_out, Some(Decimal::ZERO));
+        assert_eq!(account.pattern_day_trader, Some(true));
+        assert_eq!(account.daytrade_count, Some(0));
+        assert_eq!(
+            account.daytrading_buying_power,
+            Some(Decimal::from_str_exact("0").unwrap())
+        );
+    }
+
+    /// As of mid-2026, following changes to pattern day trading regulation,
+    /// Alpaca omits the `pattern_day_trader`, `daytrade_count`, and
+    /// `daytrading_buying_power` fields for accounts where they no longer
+    /// apply. `AccountDetails` must still deserialize such responses.
+    #[tokio::test]
+    async fn test_account_without_daytrading_fields() {
+        let json = r#"{
+          "id": "ccd4e0fc-5416-4b75-bf7d-463c8dcad0fd",
+          "admin_configurations": {},
+          "user_configurations": { "dtbp_check": "entry" },
+          "account_number": "PA3L2HG811OS",
+          "status": "ACTIVE",
+          "crypto_status": "ACTIVE",
+          "options_approved_level": 3,
+          "options_trading_level": 3,
+          "currency": "USD",
+          "buying_power": "357947.64",
+          "regt_buying_power": "178973.82",
+          "effective_buying_power": "357947.64",
+          "non_marginable_buying_power": "89486.91",
+          "options_buying_power": "89486.91",
+          "cash": "89486.91",
+          "accrued_fees": "0",
+          "portfolio_value": "94758.21",
+          "trading_blocked": false,
+          "transfers_blocked": false,
+          "account_blocked": false,
+          "created_at": "2021-12-22T01:09:20.724911Z",
+          "trade_suspended_by_user": false,
+          "multiplier": "4",
+          "shorting_enabled": true,
+          "equity": "94758.21",
+          "last_equity": "94758.21",
+          "long_market_value": "0",
+          "short_market_value": "0",
+          "position_market_value": "0",
+          "initial_margin": "0",
+          "maintenance_margin": "0",
+          "last_maintenance_margin": "0",
+          "sma": "94758.21",
+          "balance_asof": "2026-07-10",
+          "crypto_tier": 1,
+          "intraday_adjustments": "0",
+          "pending_reg_taf_fees": "0"
+        }"#;
+        let account: AccountDetails = serde_json::from_str(json).unwrap();
+        assert_eq!(account.status, AccountStatus::Active);
+        assert_eq!(account.pattern_day_trader, None);
+        assert_eq!(account.daytrade_count, None);
+        assert_eq!(account.daytrading_buying_power, None);
     }
 }
