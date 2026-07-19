@@ -70,6 +70,29 @@ where
     }
 }
 
+/// Deserialize an optional integer that some Alpaca crypto feeds encode as
+/// a JSON string instead of a number (the `i` trade-id field).
+#[cfg(feature = "restful")]
+pub(crate) fn string_or_int_as_optional_i64<'de, D>(
+    deserializer: D,
+) -> Result<Option<i64>, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum StringOrInt {
+        Int(i64),
+        Str(String),
+    }
+
+    match Option::<StringOrInt>::deserialize(deserializer)? {
+        Some(StringOrInt::Int(i)) => Ok(Some(i)),
+        Some(StringOrInt::Str(s)) => s.parse().map(Some).map_err(serde::de::Error::custom),
+        None => Ok(None),
+    }
+}
+
 #[cfg(feature = "restful")]
 pub(crate) fn unix_seconds_vec_as_datetimes<'de, D>(
     deserializer: D,

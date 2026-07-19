@@ -225,7 +225,10 @@ mod tests {
         let parsed: TradesResponse = serde_json::from_str(json).unwrap();
         assert_eq!(parsed.trades["BTC/USD"].len(), 2);
         assert_eq!(parsed.trades["BTC/USD"][0].price, 103_250.5);
-        assert_eq!(parsed.trades["BTC/USD"][0].taker_side.as_deref(), Some("B"));
+        assert_eq!(
+            parsed.trades["BTC/USD"][0].taker_side,
+            Some(crate::CryptoTakerSide::Buyer)
+        );
         assert!(parsed.next_page_token.is_some());
     }
 }
