@@ -43,6 +43,21 @@ pub(crate) fn pending_symbols<T>(
         .collect()
 }
 
+/// Drop the partial series for `symbols` ahead of a restart.
+///
+/// Narrowing `?symbols=` to the symbols still under the cap requires
+/// clearing `page_token`, because the cursor is tied to the symbol set it
+/// was issued for. That restarts the query at the beginning of the range,
+/// so anything already merged for those symbols would be appended a second
+/// time. Their series are by definition incomplete (still under the cap),
+/// so discarding them costs only the refetch and leaves the restart free
+/// to repopulate them in order.
+pub(crate) fn drop_partials<T>(combined: &mut HashMap<String, Vec<T>>, symbols: &[String]) {
+    for symbol in symbols {
+        combined.remove(symbol);
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -120,6 +135,26 @@ mod tests {
             pending_symbols(&combined, &requested, 1),
             vec!["MSFT".to_string()]
         );
+    }
+
+    #[test]
+    fn drop_partials_removes_only_the_named_symbols() {
+        let mut combined: HashMap<String, Vec<i32>> = HashMap::new();
+        combined.insert("AAPL".into(), vec![1, 2, 3]);
+        combined.insert("MSFT".into(), vec![4]);
+        combined.insert("GOOG".into(), vec![5]);
+        drop_partials(&mut combined, &["MSFT".to_string(), "GOOG".to_string()]);
+        assert_eq!(combined["AAPL"], vec![1, 2, 3]);
+        assert!(!combined.contains_key("MSFT"));
+        assert!(!combined.contains_key("GOOG"));
+    }
+
+    #[test]
+    fn drop_partials_ignores_symbols_with_no_entry() {
+        let mut combined: HashMap<String, Vec<i32>> = HashMap::new();
+        combined.insert("AAPL".into(), vec![1]);
+        drop_partials(&mut combined, &["MSFT".to_string()]);
+        assert_eq!(combined.len(), 1);
     }
 
     #[test]

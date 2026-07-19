@@ -330,6 +330,13 @@ impl StockBarsMultiRequest<'_> {
                 }
                 let next_symbols = pending.join(",");
                 if next_symbols != self.symbols {
+                    // Narrowing to the symbols still under the cap avoids
+                    // paging through a saturated symbol's entire range to
+                    // reach a lagging one. The cursor is tied to the symbol
+                    // set, so it has to be cleared -- which restarts the
+                    // range and would re-append what we already merged.
+                    // Drop those partial series so the restart refills them.
+                    pagination::drop_partials(&mut combined, &pending);
                     self.symbols = next_symbols;
                     self.page_token = None;
                 }
@@ -578,5 +585,69 @@ mod tests {
             .await
             .unwrap();
         assert!(result.is_empty());
+    }
+
+    /// Companion to the crypto regression test: the capped multi-symbol
+    /// loop must not re-request a range it has already merged, or the
+    /// symbol still under the cap gets its earlier bars appended twice.
+    #[tokio::test]
+    #[serial]
+    async fn multi_paginates_without_duplicating_already_merged_bars() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, Respond, ResponseTemplate};
+
+        fn bar(close: f64) -> String {
+            format!(
+                r#"{{"t":"2026-05-07T13:30:00Z","o":1.0,"h":1.0,"l":1.0,"c":{close},"v":1,"n":1,"vw":1.0}}"#
+            )
+        }
+
+        struct Pages;
+        impl Respond for Pages {
+            fn respond(&self, request: &wiremock::Request) -> ResponseTemplate {
+                let query: std::collections::HashMap<_, _> =
+                    request.url.query_pairs().into_owned().collect();
+                let body = if !query.contains_key("page_token") {
+                    format!(
+                        r#"{{"bars":{{"AAPL":[{},{},{}],"MSFT":[{},{}]}},"next_page_token":"p2"}}"#,
+                        bar(1.0),
+                        bar(2.0),
+                        bar(3.0),
+                        bar(10.0),
+                        bar(11.0)
+                    )
+                } else {
+                    format!(
+                        r#"{{"bars":{{"MSFT":[{}]}},"next_page_token":null}}"#,
+                        bar(12.0)
+                    )
+                };
+                ResponseTemplate::new(200).set_body_raw(body, "application/json")
+            }
+        }
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v2/stocks/bars"))
+            .respond_with(Pages)
+            .mount(&server)
+            .await;
+
+        let client = paper_client().with_base_url(&server.uri());
+        let result = client
+            .stock_bars_multi(&["AAPL", "MSFT"], TimeFrame::ONE_DAY)
+            .limit(3)
+            .execute()
+            .await
+            .unwrap();
+
+        let msft: Vec<f64> = result["MSFT"].iter().map(|b| b.close).collect();
+        assert_eq!(
+            msft,
+            vec![10.0, 11.0, 12.0],
+            "MSFT series should continue across pages, not restart"
+        );
+        let aapl: Vec<f64> = result["AAPL"].iter().map(|b| b.close).collect();
+        assert_eq!(aapl, vec![1.0, 2.0, 3.0]);
     }
 }

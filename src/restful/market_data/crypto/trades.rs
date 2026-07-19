@@ -84,6 +84,13 @@ impl CryptoTradesRequest<'_> {
                 }
                 let next_symbols = pending.join(",");
                 if next_symbols != self.symbols {
+                    // Narrowing to the symbols still under the cap avoids
+                    // paging through a saturated symbol's entire range to
+                    // reach a lagging one. The cursor is tied to the symbol
+                    // set, so it has to be cleared -- which restarts the
+                    // range and would re-append what we already merged.
+                    // Drop those partial series so the restart refills them.
+                    pagination::drop_partials(&mut combined, &pending);
                     self.symbols = next_symbols;
                     self.page_token = None;
                 }
@@ -209,6 +216,74 @@ mod tests {
             .await
             .unwrap();
         assert!(result.is_empty());
+    }
+
+    /// Regression test for per-symbol capping across pages.
+    ///
+    /// Two symbols, cap 3. The first page satisfies BTC but leaves ETH one
+    /// short, so a second page is needed. Whatever narrowing the loop does
+    /// to reduce payload, it must never re-request a range it has already
+    /// merged: doing so appends records the map already holds, which shows
+    /// up as duplicate (and out-of-order) trades once truncated to the cap.
+    #[tokio::test]
+    #[serial]
+    async fn paginates_without_duplicating_already_merged_trades() {
+        use wiremock::matchers::{method, path};
+        use wiremock::{Mock, MockServer, Respond, ResponseTemplate};
+
+        fn trade(price: f64) -> String {
+            format!(r#"{{"t":"2026-05-07T13:30:00Z","p":{price},"s":1.0}}"#)
+        }
+
+        struct Pages;
+        impl Respond for Pages {
+            fn respond(&self, request: &wiremock::Request) -> ResponseTemplate {
+                let query: std::collections::HashMap<_, _> =
+                    request.url.query_pairs().into_owned().collect();
+                let body = if !query.contains_key("page_token") {
+                    // Page 1: BTC reaches the cap of 3, ETH gets 2.
+                    format!(
+                        r#"{{"trades":{{"BTC/USD":[{},{},{}],"ETH/USD":[{},{}]}},"next_page_token":"p2"}}"#,
+                        trade(1.0),
+                        trade(2.0),
+                        trade(3.0),
+                        trade(10.0),
+                        trade(11.0)
+                    )
+                } else {
+                    // Page 2 continues where page 1 stopped.
+                    format!(
+                        r#"{{"trades":{{"ETH/USD":[{}]}},"next_page_token":null}}"#,
+                        trade(12.0)
+                    )
+                };
+                ResponseTemplate::new(200).set_body_raw(body, "application/json")
+            }
+        }
+
+        let server = MockServer::start().await;
+        Mock::given(method("GET"))
+            .and(path("/v1beta3/crypto/us/trades"))
+            .respond_with(Pages)
+            .mount(&server)
+            .await;
+
+        let client = paper_client().with_base_url(&server.uri());
+        let result = client
+            .crypto_trades(&["BTC/USD", "ETH/USD"], CryptoLocation::Us)
+            .limit(3)
+            .execute()
+            .await
+            .unwrap();
+
+        let eth: Vec<f64> = result["ETH/USD"].iter().map(|t| t.price).collect();
+        assert_eq!(
+            eth,
+            vec![10.0, 11.0, 12.0],
+            "ETH/USD series should continue across pages, not restart"
+        );
+        let btc: Vec<f64> = result["BTC/USD"].iter().map(|t| t.price).collect();
+        assert_eq!(btc, vec![1.0, 2.0, 3.0]);
     }
 
     #[test]

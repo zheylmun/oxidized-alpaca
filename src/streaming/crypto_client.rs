@@ -103,6 +103,14 @@ mod tests {
     #[test]
     fn crypto_urls_use_distinct_v1beta3_paths() {
         assert_eq!(
+            CryptoFeed::Us2.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us-2",
+        );
+        assert_eq!(
+            CryptoFeed::Bs1.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/bs-1",
+        );
+        assert_eq!(
             CryptoFeed::Us.url(AccountType::Live),
             "wss://stream.data.alpaca.markets/v1beta3/crypto/us",
         );

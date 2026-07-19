@@ -373,6 +373,13 @@ impl StockQuotesMultiRequest<'_> {
                 }
                 let next_symbols = pending.join(",");
                 if next_symbols != self.symbols {
+                    // Narrowing to the symbols still under the cap avoids
+                    // paging through a saturated symbol's entire range to
+                    // reach a lagging one. The cursor is tied to the symbol
+                    // set, so it has to be cleared -- which restarts the
+                    // range and would re-append what we already merged.
+                    // Drop those partial series so the restart refills them.
+                    pagination::drop_partials(&mut combined, &pending);
                     self.symbols = next_symbols;
                     self.page_token = None;
                 }

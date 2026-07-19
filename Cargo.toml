@@ -34,4 +34,5 @@ socketeer = { version = "0.5", features = ["mocking"] }
 tokio = { version = "1", features = ["rt-multi-thread", "macros", "time"] }
 tracing-subscriber = "0.3"
 serde_urlencoded = "0.7"
+wiremock = "0.6"
 rmp-serde = "1"

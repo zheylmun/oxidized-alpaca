@@ -19,6 +19,7 @@ const MARKET_DATA_URL: &str = "https://data.alpaca.markets/";
 pub struct MarketDataClient {
     api_key: ApiKey,
     client: Client,
+    base_url: Url,
 }
 
 impl MarketDataClient {
@@ -44,15 +45,23 @@ impl MarketDataClient {
         Ok(Self {
             api_key,
             client: Client::new(),
+            base_url: Url::parse(MARKET_DATA_URL).expect("MARKET_DATA_URL is a valid base URL"),
         })
+    }
+
+    /// Point this client at an arbitrary base URL so tests can drive the
+    /// paginating endpoints against a local mock server. Crate-internal and
+    /// test-only: the public constructors always target Alpaca.
+    #[cfg(test)]
+    pub(crate) fn with_base_url(mut self, base_url: &str) -> Self {
+        self.base_url = Url::parse(base_url).expect("test base URL is valid");
+        self
     }
 
     /// Build a request for the given path, which should include the version prefix
     /// (e.g., `"v2/stocks/AAPL/bars"` or `"v1beta1/news"`).
     pub(crate) fn request(&self, method: Method, path: &str) -> Result<RequestBuilder> {
-        let url = Url::parse(MARKET_DATA_URL)
-            .expect("MARKET_DATA_URL is a valid base URL")
-            .join(path)?;
+        let url = self.base_url.join(path)?;
         Ok(self
             .client
             .request(method, url)
