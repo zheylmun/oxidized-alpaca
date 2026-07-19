@@ -1070,7 +1070,7 @@ dependencies = [
 
 [[package]]
 name = "oxidized_alpaca"
-version = "0.0.10"
+version = "0.0.11"
 dependencies = [
  "chrono",
  "futures",

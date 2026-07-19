@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.11](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.10...v0.0.11) - 2026-07-19
+
+### Added
+
+- *(streaming)* add CryptoFeed::Us2 and Bs1
+- *(crypto)* add historical trades and quotes endpoints
+
+### Fixed
+
+- *(market-data)* stop capped pagination from duplicating merged rows
+- *(crypto)* align REST crypto payloads with the streaming feed and docs
+
+### Other
+
+- add an inverted canary for the unserved crypto-perps endpoints
+- *(crypto)* exercise the new historical builders in the live smoke test
+- *(crypto)* cover the snapshots and orderbooks payload shapes
+- *(crypto)* stop paginating crypto bars once every symbol hits the cap
+- *(market-data)* promote pagination helpers out of stock
+- ignore .omniscient/ index directory
+
 ## [0.0.10](https://github.com/zheylmun/oxidized-alpaca/compare/v0.0.9...v0.0.10) - 2026-07-12
 
 ### Fixed
