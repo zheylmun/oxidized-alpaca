@@ -19,6 +19,8 @@ const STREAMING_OVERNIGHT_SANDBOX_URL: &str =
 const CRYPTO_US_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us";
 const CRYPTO_US_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us-1";
 const CRYPTO_EU_KRAKEN_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/eu-1";
+const CRYPTO_US2_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/us-2";
+const CRYPTO_BS1_URL: &str = "wss://stream.data.alpaca.markets/v1beta3/crypto/bs-1";
 
 const OPTION_INDICATIVE_LIVE_URL: &str = "wss://stream.data.alpaca.markets/v1beta1/indicative";
 const OPTION_INDICATIVE_SANDBOX_URL: &str =
@@ -122,6 +124,13 @@ pub enum CryptoFeed {
     /// Kraken-backed EU crypto feed.
     #[serde(rename = "eu-1")]
     EuKraken,
+    /// Secondary US crypto feed (`us-2`).
+    #[serde(rename = "us-2")]
+    Us2,
+    /// Bahamas crypto feed (`bs-1`), the reference feed for perpetual
+    /// futures pricing.
+    #[serde(rename = "bs-1")]
+    Bs1,
 }
 
 impl CryptoFeed {
@@ -135,6 +144,8 @@ impl CryptoFeed {
             Self::Us => CRYPTO_US_URL,
             Self::UsKraken => CRYPTO_US_KRAKEN_URL,
             Self::EuKraken => CRYPTO_EU_KRAKEN_URL,
+            Self::Us2 => CRYPTO_US2_URL,
+            Self::Bs1 => CRYPTO_BS1_URL,
         }
     }
 }
@@ -304,7 +315,15 @@ mod tests {
             serde_json::to_string(&CryptoFeed::EuKraken).unwrap(),
             "\"eu-1\""
         );
-        for variant in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+        assert_eq!(serde_json::to_string(&CryptoFeed::Us2).unwrap(), "\"us-2\"");
+        assert_eq!(serde_json::to_string(&CryptoFeed::Bs1).unwrap(), "\"bs-1\"");
+        for variant in [
+            CryptoFeed::Us,
+            CryptoFeed::UsKraken,
+            CryptoFeed::EuKraken,
+            CryptoFeed::Us2,
+            CryptoFeed::Bs1,
+        ] {
             let encoded = serde_json::to_string(&variant).unwrap();
             let decoded: CryptoFeed = serde_json::from_str(&encoded).unwrap();
             assert_eq!(decoded, variant, "{variant:?} did not round-trip");
@@ -334,7 +353,13 @@ mod tests {
         // wss host regardless of `AccountType`. Pinning it here so a
         // future refactor that wires the account type through can't
         // quietly send paper accounts back to the (broken) sandbox host.
-        for feed in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+        for feed in [
+            CryptoFeed::Us,
+            CryptoFeed::UsKraken,
+            CryptoFeed::EuKraken,
+            CryptoFeed::Us2,
+            CryptoFeed::Bs1,
+        ] {
             assert_eq!(
                 feed.url(AccountType::Live),
                 feed.url(AccountType::Paper),

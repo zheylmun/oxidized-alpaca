@@ -79,7 +79,13 @@ mod tests {
     /// so even Paper accounts must connect to production.
     #[test]
     fn crypto_urls_target_production_host() {
-        for feed in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+        for feed in [
+            CryptoFeed::Us,
+            CryptoFeed::UsKraken,
+            CryptoFeed::EuKraken,
+            CryptoFeed::Us2,
+            CryptoFeed::Bs1,
+        ] {
             for account in [AccountType::Live, AccountType::Paper] {
                 let url = feed.url(account);
                 assert!(
