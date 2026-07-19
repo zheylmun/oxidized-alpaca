@@ -12,6 +12,7 @@ pub mod logos;
 pub mod news;
 /// Options market data endpoint types and methods.
 pub mod options;
+mod pagination;
 /// Screener endpoint types and methods.
 pub mod screener;
 /// Stock market data endpoint types and methods.

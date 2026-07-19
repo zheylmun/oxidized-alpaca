@@ -12,7 +12,7 @@ use std::collections::HashMap;
 /// Append the items from one paginated response page to the running
 /// per-symbol map, truncating each symbol's series to `cap` when one is
 /// set.
-pub(super) fn extend_capped<T>(
+pub(crate) fn extend_capped<T>(
     combined: &mut HashMap<String, Vec<T>>,
     page: HashMap<String, Vec<T>>,
     cap: Option<usize>,
@@ -31,7 +31,7 @@ pub(super) fn extend_capped<T>(
 /// genuinely empty/illiquid symbol stays pending until the API itself
 /// stops returning a `next_page_token`. The order of `requested` is
 /// preserved so the resulting `?symbols=` query is stable.
-pub(super) fn pending_symbols<T>(
+pub(crate) fn pending_symbols<T>(
     combined: &HashMap<String, Vec<T>>,
     requested: &[String],
     cap: usize,

@@ -7,7 +7,8 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::{Adjustment, AdjustmentList, AsOf, Bar, pagination};
+use super::{Adjustment, AdjustmentList, AsOf, Bar};
+use crate::restful::market_data::pagination;
 
 /// A request for /v2/stocks/{symbol}/bars
 #[derive(Debug, Serialize)]

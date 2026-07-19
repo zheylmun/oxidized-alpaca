@@ -6,7 +6,8 @@ use chrono::{DateTime, Utc};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
-use super::{AsOf, pagination};
+use super::AsOf;
+use crate::restful::market_data::pagination;
 
 /// A stock trade.
 #[derive(Clone, Debug, Deserialize, PartialEq)]
