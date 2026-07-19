@@ -163,11 +163,31 @@ async fn market_data_endpoints_live_smoke() {
         .unwrap();
     let _ = latest_crypto_bars;
 
+    let crypto_trades = client
+        .crypto_trades(&["BTC/USD"], CryptoLocation::Us)
+        .start(window_start)
+        .end(window_end)
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
+    let _ = crypto_trades;
+
     let latest_crypto_trades = client
         .crypto_latest_trades(&["BTC/USD"], CryptoLocation::Us)
         .await
         .unwrap();
     let _ = latest_crypto_trades;
+
+    let crypto_quotes = client
+        .crypto_quotes(&["BTC/USD"], CryptoLocation::Us)
+        .start(window_start)
+        .end(window_end)
+        .limit(1)
+        .execute()
+        .await
+        .unwrap();
+    let _ = crypto_quotes;
 
     let latest_crypto_quotes = client
         .crypto_latest_quotes(&["BTC/USD"], CryptoLocation::Us)

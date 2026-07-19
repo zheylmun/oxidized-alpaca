@@ -79,7 +79,13 @@ mod tests {
     /// so even Paper accounts must connect to production.
     #[test]
     fn crypto_urls_target_production_host() {
-        for feed in [CryptoFeed::Us, CryptoFeed::UsKraken, CryptoFeed::EuKraken] {
+        for feed in [
+            CryptoFeed::Us,
+            CryptoFeed::UsKraken,
+            CryptoFeed::EuKraken,
+            CryptoFeed::Us2,
+            CryptoFeed::Bs1,
+        ] {
             for account in [AccountType::Live, AccountType::Paper] {
                 let url = feed.url(account);
                 assert!(
@@ -96,6 +102,14 @@ mod tests {
 
     #[test]
     fn crypto_urls_use_distinct_v1beta3_paths() {
+        assert_eq!(
+            CryptoFeed::Us2.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/us-2",
+        );
+        assert_eq!(
+            CryptoFeed::Bs1.url(AccountType::Live),
+            "wss://stream.data.alpaca.markets/v1beta3/crypto/bs-1",
+        );
         assert_eq!(
             CryptoFeed::Us.url(AccountType::Live),
             "wss://stream.data.alpaca.markets/v1beta3/crypto/us",

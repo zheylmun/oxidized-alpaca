@@ -4,6 +4,7 @@ use reqwest::Method;
 use serde::{Deserialize, Serialize};
 
 use super::{CryptoBar, CryptoLocation};
+use crate::restful::market_data::pagination;
 
 #[derive(Debug, Deserialize)]
 struct BarsResponse {
@@ -30,7 +31,8 @@ pub struct CryptoBarsRequest<'a> {
     start: Option<DateTime<Utc>>,
     #[serde(skip_serializing_if = "Option::is_none")]
     end: Option<DateTime<Utc>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    /// Per-symbol cap applied client-side during pagination.
+    #[serde(skip)]
     limit: Option<usize>,
     #[serde(skip_serializing_if = "Option::is_none")]
     page_token: Option<String>,
@@ -63,29 +65,45 @@ impl CryptoBarsRequest<'_> {
 
     /// Execute the request, auto-paginating until all matching bars are
     /// retrieved. When `limit` is set, each symbol's series is truncated to
-    /// at most that many bars after pagination completes.
+    /// the cap as pages arrive, and pagination stops as soon as every
+    /// requested symbol has reached the cap (or the API runs out of pages).
     pub async fn execute(
         mut self,
     ) -> crate::Result<std::collections::HashMap<String, Vec<CryptoBar>>> {
         let cap = self.limit;
+        if cap == Some(0) || self.symbols.is_empty() {
+            return Ok(std::collections::HashMap::new());
+        }
+        let requested: Vec<String> = self.symbols.split(',').map(str::to_string).collect();
         let mut combined: std::collections::HashMap<String, Vec<CryptoBar>> =
             std::collections::HashMap::new();
         loop {
+            if let Some(cap) = cap {
+                let pending = pagination::pending_symbols(&combined, &requested, cap);
+                if pending.is_empty() {
+                    break;
+                }
+                let next_symbols = pending.join(",");
+                if next_symbols != self.symbols {
+                    // Narrowing to the symbols still under the cap avoids
+                    // paging through a saturated symbol's entire range to
+                    // reach a lagging one. The cursor is tied to the symbol
+                    // set, so it has to be cleared -- which restarts the
+                    // range and would re-append what we already merged.
+                    // Drop those partial series so the restart refills them.
+                    pagination::drop_partials(&mut combined, &pending);
+                    self.symbols = next_symbols;
+                    self.page_token = None;
+                }
+            }
             let loc = self.loc;
             let path = format!("v1beta3/crypto/{loc}/bars");
             let request = self.client.request(Method::GET, &path)?.query(&self);
             let response: BarsResponse = self.client.send_and_deserialize(request).await?;
-            for (symbol, bars) in response.bars {
-                combined.entry(symbol).or_default().extend(bars);
-            }
+            pagination::extend_capped(&mut combined, response.bars, cap);
             match response.next_page_token {
                 Some(token) => self.page_token = Some(token),
                 None => break,
-            }
-        }
-        if let Some(cap) = cap {
-            for bars in combined.values_mut() {
-                bars.truncate(cap);
             }
         }
         Ok(combined)

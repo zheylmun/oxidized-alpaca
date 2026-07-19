@@ -22,6 +22,9 @@
 /// Asset domain types shared between the REST and streaming APIs.
 pub mod asset;
 pub use asset::AssetClass;
+/// Crypto domain types shared between the REST and streaming APIs.
+pub mod crypto;
+pub use crypto::CryptoTakerSide;
 mod env;
 pub use env::ApiKey;
 /// Error types for the crate.

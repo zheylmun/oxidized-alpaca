@@ -98,17 +98,7 @@ fn append_unique(list: Option<Vec<String>>, symbol: &str) -> Vec<String> {
     list
 }
 
-/// Side that initiated a crypto trade.
-#[derive(Clone, Debug, Deserialize, Serialize, Eq, PartialEq)]
-#[non_exhaustive]
-pub enum CryptoTakerSide {
-    /// Buyer was the taker.
-    #[serde(rename = "B")]
-    Buyer,
-    /// Seller was the taker.
-    #[serde(rename = "S")]
-    Seller,
-}
+pub use crate::crypto::CryptoTakerSide;
 
 /// OHLCV bar for a crypto pair.
 ///
